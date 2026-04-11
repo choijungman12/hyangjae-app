@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAdminAuth } from './page';
 
 const ALL_BOOKINGS = [
-  { id: 'B2040', name: '김민준', phone: '010-1234-5678', type: '3번 데크 + 불멍', date: '2026-04-12', time: '18:30', guests: 6, price: 189000, status: 'confirmed' },
+  { id: 'B2040', name: '김민준', phone: '010-1234-5678', type: '3번 데크 + 불멍', date: '2026-04-12', time: '18:30', guests: 6, price: 229000, status: 'confirmed' },
   { id: 'B2039', name: '박지영', phone: '010-2345-6789', type: '와사비 수확 체험',   date: '2026-04-11', time: '11:00', guests: 2, price: 50000,  status: 'pending' },
   { id: 'B2038', name: '이서현', phone: '010-3456-7890', type: '7번 데크 + 숯불',    date: '2026-04-11', time: '16:00', guests: 8, price: 179000, status: 'confirmed' },
   { id: 'B2037', name: '정도현', phone: '010-4567-8901', type: '1번 데크',           date: '2026-04-10', time: '13:30', guests: 4, price: 139000, status: 'done' },

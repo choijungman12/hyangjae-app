@@ -15,7 +15,7 @@ type Booking = {
 };
 
 const INITIAL_BOOKING_HISTORY: Booking[] = [
-  { id: 1, type: '3번 글램핑 데크 · 8인 + 불멍', date: '2026-04-12', time: '18:30', guests: 6, price: 189000, status: 'confirmed' },
+  { id: 1, type: '3번 글램핑 데크 · 6인 + 불멍', date: '2026-04-12', time: '18:30', guests: 6, price: 229000, status: 'confirmed' },
   { id: 2, type: '와사비 수확 체험', date: '2026-04-12', time: '15:00', guests: 2, price: 50000, status: 'confirmed' },
   { id: 3, type: '5번 글램핑 데크 · 8인', date: '2026-03-20', time: '11:00', guests: 4, price: 139000, status: 'done' },
 ];

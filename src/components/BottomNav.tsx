@@ -13,7 +13,7 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-gray-200 z-50 shadow-2xl"
+      className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-t border-gray-200 dark:border-gray-800 z-50 shadow-2xl theme-transition"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <div className="grid grid-cols-5 h-16">
@@ -28,17 +28,17 @@ export default function BottomNav() {
               aria-current={isActive ? 'page' : undefined}
             >
               {isActive && (
-                <div className="absolute inset-0 bg-gradient-to-t from-emerald-50/80 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-emerald-50/80 to-transparent dark:from-emerald-900/30" />
               )}
               <i
                 className={`${item.icon}-${isActive ? 'fill' : 'line'} text-xl relative z-10 transition-all duration-300 ${
-                  isActive ? item.activeColor : 'text-gray-400 group-hover:text-gray-600'
+                  isActive ? item.activeColor : 'text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300'
                 }`}
                 aria-hidden="true"
               />
               <span
                 className={`text-xs relative z-10 transition-all duration-300 ${
-                  isActive ? `font-bold ${item.activeColor}` : 'text-gray-500'
+                  isActive ? `font-bold ${item.activeColor}` : 'text-gray-500 dark:text-gray-400'
                 }`}
               >
                 {item.label}

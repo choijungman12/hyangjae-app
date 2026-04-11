@@ -1,3 +1,50 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --color-bg:            255 255 255;
+    --color-bg-elevated:   255 255 255;
+    --color-bg-subtle:     249 250 251;
+    --color-surface:       255 255 255;
+    --color-border:        229 231 235;
+    --color-text:          17 24 39;
+    --color-text-muted:    107 114 128;
+    --color-brand:         16 185 129;
+    --color-brand-soft:    209 250 229;
+  }
+
+  .dark {
+    --color-bg:            10 15 25;
+    --color-bg-elevated:   17 24 39;
+    --color-bg-subtle:     31 41 55;
+    --color-surface:       17 24 39;
+    --color-border:        55 65 81;
+    --color-text:          243 244 246;
+    --color-text-muted:    156 163 175;
+    --color-brand:         52 211 153;
+    --color-brand-soft:    6 78 59;
+  }
+
+  html {
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: rgb(var(--color-bg));
+    color: rgb(var(--color-text));
+    transition: background-color 300ms ease, color 300ms ease;
+  }
+}
+
+@layer utilities {
+  .theme-transition {
+    transition: background-color 300ms ease, color 300ms ease,
+                border-color 300ms ease, box-shadow 300ms ease;
+  }
+}

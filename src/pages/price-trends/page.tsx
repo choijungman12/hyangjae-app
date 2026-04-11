@@ -155,7 +155,7 @@ export default function PriceTrends() {
             <p className={`text-[11px] ${data?.source === 'kamis' ? 'text-emerald-700' : 'text-amber-700'}`}>
               {KAMIS_CONFIGURED
                 ? '가락시장 + 전국 도매시장 경락가 기준'
-                : 'KAMIS API 연동 전 · 2025년 평균 시세 기반'}
+                : 'KAMIS API 연동 전 · 2026년 평균 시세 기반'}
             </p>
           </div>
           {data && (

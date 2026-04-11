@@ -166,7 +166,7 @@ export default function ProfitAnalysis() {
 
   const handleCategoryChange = useCallback((catId: string) => {
     setSelectedCategory(catId);
-    const first = CROP_DB.find(c => c.category === catId);
+    const first = cropDB.find(c => c.category === catId);
     if (first) setCropId(first.id);
   }, []);
 
@@ -250,7 +250,7 @@ export default function ProfitAnalysis() {
           </div>
           <div className="flex-1 min-w-0">
             <p className={`text-xs font-black ${priceSource === 'kamis' ? 'text-emerald-900' : 'text-amber-900'}`}>
-              {priceSource === 'kamis' ? 'KAMIS 실시간 시세 반영' : priceSource === 'mock' ? '2025년 평균 시세 기반' : '시세 불러오는 중...'}
+              {priceSource === 'kamis' ? 'KAMIS 실시간 시세 반영' : priceSource === 'mock' ? '2026년 평균 시세 기반' : '시세 불러오는 중...'}
             </p>
             <p className={`text-[11px] ${priceSource === 'kamis' ? 'text-emerald-700' : 'text-amber-700'}`} translate="no">
               <span key={cropData.id}>{cropData.name}</span> {cropData.pricePerKg.toLocaleString()}원/kg{' '}

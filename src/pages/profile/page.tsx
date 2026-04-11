@@ -3,11 +3,35 @@ import { Link, useNavigate } from 'react-router-dom';
 import BottomNav from '@/components/BottomNav';
 import { AUTH_KEY, UserInfo } from '@/pages/login/page';
 
-const BOOKING_HISTORY = [
-  { id: 1, type: '3번 글램핑 데크 · 8인 + 불멍', date: '2026-04-12', time: '18:30', guests: 6, price: 189000, status: 'confirmed' },
+type BookingStatus = 'confirmed' | 'done' | 'cancelled';
+type Booking = {
+  id: number;
+  type: string;
+  date: string;
+  time: string;
+  guests: number;
+  price: number;
+  status: BookingStatus;
+};
+
+const INITIAL_BOOKING_HISTORY: Booking[] = [
+  { id: 1, type: '3번 글램핑 데크 · 6인 + 불멍', date: '2026-04-12', time: '18:30', guests: 6, price: 229000, status: 'confirmed' },
   { id: 2, type: '와사비 수확 체험', date: '2026-04-12', time: '15:00', guests: 2, price: 50000, status: 'confirmed' },
   { id: 3, type: '5번 글램핑 데크 · 8인', date: '2026-03-20', time: '11:00', guests: 4, price: 139000, status: 'done' },
 ];
+
+// 환불 정책: 2일 전 100%, 1일 전 50%, 당일/이후 0%
+function calcRefund(bookingDate: string, price: number): { rate: number; amount: number; label: string } {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const target = new Date(bookingDate);
+  target.setHours(0, 0, 0, 0);
+  const diffDays = Math.floor((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (diffDays >= 2) return { rate: 100, amount: price, label: '무료 취소' };
+  if (diffDays === 1) return { rate: 50, amount: Math.floor(price / 2), label: '50% 환불' };
+  return { rate: 0, amount: 0, label: '환불 불가' };
+}
 
 const MENU_ITEMS = [
   { icon: 'ri-calendar-check-line',  label: '예약 내역',       to: '/booking',             badge: null },
@@ -26,6 +50,14 @@ export default function ProfilePage() {
   const navigate = useNavigate();
   const [user, setUser] = useState<UserInfo | null>(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKING_HISTORY);
+  const [cancelTarget, setCancelTarget] = useState<Booking | null>(null);
+
+  const handleConfirmCancel = () => {
+    if (!cancelTarget) return;
+    setBookings(prev => prev.map(b => (b.id === cancelTarget.id ? { ...b, status: 'cancelled' } : b)));
+    setCancelTarget(null);
+  };
 
   useEffect(() => {
     const raw = localStorage.getItem(AUTH_KEY);
@@ -107,7 +139,7 @@ export default function ProfilePage() {
           {/* 통계 */}
           <div className="relative z-10 grid grid-cols-3 gap-2 mt-5">
             {[
-              { label: '예약 횟수', value: BOOKING_HISTORY.length, icon: 'ri-calendar-check-line' },
+              { label: '예약 횟수', value: bookings.length, icon: 'ri-calendar-check-line' },
               { label: '방문 체험', value: '1회', icon: 'ri-map-pin-line' },
               { label: '관심 작물', value: '3종', icon: 'ri-heart-line' },
             ].map(stat => (
@@ -135,24 +167,64 @@ export default function ProfilePage() {
               전체 보기 <i className="ri-arrow-right-s-line" />
             </Link>
           </div>
-          <div className="divide-y divide-gray-100">
-            {BOOKING_HISTORY.map(b => (
-              <div key={b.id} className="px-5 py-4 flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${b.status === 'confirmed' ? 'bg-emerald-50' : 'bg-gray-100'}`}>
-                  <i className={`ri-calendar-line ${b.status === 'confirmed' ? 'text-emerald-600' : 'text-gray-400'}`} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-black text-gray-900 truncate">{b.type}</p>
-                  <p className="text-[11px] text-gray-500">{b.date} {b.time} · {b.guests}명</p>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <p className="text-xs font-black text-gray-900">{b.price.toLocaleString()}원</p>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${b.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
-                    {b.status === 'confirmed' ? '예약 확정' : '이용 완료'}
-                  </span>
-                </div>
+          {/* 환불 정책 안내 배너 */}
+          <div className="mx-5 mt-4 mb-1 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl px-4 py-3">
+            <div className="flex items-start gap-2">
+              <i className="ri-information-line text-amber-600 text-base mt-0.5" />
+              <div className="flex-1">
+                <p className="text-[11px] font-black text-amber-900 mb-1">예약 취소 · 환불 정책</p>
+                <ul className="text-[10px] text-amber-800 leading-relaxed space-y-0.5">
+                  <li>· 이용 2일 전까지: <span className="font-black">100% 무료 취소</span></li>
+                  <li>· 이용 1일 전: <span className="font-black">50% 환불</span></li>
+                  <li>· 당일 취소: <span className="font-black">환불 불가</span></li>
+                </ul>
               </div>
-            ))}
+            </div>
+          </div>
+          <div className="divide-y divide-gray-100 mt-3">
+            {bookings.map(b => {
+              const isConfirmed = b.status === 'confirmed';
+              const statusStyle =
+                b.status === 'confirmed'
+                  ? 'bg-emerald-100 text-emerald-700'
+                  : b.status === 'cancelled'
+                  ? 'bg-red-100 text-red-600'
+                  : 'bg-gray-100 text-gray-500';
+              const statusLabel =
+                b.status === 'confirmed' ? '예약 확정' : b.status === 'cancelled' ? '취소됨' : '이용 완료';
+              return (
+                <div key={b.id} className="px-5 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isConfirmed ? 'bg-emerald-50' : 'bg-gray-100'}`}>
+                      <i className={`ri-calendar-line ${isConfirmed ? 'text-emerald-600' : 'text-gray-400'}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-black text-gray-900 truncate">{b.type}</p>
+                      <p className="text-[11px] text-gray-500">{b.date} {b.time} · {b.guests}명</p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p key={`price-${b.id}`} translate="no" className="text-xs font-black text-gray-900">
+                        {b.price.toLocaleString()}원
+                      </p>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statusStyle}`}>
+                        {statusLabel}
+                      </span>
+                    </div>
+                  </div>
+                  {isConfirmed && (
+                    <div className="mt-3 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setCancelTarget(b)}
+                        className="text-[11px] font-black px-3 py-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition-all"
+                      >
+                        예약 취소
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -208,6 +280,78 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
+
+      {/* 예약 취소 확인 모달 */}
+      {cancelTarget && (() => {
+        const refund = calcRefund(cancelTarget.date, cancelTarget.price);
+        const refundable = refund.rate > 0;
+        return (
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center px-6"
+            onClick={() => setCancelTarget(null)}
+          >
+            <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+              <div className="text-center mb-5">
+                <div className="w-14 h-14 mx-auto bg-red-50 rounded-2xl flex items-center justify-center mb-3">
+                  <i className="ri-close-circle-line text-3xl text-red-500" />
+                </div>
+                <h3 className="text-base font-black text-gray-900 mb-1">예약을 취소하시겠습니까?</h3>
+                <p className="text-xs text-gray-500">아래 환불 금액을 확인해 주세요.</p>
+              </div>
+
+              <div className="bg-gray-50 rounded-2xl p-4 mb-4 space-y-2">
+                <div className="flex justify-between items-start gap-2">
+                  <span className="text-[11px] text-gray-500 font-bold">예약</span>
+                  <span className="text-[11px] font-black text-gray-900 text-right flex-1">{cancelTarget.type}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[11px] text-gray-500 font-bold">이용일</span>
+                  <span className="text-[11px] font-black text-gray-900">{cancelTarget.date} {cancelTarget.time}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[11px] text-gray-500 font-bold">결제 금액</span>
+                  <span key={`paid-${cancelTarget.id}`} translate="no" className="text-[11px] font-black text-gray-900">
+                    {cancelTarget.price.toLocaleString()}원
+                  </span>
+                </div>
+                <div className="border-t border-gray-200 pt-2 flex justify-between items-center">
+                  <span className="text-xs text-gray-700 font-black">환불 금액 ({refund.label})</span>
+                  <span
+                    key={`refund-${cancelTarget.id}`}
+                    translate="no"
+                    className={`text-sm font-black ${refundable ? 'text-emerald-600' : 'text-red-500'}`}
+                  >
+                    {refund.amount.toLocaleString()}원
+                  </span>
+                </div>
+              </div>
+
+              {!refundable && (
+                <p className="text-[11px] text-red-500 font-bold text-center mb-3">
+                  당일 취소는 환불이 불가합니다.
+                </p>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setCancelTarget(null)}
+                  className="flex-1 py-3 rounded-xl border-2 border-gray-200 font-black text-sm text-gray-600 hover:bg-gray-50 transition-all"
+                >
+                  돌아가기
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmCancel}
+                  className="flex-1 py-3 rounded-xl bg-red-500 font-black text-sm text-white hover:bg-red-600 transition-all shadow-lg"
+                >
+                  취소 확정
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       <BottomNav />
     </div>

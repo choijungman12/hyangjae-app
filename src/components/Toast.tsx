@@ -14,9 +14,9 @@ export default function Toast({ message, type = 'info', onClose, duration = 3000
   }, [onClose, duration]);
 
   const styles = {
-    success: 'bg-emerald-500 text-white',
-    error:   'bg-red-500 text-white',
-    info:    'bg-gray-800 text-white',
+    success: 'bg-emerald-500 dark:bg-emerald-600 text-white ring-1 ring-emerald-400/40 dark:ring-emerald-300/20',
+    error:   'bg-red-500 dark:bg-red-600 text-white ring-1 ring-red-400/40 dark:ring-red-300/20',
+    info:    'bg-gray-800 dark:bg-gray-700 text-white ring-1 ring-white/10',
   };
 
   const icons = {

@@ -21,11 +21,11 @@ export default function CropImage({ cropId, size = 'md', className = '', showNam
 
   return (
     <div className={`flex flex-col items-center gap-1 ${className}`}>
-      <div className={`${s.container} rounded-2xl bg-gradient-to-br ${visual.gradient} flex items-center justify-center shadow-md flex-shrink-0`}>
+      <div className={`${s.container} rounded-2xl bg-gradient-to-br ${visual.gradient} flex items-center justify-center shadow-md dark:shadow-black/40 ring-1 ring-black/5 dark:ring-white/10 flex-shrink-0`}>
         <span className={s.emoji} role="img" aria-label={name ?? cropId}>{visual.emoji}</span>
       </div>
       {showName && name && (
-        <span className="text-xs font-bold text-gray-700">{name}</span>
+        <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{name}</span>
       )}
     </div>
   );

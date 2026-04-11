@@ -2,8 +2,15 @@ import { useState, useEffect } from 'react';
 import BottomNav from '@/components/BottomNav';
 import Toast from '@/components/Toast';
 import PageHeader from '@/components/PageHeader';
+import ColkijeFreeBanner from '@/components/ColkijeFreeBanner';
+import IncludedItemsList from '@/components/IncludedItemsList';
+import HarvestCalendar from '@/components/HarvestCalendar';
+import DepositBreakdown from '@/components/DepositBreakdown';
+import PartnerStoreCard from '@/components/PartnerStoreCard';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { getImage, type ImageKey } from '@/lib/imageStore';
+import { requestNaverPayMock, splitBookingPayment } from '@/lib/naverPayMock';
+import { calcHarvestGrams, getHarvestForMonth, PARTNER_STORES, BOOKING_ADDONS } from '@/data/products';
 
 type BookingItem = {
   type: 'deck' | 'experience';
@@ -13,6 +20,12 @@ type BookingItem = {
   time: string;
   guests: number;
   price: number;
+  /** 예약금 (총액 30%, 100원 단위 반올림) */
+  depositAmount?: number;
+  /** 현장 결제 잔액 */
+  remainderAmount?: number;
+  /** 예약금 결제 트랜잭션 ID (네이버페이 Mock) */
+  depositTransactionId?: string;
   addons?: string[];
   createdAt: string;
 };
@@ -69,15 +82,15 @@ const STORE_ITEMS = [
 
 const EXPERIENCE_PROGRAMS = [
   {
-    id: 'harvest',
-    name: '와사비 수확 체험',
-    duration: '30분',
-    price: 25000,
-    unit: '성인 1인',
-    icon: 'ri-scissors-cut-line',
+    id: 'wasabi-grater',
+    name: '와사비 강판 체험',
+    duration: '15분',
+    price: 5000,
+    unit: '1인',
+    icon: 'ri-knife-line',
     color: 'from-emerald-500 to-teal-600',
     image: '/facility-images/facility-00.jpg',
-    desc: '스마트팜에서 직접 수확하는 고추냉이 체험',
+    desc: '스마트팜 투어 중 직접 강판으로 고추냉이를 갈아보는 체험 (수확 불가·투어 전용)',
   },
   {
     id: 'tutor',
@@ -159,6 +172,11 @@ export default function Booking() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [formError, setFormError] = useState('');
   const [bookings, setBookings] = useLocalStorage<BookingItem[]>('farm-bookings', []);
+  const [isPaying, setIsPaying] = useState(false);
+  const [selectedBookingAddons, setSelectedBookingAddons] = useState<string[]>([]);
+
+  const currentMonth = new Date().getMonth() + 1;
+  const currentHarvest = getHarvestForMonth(currentMonth);
 
   const weekend = isWeekend(selectedDate);
   const availableSlots = weekend ? WEEKEND_SLOTS : WEEKDAY_SLOTS;
@@ -169,8 +187,14 @@ export default function Booking() {
   const extraGuestTotal = extraGuests * DECK_BASE.extraPerGuest;
   const extendTotal = extendHours * EXTEND_PRICE_PER_HOUR;
   const addonsTotal = selectedAddons.reduce((sum, id) => sum + (ADDONS.find(a => a.id === id)?.price ?? 0), 0);
-  const subtotal = basePrice + extraGuestTotal + extendTotal + addonsTotal;
+  const bookingAddonsTotal = selectedBookingAddons.reduce(
+    (sum, id) => sum + (BOOKING_ADDONS.find(a => a.id === id)?.price ?? 0),
+    0,
+  );
+  const subtotal = basePrice + extraGuestTotal + extendTotal + addonsTotal + bookingAddonsTotal;
   const discountedPrice = combineDiscount ? Math.round(subtotal * 0.9) : subtotal;
+  const payment = splitBookingPayment(discountedPrice);
+  const harvestGrams = calcHarvestGrams(parsedGuests);
 
   // 날짜가 바뀌면 현재 선택된 시간이 평일/주말 슬롯 목록에 없을 때 초기화
   useEffect(() => {
@@ -187,57 +211,101 @@ export default function Booking() {
     setSelectedAddons(prev => prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]);
   };
 
-  const handleBookDeck = () => {
+  const handleBookDeck = async () => {
     if (!selectedDeckId || !selectedDate || !selectedTime) {
       setFormError('데크, 날짜, 시간을 모두 선택해주세요.');
       return;
     }
     setFormError('');
+
     const addonLabels = selectedAddons.map(id => ADDONS.find(a => a.id === id)?.label ?? '').filter(Boolean);
     if (extendHours > 0) addonLabels.push(`${extendHours}시간 연장`);
-    const newBooking: BookingItem = {
-      type: 'deck',
-      name: `${selectedDeckId}번 글램핑 데크 · ${parsedGuests}인 · ${3 + extendHours}시간`,
-      deckId: selectedDeckId,
-      date: selectedDate,
-      time: selectedTime,
-      guests: parseInt(guestCount) || 4,
-      price: discountedPrice,
-      addons: addonLabels,
-      createdAt: new Date().toISOString(),
-    };
-    setBookings(prev => [newBooking, ...prev]);
-    setSelectedDeckId(null);
-    setSelectedDate('');
-    setSelectedTime('');
-    setSelectedAddons([]);
-    setGuestCount('4');
-    setExtendHours(0);
-    setCombineDiscount(false);
-    setToast({ message: '예약이 완료되었습니다! 확인 후 연락드리겠습니다.', type: 'success' });
+    selectedBookingAddons.forEach(id => {
+      const a = BOOKING_ADDONS.find(b => b.id === id);
+      if (a) addonLabels.push(a.name);
+    });
+
+    const orderId = `ORDER-${Date.now()}`;
+    setIsPaying(true);
+    try {
+      const result = await requestNaverPayMock({
+        orderId,
+        amount: payment.deposit,
+        productName: `${selectedDeckId}번 데크 · ${parsedGuests}인 · ${selectedDate}`,
+      });
+
+      const newBooking: BookingItem = {
+        type: 'deck',
+        name: `${selectedDeckId}번 글램핑 데크 · ${parsedGuests}인 · ${3 + extendHours}시간`,
+        deckId: selectedDeckId,
+        date: selectedDate,
+        time: selectedTime,
+        guests: parseInt(guestCount) || 4,
+        price: discountedPrice,
+        depositAmount: payment.deposit,
+        remainderAmount: payment.remainder,
+        depositTransactionId: result.transactionId,
+        addons: addonLabels,
+        createdAt: new Date().toISOString(),
+      };
+      setBookings(prev => [newBooking, ...prev]);
+      setSelectedDeckId(null);
+      setSelectedDate('');
+      setSelectedTime('');
+      setSelectedAddons([]);
+      setSelectedBookingAddons([]);
+      setGuestCount('4');
+      setExtendHours(0);
+      setCombineDiscount(false);
+      setToast({
+        message: `예약금 ${payment.deposit.toLocaleString()}원 결제 완료! 현장에서 ${payment.remainder.toLocaleString()}원 결제해 주세요.`,
+        type: 'success',
+      });
+    } finally {
+      setIsPaying(false);
+    }
   };
 
-  const handleBookExp = () => {
+  const handleBookExp = async () => {
     if (!selectedExp || !selectedDate || !selectedTime) {
       setFormError('프로그램, 날짜, 시간을 모두 선택해주세요.');
       return;
     }
     setFormError('');
-    const newBooking: BookingItem = {
-      type: 'experience',
-      name: expInfo?.name || '',
-      date: selectedDate,
-      time: selectedTime,
-      guests: parseInt(guestCount) || 1,
-      price: expTotal,
-      createdAt: new Date().toISOString(),
-    };
-    setBookings(prev => [newBooking, ...prev]);
-    setSelectedExp(null);
-    setSelectedDate('');
-    setSelectedTime('');
-    setGuestCount('1');
-    setToast({ message: '체험 예약이 완료되었습니다!', type: 'success' });
+
+    const expPayment = splitBookingPayment(expTotal);
+    const orderId = `EXP-${Date.now()}`;
+    setIsPaying(true);
+    try {
+      const result = await requestNaverPayMock({
+        orderId,
+        amount: expPayment.deposit,
+        productName: `${expInfo?.name ?? '체험'} · ${parseInt(guestCount) || 1}인`,
+      });
+      const newBooking: BookingItem = {
+        type: 'experience',
+        name: expInfo?.name || '',
+        date: selectedDate,
+        time: selectedTime,
+        guests: parseInt(guestCount) || 1,
+        price: expTotal,
+        depositAmount: expPayment.deposit,
+        remainderAmount: expPayment.remainder,
+        depositTransactionId: result.transactionId,
+        createdAt: new Date().toISOString(),
+      };
+      setBookings(prev => [newBooking, ...prev]);
+      setSelectedExp(null);
+      setSelectedDate('');
+      setSelectedTime('');
+      setGuestCount('1');
+      setToast({
+        message: `체험 예약금 ${expPayment.deposit.toLocaleString()}원 결제 완료!`,
+        type: 'success',
+      });
+    } finally {
+      setIsPaying(false);
+    }
   };
 
   return (
@@ -379,14 +447,53 @@ export default function Booking() {
             </div>
           </section>
 
-          {/* 안내 */}
-          <div className="mx-4 mt-4 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex items-start gap-3">
-            <i className="ri-restaurant-line text-amber-600 text-lg flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-xs font-black text-amber-900">외부 음식 반입 가능 (BYO)</p>
-              <p className="text-[11px] text-amber-700 mt-0.5 leading-relaxed">음식·음료 자유 반입 · 내부 매점에서 스낵 및 조리도구 대여 가능</p>
+          {/* 콜키지 프리 배너 (Sprint-03) */}
+          <section className="px-4 pt-4">
+            <ColkijeFreeBanner />
+          </section>
+
+          {/* 데크 예약 포함 내역 (Sprint-03) */}
+          <section className="px-4 pt-4">
+            <div className="mb-2 flex items-center gap-2">
+              <i className="ri-checkbox-circle-fill text-emerald-500 dark:text-emerald-400" aria-hidden="true" />
+              <h3 className="text-sm font-black text-gray-900">데크 예약에 포함된 것</h3>
             </div>
-          </div>
+            <IncludedItemsList
+              items={[
+                {
+                  icon: '🌱',
+                  title: `내 데크 전용 텃밭 수확 ${harvestGrams}g`,
+                  description: `${currentMonth}월 수확: ${[...currentHarvest.primary, ...currentHarvest.rotation].join(' · ') || '상추·깻잎'}`,
+                  highlight: true,
+                },
+                {
+                  icon: '🌿',
+                  title: '고추냉이 스마트팜 가이드 투어 (약 20분)',
+                  description: '웰컴 와사비 시식 포함 · 수확 불가 (투어 전용)',
+                },
+                {
+                  icon: '🏕️',
+                  title: '데크 3시간 · 집기 일체',
+                  description: '4인 기준 · 최대 8인 · 안전 안내 포함',
+                },
+                {
+                  icon: '🍖',
+                  title: '콜키지 프리 (외부 음식·주류 자유 반입)',
+                  description: '모든 식재료·음료 자유 반입 · 추가 요금 없음',
+                },
+                {
+                  icon: '🥩',
+                  title: '파트너 정육점·한식당 배달 가능',
+                  description: '협의 중 · 예약 확정 시 파트너 상점 안내',
+                },
+              ]}
+            />
+          </section>
+
+          {/* 월별 수확 달력 (Sprint-03) */}
+          <section className="px-4 pt-4">
+            <HarvestCalendar currentMonth={currentMonth} />
+          </section>
 
           {/* 데크 선택 */}
           <section className="px-4 pt-4 pb-2">
@@ -669,11 +776,11 @@ export default function Booking() {
                   <span className="text-xs font-black text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">-10%</span>
                 </button>
 
-                {/* 가격 요약 — translate="no" + key 로 Papago 번역 캐시 우회 */}
+                {/* 가격 내역 (상세) — translate="no" + key 로 Papago 번역 캐시 우회 */}
                 <div
                   translate="no"
-                  className="notranslate bg-orange-50 rounded-2xl p-4 mb-4 space-y-1.5"
-                  key={`summary-${basePrice}-${extraGuestTotal}-${extendTotal}-${addonsTotal}-${combineDiscount ? 1 : 0}`}
+                  className="notranslate bg-orange-50 rounded-2xl p-4 mb-3 space-y-1.5"
+                  key={`summary-${basePrice}-${extraGuestTotal}-${extendTotal}-${addonsTotal}-${bookingAddonsTotal}-${combineDiscount ? 1 : 0}`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-gray-600">{selectedDeckId}번 데크 ({weekend ? '주말' : '평일'} · 4인 · 3시간)</span>
@@ -700,34 +807,74 @@ export default function Booking() {
                       </div>
                     );
                   })}
+                  {selectedBookingAddons.map(id => {
+                    const a = BOOKING_ADDONS.find(ad => ad.id === id)!;
+                    return (
+                      <div key={id} className="flex items-center justify-between">
+                        <span className="text-xs text-gray-600">+ {a.name}</span>
+                        <span className="text-xs font-bold text-gray-800">{a.price.toLocaleString()}원</span>
+                      </div>
+                    );
+                  })}
                   {combineDiscount && (
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-emerald-600">체험 연계 할인 (-10%)</span>
                       <span className="text-xs font-bold text-emerald-600">-{(subtotal - discountedPrice).toLocaleString()}원</span>
                     </div>
                   )}
-                  <div className="border-t border-orange-200 pt-2 mt-2 flex items-center justify-between">
-                    <span className="text-sm font-black text-gray-900">총 금액</span>
-                    <span
-                      key={`total-${discountedPrice}`}
-                      className="notranslate text-lg font-black text-orange-600"
-                      translate="no"
-                    >
-                      {discountedPrice.toLocaleString()}원
-                    </span>
-                  </div>
                 </div>
+
+                {/* Sprint-02: 예약금 / 현장 결제 분리 */}
+                <DepositBreakdown
+                  total={payment.total}
+                  deposit={payment.deposit}
+                  remainder={payment.remainder}
+                  className="mb-4"
+                />
 
                 {formError && <p className="text-xs text-red-500 mb-3 font-bold">{formError}</p>}
                 <button
+                  type="button"
                   onClick={handleBookDeck}
-                  className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-3.5 rounded-xl font-black text-sm transition-all shadow-lg"
+                  disabled={isPaying}
+                  className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white py-3.5 rounded-xl font-black text-sm transition-all shadow-lg disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  공간 예약하기
+                  {isPaying ? (
+                    <>
+                      <i className="ri-loader-4-line animate-spin text-base" aria-hidden="true" />
+                      네이버페이 결제 중…
+                    </>
+                  ) : (
+                    <>
+                      <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-white text-emerald-600 text-[10px] font-black" translate="no">N</span>
+                      <span translate="no">네이버페이로 예약금 {payment.deposit.toLocaleString()}원 결제</span>
+                    </>
+                  )}
                 </button>
+                <p className="text-[10px] text-gray-500 text-center mt-2">
+                  예약금 30% 선결제 · 잔액 {payment.remainder.toLocaleString()}원은 현장에서 결제
+                </p>
               </div>
             </section>
           )}
+
+          {/* 파트너 상점 (Sprint-03) */}
+          <section className="px-4 pb-4">
+            <div className="mb-2 flex items-start gap-2">
+              <i className="ri-restaurant-2-fill text-orange-500" aria-hidden="true" />
+              <div className="flex-1">
+                <h3 className="text-sm font-black text-gray-900">파트너 상점 — 고기·식재료 배달</h3>
+                <p className="text-[11px] text-gray-500 mt-0.5">
+                  향재원 매점은 일회용 소모품만 판매하며, 고기·식재료는 파트너 정육점·한식당 배달로 제공됩니다.
+                </p>
+              </div>
+            </div>
+            <div className="space-y-2 mt-3">
+              {PARTNER_STORES.map(store => (
+                <PartnerStoreCard key={store.id} store={store} />
+              ))}
+            </div>
+          </section>
 
           {/* 매점 소개 */}
           <section className="px-4 pb-6">
@@ -877,23 +1024,31 @@ export default function Booking() {
                   </div>
                 </div>
 
-                <div
-                  translate="no"
-                  className="notranslate bg-emerald-50 rounded-xl p-4 mb-4"
-                  key={`exp-total-${expTotal}`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">총 금액 ({guestCount}명)</span>
-                    <span className="text-lg font-black text-emerald-600">{expTotal.toLocaleString()}원</span>
-                  </div>
-                </div>
+                <DepositBreakdown
+                  total={expTotal}
+                  deposit={splitBookingPayment(expTotal).deposit}
+                  remainder={splitBookingPayment(expTotal).remainder}
+                  className="mb-4"
+                />
 
                 {formError && <p className="text-xs text-red-500 mb-3">{formError}</p>}
                 <button
+                  type="button"
                   onClick={handleBookExp}
-                  className="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3.5 rounded-xl font-bold text-sm transition-colors shadow-lg"
+                  disabled={isPaying || expTotal === 0}
+                  className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white py-3.5 rounded-xl font-black text-sm transition-all shadow-lg disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  체험 예약하기
+                  {isPaying ? (
+                    <>
+                      <i className="ri-loader-4-line animate-spin text-base" aria-hidden="true" />
+                      네이버페이 결제 중…
+                    </>
+                  ) : (
+                    <>
+                      <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-white text-emerald-600 text-[10px] font-black" translate="no">N</span>
+                      <span translate="no">네이버페이로 예약금 {splitBookingPayment(expTotal).deposit.toLocaleString()}원 결제</span>
+                    </>
+                  )}
                 </button>
               </div>
             </section>

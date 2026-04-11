@@ -1,7 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import BottomNav from '@/components/BottomNav';
+import StampBoard from '@/components/StampBoard';
+import StampRewardModal from '@/components/StampRewardModal';
 import { AUTH_KEY, UserInfo } from '@/pages/login/page';
+import {
+  loadStamps,
+  addStamp,
+  daysUntilExpiry,
+  StampState,
+  Reward,
+} from '@/lib/stampStore';
 
 type BookingStatus = 'confirmed' | 'done' | 'cancelled';
 type Booking = {
@@ -15,8 +24,8 @@ type Booking = {
 };
 
 const INITIAL_BOOKING_HISTORY: Booking[] = [
-  { id: 1, type: '3번 글램핑 데크 · 6인 + 불멍', date: '2026-04-12', time: '18:30', guests: 6, price: 229000, status: 'confirmed' },
-  { id: 2, type: '와사비 수확 체험', date: '2026-04-12', time: '15:00', guests: 2, price: 50000, status: 'confirmed' },
+  { id: 1, type: '3번 글램핑 데크 · 6인 + 불멍', date: '2026-04-13', time: '18:30', guests: 6, price: 229000, status: 'confirmed' },
+  { id: 2, type: '와사비 강판 체험', date: '2026-04-13', time: '15:00', guests: 2, price: 10000, status: 'confirmed' },
   { id: 3, type: '5번 글램핑 데크 · 8인', date: '2026-03-20', time: '11:00', guests: 4, price: 139000, status: 'done' },
 ];
 
@@ -52,6 +61,8 @@ export default function ProfilePage() {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKING_HISTORY);
   const [cancelTarget, setCancelTarget] = useState<Booking | null>(null);
+  const [stampState, setStampState] = useState<StampState | null>(null);
+  const [earnedReward, setEarnedReward] = useState<Reward | null>(null);
 
   const handleConfirmCancel = () => {
     if (!cancelTarget) return;
@@ -59,10 +70,44 @@ export default function ProfilePage() {
     setCancelTarget(null);
   };
 
+  /** 테스트용: 예약 상태를 'done'으로 변경하면 스탬프 자동 적립 */
+  const handleMarkAsDone = (booking: Booking) => {
+    if (!user) return;
+    setBookings(prev => prev.map(b => (b.id === booking.id ? { ...b, status: 'done' } : b)));
+    const result = addStamp(user.email || user.name, booking.id);
+    setStampState(result.state);
+    if (result.newReward) {
+      setEarnedReward(result.newReward);
+    }
+  };
+
   useEffect(() => {
     const raw = localStorage.getItem(AUTH_KEY);
     if (raw) setUser(JSON.parse(raw));
   }, []);
+
+  // 로그인 후 기존 'done' 예약을 스탬프에 자동 반영 (중복 방지)
+  useEffect(() => {
+    if (!user) return;
+    const userId = user.email || user.name;
+    let current = loadStamps(userId);
+    let lastReward: Reward | null = null;
+    bookings
+      .filter(b => b.status === 'done')
+      .forEach(b => {
+        const result = addStamp(userId, b.id);
+        current = result.state;
+        if (result.newReward) lastReward = result.newReward;
+      });
+    setStampState(current);
+    if (lastReward) setEarnedReward(lastReward);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  const availableRewards = useMemo(
+    () => (stampState?.rewards ?? []).filter(r => r.status === 'available'),
+    [stampState],
+  );
 
   const handleLogout = () => {
     localStorage.removeItem(AUTH_KEY);
@@ -139,19 +184,68 @@ export default function ProfilePage() {
           {/* 통계 */}
           <div className="relative z-10 grid grid-cols-3 gap-2 mt-5">
             {[
-              { label: '예약 횟수', value: bookings.length, icon: 'ri-calendar-check-line' },
-              { label: '방문 체험', value: '1회', icon: 'ri-map-pin-line' },
-              { label: '관심 작물', value: '3종', icon: 'ri-heart-line' },
+              { label: '예약 횟수', value: `${bookings.length}건`, icon: 'ri-calendar-check-line' },
+              { label: '스탬프', value: `${stampState?.total ?? 0}개`, icon: 'ri-seedling-line' },
+              { label: '보유 쿠폰', value: `${availableRewards.length}장`, icon: 'ri-coupon-3-line' },
             ].map(stat => (
               <div key={stat.label} className="bg-white/15 backdrop-blur-md rounded-2xl p-3 text-center border border-white/20">
                 <i className={`${stat.icon} text-lg mb-0.5`} />
-                <p className="text-sm font-black">{stat.value}</p>
+                <p key={`${stat.label}-${stat.value}`} translate="no" className="text-sm font-black">{stat.value}</p>
                 <p className="text-[10px] text-white/70">{stat.label}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
+
+      {/* 스탬프판 (Sprint-02) */}
+      <section className="px-4 pb-5">
+        <StampBoard
+          current={stampState?.current ?? 0}
+          total={stampState?.total ?? 0}
+        />
+      </section>
+
+      {/* 내 쿠폰함 (Sprint-02) */}
+      {availableRewards.length > 0 && (
+        <section className="px-4 pb-5">
+          <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-lg border border-gray-100 overflow-hidden">
+            <div className="px-5 py-4 flex items-center gap-2 border-b border-gray-100">
+              <div className="w-9 h-9 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center shadow-md">
+                <i className="ri-coupon-3-fill text-white" />
+              </div>
+              <h3 className="text-sm font-black text-gray-900">내 쿠폰함</h3>
+              <span className="ml-auto text-[10px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full" translate="no">
+                {availableRewards.length}장
+              </span>
+            </div>
+            <div className="p-4 space-y-2">
+              {availableRewards.map(reward => {
+                const dday = daysUntilExpiry(reward);
+                const expiresLabel = new Date(reward.expiresAt).toISOString().slice(0, 10);
+                return (
+                  <div
+                    key={reward.id}
+                    className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-dashed border-amber-300 rounded-2xl p-4 flex items-start gap-3"
+                  >
+                    <div className="text-3xl" aria-hidden="true">🎁</div>
+                    <div className="flex-1">
+                      <p className="text-sm font-black text-gray-900">향재원 고추냉이 선물 세트</p>
+                      <p className="text-[11px] text-gray-600 mt-0.5">스탬프 10개 달성 리워드</p>
+                      <p className="text-[10px] text-amber-700 font-bold mt-1" translate="no">
+                        유효기간: ~{expiresLabel} (D-{Math.max(0, dday)})
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full self-start">
+                      사용 가능
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* 예약 내역 */}
       <section className="px-4 pb-5">
@@ -212,7 +306,15 @@ export default function ProfilePage() {
                     </div>
                   </div>
                   {isConfirmed && (
-                    <div className="mt-3 flex justify-end">
+                    <div className="mt-3 flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleMarkAsDone(b)}
+                        className="text-[11px] font-black px-3 py-1.5 rounded-lg border border-emerald-200 text-emerald-600 hover:bg-emerald-50 transition-all"
+                        title="테스트용: 이용 완료 처리하여 스탬프 적립"
+                      >
+                        이용 완료 처리
+                      </button>
                       <button
                         type="button"
                         onClick={() => setCancelTarget(b)}
@@ -352,6 +454,13 @@ export default function ProfilePage() {
           </div>
         );
       })()}
+
+      {/* 스탬프 10개 달성 축하 모달 (Sprint-02) */}
+      <StampRewardModal
+        open={!!earnedReward}
+        reward={earnedReward}
+        onClose={() => setEarnedReward(null)}
+      />
 
       <BottomNav />
     </div>

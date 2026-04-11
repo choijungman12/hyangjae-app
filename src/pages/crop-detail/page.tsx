@@ -18,7 +18,7 @@ export default function CropDetail() {
       category: 'herb',
       image: '',
       overview: {
-        description: '고추냉이는 일본 요리의 필수 향신료로, 국내에서도 고급 식자재로 인정을 받고 있습니다. 서늘하고 습한 환경을 좋아하며, 재배하기 매우 어려워 수익률이 우수한 작물 입니다.',
+        description: '고추냉이는 한국 국산 고급 향신료로, 서늘하고 습한 환경을 좋아합니다. 재배 기간이 18~24개월로 매우 길어 향재원 스마트팜에서는 대량 수확을 제공하지 않으며, 가이드 투어와 강판 체험 전용으로 운영됩니다.',
         origin: '한국 국산',
         cultivationDifficulty: '높음',
         profitability: '매우 높음',
@@ -728,6 +728,42 @@ export default function CropDetail() {
           </div>
         </div>
       </section>
+
+      {/* 고추냉이 전용 안내 — 투어 전용·수확 불가 */}
+      {cropId === 'wasabi' && (
+        <section className="px-4 pb-4 relative z-10">
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-3xl p-5 shadow-lg">
+            <div className="flex items-start gap-3 mb-2">
+              <div className="w-11 h-11 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-md flex-shrink-0">
+                <i className="ri-walk-fill text-2xl text-white" aria-hidden="true" />
+              </div>
+              <div className="flex-1">
+                <div className="inline-flex items-center gap-1 bg-blue-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full mb-1">
+                  <i className="ri-information-fill" />
+                  향재원 운영 안내
+                </div>
+                <h3 className="text-sm font-black text-blue-900 leading-snug">
+                  고추냉이 스마트팜은 <span className="bg-blue-600 text-white px-1.5 py-0.5 rounded">가이드 투어 전용</span>입니다
+                </h3>
+              </div>
+            </div>
+            <ul className="space-y-1.5 text-[11px] text-gray-800 leading-relaxed mt-3 bg-white/80 backdrop-blur-sm rounded-2xl p-3 border border-blue-200">
+              <li className="flex items-start gap-2">
+                <i className="ri-time-line text-blue-600 mt-0.5 flex-shrink-0" />
+                <span>재배 기간이 <b>18~24개월</b>로 길어 대량 수확을 제공하지 않습니다</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <i className="ri-walk-line text-blue-600 mt-0.5 flex-shrink-0" />
+                <span>약 <b>20분 가이드 투어</b> + 웰컴 와사비 시식 (데크 예약에 기본 포함)</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <i className="ri-knife-line text-blue-600 mt-0.5 flex-shrink-0" />
+                <span>투어 중 직접 강판으로 갈아보는 <b>와사비 강판 체험(+5,000원)</b> 옵션 제공</span>
+              </li>
+            </ul>
+          </div>
+        </section>
+      )}
 
       {/* Quick Stats */}
       <section className="px-4 pb-6 relative z-10">

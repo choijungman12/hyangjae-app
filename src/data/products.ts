@@ -312,3 +312,165 @@ export function getProductsByCategory(category: ProductCategory | 'all'): Produc
   if (category === 'all') return PRODUCTS;
   return PRODUCTS.filter(p => p.category === category);
 }
+
+// ═══════════════════════════════════════════════════════════
+// Sprint-03: 현장 판매 소모품 · 시즌 수확 · 파트너 상점
+// ═══════════════════════════════════════════════════════════
+
+export type OnSiteItemCategory = 'fuel' | 'utensil' | 'meal' | 'snack' | 'drink' | 'ice';
+
+export interface OnSiteItem {
+  id: string;
+  category: OnSiteItemCategory;
+  name: string;
+  price: number;
+  unit: string;
+  note?: string;
+}
+
+export const ON_SITE_ITEM_CATEGORY_LABELS: Record<OnSiteItemCategory, { label: string; icon: string }> = {
+  fuel:    { label: '숯·연료',  icon: 'ri-fire-line' },
+  utensil: { label: '집기',    icon: 'ri-knife-line' },
+  meal:    { label: '간편식',  icon: 'ri-restaurant-line' },
+  snack:   { label: '스낵',    icon: 'ri-cake-line' },
+  drink:   { label: '음료',    icon: 'ri-cup-line' },
+  ice:     { label: '얼음',    icon: 'ri-snowy-line' },
+};
+
+// 🟢 EDIT:ON_SITE_ITEMS ─ 현장 판매 일회용 소모품 (고기·식재료 제외)
+export const ON_SITE_ITEMS: OnSiteItem[] = [
+  { id: 'charcoal-3kg',   category: 'fuel',    name: '참숯',                price: 8000, unit: '3kg' },
+  { id: 'firestarter',    category: 'fuel',    name: '착화제',              price: 3000, unit: '1개' },
+  { id: 'disposable-set', category: 'utensil', name: '일회용 접시·수저 세트', price: 2000, unit: '5인 세트' },
+  { id: 'foil-roll',      category: 'utensil', name: '호일',                price: 2000, unit: '1롤' },
+  { id: 'cup-ramen',      category: 'meal',    name: '컵라면',              price: 2500, unit: '1개' },
+  { id: 'cup-rice',       category: 'meal',    name: '컵밥',                price: 4500, unit: '1개' },
+  { id: 'instant-soup',   category: 'meal',    name: '즉석국',              price: 3500, unit: '1팩' },
+  { id: 'snack-pack',     category: 'snack',   name: '과자',                price: 2000, unit: '1봉' },
+  { id: 'marshmallow',    category: 'snack',   name: '마시멜로',            price: 4000, unit: '1봉', note: '캠프파이어용' },
+  { id: 'skewer-set',     category: 'snack',   name: '꼬치 세트',            price: 4000, unit: '5개', note: '어묵·소세지 혼합' },
+  { id: 'water-500',      category: 'drink',   name: '생수',                price: 1500, unit: '500ml' },
+  { id: 'canned-coffee',  category: 'drink',   name: '캔 커피',              price: 2500, unit: '1캔' },
+  { id: 'canned-juice',   category: 'drink',   name: '캔 주스',              price: 2500, unit: '1캔' },
+  { id: 'soda',           category: 'drink',   name: '탄산음료',             price: 2500, unit: '1캔' },
+  { id: 'ice-1kg',        category: 'ice',     name: '얼음',                price: 3000, unit: '1kg' },
+];
+
+// ───────────────────────────────────────────────────────────
+// 월별 수확 달력 (데크별 전용 텃밭)
+// ───────────────────────────────────────────────────────────
+
+export interface HarvestMonth {
+  primary: string[];   // 시즌성 주력 작물 (딸기 등)
+  rotation: string[];  // 연중 쌈채소 로테이션
+}
+
+// 🟢 EDIT:SEASONAL_HARVEST ─ 월별 수확 가능 작물
+export const SEASONAL_HARVEST: Record<number, HarvestMonth> = {
+  1:  { primary: ['딸기'], rotation: ['상추', '로메인'] },
+  2:  { primary: ['딸기'], rotation: ['상추', '로메인'] },
+  3:  { primary: ['딸기'], rotation: ['상추', '깻잎'] },
+  4:  { primary: ['딸기'], rotation: ['상추', '로메인', '깻잎'] },
+  5:  { primary: ['딸기'], rotation: ['상추', '깻잎', '양상추'] },
+  6:  { primary: [],       rotation: ['상추', '깻잎', '로메인', '양상추'] },
+  7:  { primary: [],       rotation: ['상추', '깻잎', '로메인', '양상추'] },
+  8:  { primary: [],       rotation: ['상추', '깻잎', '로메인', '양상추'] },
+  9:  { primary: [],       rotation: ['상추', '깻잎', '로메인', '양상추'] },
+  10: { primary: [],       rotation: ['상추', '깻잎', '로메인'] },
+  11: { primary: [],       rotation: ['상추', '깻잎', '로메인'] },
+  12: { primary: ['딸기'], rotation: ['상추', '로메인'] },
+};
+
+/** 4인 기준 300g, 1인 추가마다 +75g (최대 8인 = 600g) */
+export function calcHarvestGrams(guests: number): number {
+  const safe = Math.max(4, Math.min(8, guests));
+  return 300 + (safe - 4) * 75;
+}
+
+/** 현재 월(1-12)의 수확 정보 반환 */
+export function getHarvestForMonth(month: number): HarvestMonth {
+  const normalized = ((month - 1) % 12 + 12) % 12 + 1;
+  return SEASONAL_HARVEST[normalized];
+}
+
+// ───────────────────────────────────────────────────────────
+// 파트너 상점 (고기·식재료 배달 제휴)
+// ───────────────────────────────────────────────────────────
+
+export type PartnerCategory = 'butcher' | 'restaurant' | 'grocery';
+
+export interface PartnerStore {
+  id: string;
+  name: string;
+  category: PartnerCategory;
+  phone: string | null;
+  deliveryTimeMin: number;
+  distance: string;
+  notes: string;
+  confirmed: boolean;
+}
+
+export const PARTNER_CATEGORY_LABELS: Record<PartnerCategory, { label: string; icon: string }> = {
+  butcher:    { label: '정육점',  icon: 'ri-restaurant-2-line' },
+  restaurant: { label: '한식당',  icon: 'ri-bowl-line' },
+  grocery:    { label: '마트',   icon: 'ri-store-2-line' },
+};
+
+// 🟢 EDIT:PARTNER_STORES ─ 파트너 상점 (실 제휴 체결 시 confirmed: true + 실명·전화 교체)
+export const PARTNER_STORES: PartnerStore[] = [
+  {
+    id: 'partner-butcher-1',
+    name: '(제휴 협의 중 · 정육점)',
+    category: 'butcher',
+    phone: null,
+    deliveryTimeMin: 15,
+    distance: '—',
+    notes: '양재동 반경 1km 내 정육점 제휴 협의 예정',
+    confirmed: false,
+  },
+  {
+    id: 'partner-restaurant-1',
+    name: '(제휴 협의 중 · 한식당)',
+    category: 'restaurant',
+    phone: null,
+    deliveryTimeMin: 20,
+    distance: '—',
+    notes: '반찬·국·구이류 배달 협의 예정',
+    confirmed: false,
+  },
+];
+
+// ───────────────────────────────────────────────────────────
+// 예약 추가 옵션 (Add-on)
+// ───────────────────────────────────────────────────────────
+
+export interface BookingAddOn {
+  id: string;
+  name: string;
+  price: number;
+  description: string;
+  availability?: string;
+}
+
+// 🟢 EDIT:BOOKING_ADDONS ─ 예약 시 선택 가능한 추가 옵션
+export const BOOKING_ADDONS: BookingAddOn[] = [
+  {
+    id: 'harvest-upgrade',
+    name: '수확량 업그레이드 +200g',
+    price: 5000,
+    description: '기본 제공량에서 200g 추가 수확 (쌈 좋아하는 팀 추천)',
+  },
+  {
+    id: 'strawberry-full-course',
+    name: '딸기 풀코스 체험 +500g',
+    price: 15000,
+    description: '딸기 시즌 한정 대량 수확 체험',
+    availability: '12월 ~ 5월',
+  },
+  {
+    id: 'wasabi-grater',
+    name: '와사비 강판 체험',
+    price: 5000,
+    description: '투어 중 직접 강판으로 고추냉이 갈아보기',
+  },
+];

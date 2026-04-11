@@ -102,7 +102,7 @@ export default function CropDetail() {
           mainBuyers: '일식당, 고급 레스토랑, 식자재 유통업체',
           peakSeason: '연중 (특히 여름철 수요 증가)',
           competition: '국내 재배 농가 적어 경쟁 낮음',
-          import: '일본산 수입품과 경쟁 (국산 선호도 높음)'
+          import: '해외 수입품과 경쟁 (국산 선호도 높음)'
         }
       },
       economics: {

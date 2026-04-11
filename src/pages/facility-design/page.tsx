@@ -3,7 +3,7 @@ import BottomNav from '@/components/BottomNav';
 import PageHeader from '@/components/PageHeader';
 
 // ─────────────────────────────────────────────
-// 실제 시장 단가 데이터 (2025~2026년 기준)
+// 실제 시장 단가 데이터 (2026년 기준)
 // 출처: 농림축산식품부, 한국농업기술진흥원, 고창군 기준단가 고시
 // ─────────────────────────────────────────────
 const FACILITY_TYPES = [
@@ -20,6 +20,7 @@ const FACILITY_TYPES = [
     pros: ['초기 투자 최소', '빠른 시공(2~4주)', '정부 보조 용이'],
     cons: ['단열 취약', '내구성 15~20년', '폭설·강풍 취약'],
     source: '2026 농림부 비닐하우스 표준 기준단가',
+    recommended: false,
   },
   {
     id: 'truss',
@@ -49,6 +50,7 @@ const FACILITY_TYPES = [
     pros: ['최고 수준 채광', '고급 이미지', '내구성 30년 이상'],
     cons: ['높은 초기 비용', '파손 위험', '여름 과열 관리 필요'],
     source: '2026 유리온실 시공업체 평균 견적가',
+    recommended: false,
   },
   {
     id: 'passive',
@@ -63,6 +65,7 @@ const FACILITY_TYPES = [
     pros: ['에너지비 60~80% 절감', '사계절 안정 재배', '탄소중립 적합'],
     cons: ['초기 투자 최대', '설계·시공 전문성 필요', '표준화 미확립'],
     source: '농식품부 에너지절약형 온실 시범사업 단가',
+    recommended: false,
   },
 ] as const;
 
@@ -175,7 +178,7 @@ export default function FacilityDesign() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      <PageHeader title="시설 설비 견적" subtitle="2025~2026년 실제 시장 단가 기준" />
+      <PageHeader title="시설 설비 견적" subtitle="2026년 실제 시장 단가 기준" />
 
       {/* 면적 입력 */}
       <section className="px-4 pt-5 pb-4">

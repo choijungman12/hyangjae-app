@@ -1,0 +1,8 @@
+{
+  "recommendations": [
+    "aaron-bond.better-comments",
+    "gruntfuggly.todo-tree",
+    "dbaeumer.vscode-eslint",
+    "bradlc.vscode-tailwindcss"
+  ]
+}

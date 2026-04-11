@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build output
+dist/
+dist-ssr/
+build/
+*.local
+
+# Vite cache
+.vite/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editor / IDE
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.idea/
+
+# OS
+Thumbs.db
+
+# Environment variables (NEVER commit these)
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Capacitor native projects (will be generated)
+android/
+ios/
+
+# Temp
+*.tmp
+.claude/
+
+# TypeScript incremental build info
+*.tsbuildinfo
+
+# Coverage
+coverage/

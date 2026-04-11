@@ -101,11 +101,12 @@
 - `src/lib/iotClient.ts`, `kamisApi.ts`, `qrScanner.ts`
 
 **우선 작업 (TODO)**:
-1. 결제 PG 연동 (토스페이먼츠 또는 카카오페이)
-2. ✅ 예약 취소 환불 로직 (2일 전 100% / 1일 전 50% / 당일 0%)
-3. 주문 상태 추적 (준비/출고/배송중/완료)
-4. 재고 실시간 차감
-5. 할인 쿠폰 시스템
+1. **[Sprint-02] 예약금 30% + 네이버페이 Mock** (`memory/handoff/sprint-02-deposit-stamps/for-booking.md`)
+2. **[Sprint-02] 스탬프 적립 + 고추냉이 선물 세트 쿠폰**
+3. ✅ 예약 취소 환불 로직
+4. 결제 PG 실 연동 (Sprint-03)
+5. 주문 상태 추적 (준비/출고/배송중/완료)
+6. 재고 실시간 차감
 
 **주의사항**:
 1. **Papago 호환**: 총 금액·가격 엘리먼트에 `translate="no"` + `key` prop 필수

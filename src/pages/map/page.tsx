@@ -231,13 +231,17 @@ export default function MapPage() {
           </div>
           <div className="p-4 space-y-2.5">
             {[
-              { day: '평일 (월~금)', time: '10:00 ~ 21:00', active: true },
-              { day: '주말 · 공휴일', time: '09:00 ~ 22:00', active: true },
-              { day: '정기 휴무', time: '매월 첫째 월요일', active: false },
+              { day: '평일 (월~금)', times: ['11:00 ~ 14:00', '18:00 ~ 21:00'], active: true },
+              { day: '주말 · 공휴일', times: ['11:00 ~ 14:00', '15:00 ~ 18:00', '18:00 ~ 21:00'], active: true },
+              { day: '정기 휴무', times: ['매월 첫째 월요일'], active: false },
             ].map(row => (
-              <div key={row.day} className="flex items-center justify-between">
-                <span className={`text-xs font-bold ${row.active ? 'text-gray-700' : 'text-gray-400'}`}>{row.day}</span>
-                <span className={`text-xs font-black ${row.active ? 'text-emerald-600' : 'text-red-400'}`}>{row.time}</span>
+              <div key={row.day} className="flex items-start justify-between gap-3">
+                <span className={`text-xs font-bold pt-0.5 ${row.active ? 'text-gray-700 dark:text-gray-200' : 'text-gray-400 dark:text-gray-500'}`}>{row.day}</span>
+                <span className={`text-xs font-black text-right leading-relaxed ${row.active ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-400 dark:text-red-300'}`}>
+                  {row.times.map((t, i) => (
+                    <span key={i} translate="no" className="block">{t}</span>
+                  ))}
+                </span>
               </div>
             ))}
             <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2">

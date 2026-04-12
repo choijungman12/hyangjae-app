@@ -201,6 +201,26 @@ export default function ProfitAnalysis() {
         </div>
       </header>
 
+      {/* 사업자 대시보드 링크 */}
+      <section className="px-4 pt-4 relative z-10">
+        <Link
+          to="/admin/business"
+          className="block relative bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl p-4 shadow-md hover:shadow-xl transition-all overflow-hidden"
+        >
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
+          <div className="relative z-10 flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center flex-shrink-0">
+              <i className="ri-bar-chart-box-line text-white text-xl" aria-hidden="true" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-black text-white">사업자 전용 대시보드</p>
+              <p className="text-[10px] text-white/85 mt-0.5 leading-tight">시설 KPI · 작목반장 시세 · 경쟁업체 · 재무 시나리오</p>
+            </div>
+            <i className="ri-arrow-right-s-line text-white text-xl" aria-hidden="true" />
+          </div>
+        </Link>
+      </section>
+
       {/* 히어로 */}
       <section className="px-4 pt-5 pb-5 relative z-10">
         <div className="relative bg-gradient-to-br from-purple-600 via-purple-500 to-pink-600 rounded-3xl p-6 text-white shadow-2xl overflow-hidden">

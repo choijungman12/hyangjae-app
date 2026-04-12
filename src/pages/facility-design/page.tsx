@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import BottomNav from '@/components/BottomNav';
 import PageHeader from '@/components/PageHeader';
 
@@ -179,6 +180,26 @@ export default function FacilityDesign() {
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <PageHeader title="시설 설비 견적" subtitle="2026년 실제 시장 단가 기준" />
+
+      {/* 사업자 대시보드 링크 */}
+      <section className="px-4 pt-4">
+        <Link
+          to="/admin/business"
+          className="block relative bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl p-4 shadow-md hover:shadow-xl transition-all overflow-hidden"
+        >
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
+          <div className="relative z-10 flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center flex-shrink-0">
+              <i className="ri-bar-chart-box-line text-white text-xl" aria-hidden="true" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-black text-white">사업자 전용 대시보드</p>
+              <p className="text-[10px] text-white/85 mt-0.5 leading-tight">시설 KPI · 경쟁업체 비교 · 재무 시뮬레이션</p>
+            </div>
+            <i className="ri-arrow-right-s-line text-white text-xl" aria-hidden="true" />
+          </div>
+        </Link>
+      </section>
 
       {/* 면적 입력 */}
       <section className="px-4 pt-5 pb-4">

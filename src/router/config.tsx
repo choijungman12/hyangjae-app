@@ -32,6 +32,7 @@ const AdminMembers = lazy(() => import('../pages/admin/members'));
 const AdminBookings = lazy(() => import('../pages/admin/bookings'));
 const AdminProducts = lazy(() => import('../pages/admin/products'));
 const AdminContent = lazy(() => import('../pages/admin/content'));
+const AdminBusiness = lazy(() => import('../pages/admin/business'));
 
 const routes: RouteObject[] = [
   { path: '/', element: <Home /> },
@@ -66,6 +67,7 @@ const routes: RouteObject[] = [
   { path: '/admin/bookings', element: <AdminBookings /> },
   { path: '/admin/products', element: <AdminProducts /> },
   { path: '/admin/content',  element: <AdminContent /> },
+  { path: '/admin/business', element: <AdminBusiness /> },
 
   { path: '*', element: <NotFound /> },
 ];

@@ -28,8 +28,8 @@ const FACILITY_METRICS = [
     sub: '메인 하우스 · 고추냉이 재배 전용',
     icon: 'ri-home-gear-line',
     grad: 'from-blue-400 to-indigo-500',
-    linkLabel: '시설 설비 설계',
-    linkTo: '/facility-design',
+    linkLabel: '사업자 대시보드',
+    linkTo: '/admin/business',
   },
   {
     label: '재배 작물',
@@ -37,8 +37,8 @@ const FACILITY_METRICS = [
     sub: '고추냉이 정식 기준 (18~24개월 성장)',
     icon: 'ri-plant-line',
     grad: 'from-emerald-400 to-teal-500',
-    linkLabel: '작목반장 지표',
-    linkTo: '/profit-analysis',
+    linkLabel: '작목반장 시세',
+    linkTo: '/admin/business',
   },
   {
     label: '연 매출 목표',
@@ -46,8 +46,8 @@ const FACILITY_METRICS = [
     sub: 'ROI 22% · BEP 3개월 · 초기 투자 15억',
     icon: 'ri-money-dollar-circle-line',
     grad: 'from-purple-400 to-pink-500',
-    linkLabel: '수익성 분석',
-    linkTo: '/profit-analysis',
+    linkLabel: '재무 시뮬레이션',
+    linkTo: '/admin/business',
   },
 ];
 
@@ -71,6 +71,7 @@ const QUICK_LINKS = [
   { label: '예약 관리', icon: 'ri-calendar-2-line', to: '/admin/bookings', color: 'from-emerald-400 to-teal-500' },
   { label: '가격/메뉴', icon: 'ri-price-tag-3-line', to: '/admin/products', color: 'from-purple-400 to-pink-500' },
   { label: '콘텐츠 관리', icon: 'ri-image-edit-line', to: '/admin/content', color: 'from-orange-400 to-red-500' },
+  { label: '사업자 대시보드', icon: 'ri-bar-chart-box-line', to: '/admin/business', color: 'from-emerald-500 to-teal-600' },
 ];
 
 export default function AdminDashboard() {

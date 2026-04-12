@@ -2,11 +2,10 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import BottomNav from '@/components/BottomNav';
 
-// TODO: 🟡 EDIT:ADDRESS ─ 실제 주소 (도로명 주소 권장)
 const ADDRESS = '서울특별시 서초구 양재동 178-4';
-// TODO: 🟡 EDIT:GPS ─ 지도 앱 딥링크용 GPS 좌표 (구글맵에서 확인 가능)
-const LAT = 37.4690;
-const LNG = 127.0499;
+// 🟡 EDIT:GPS ─ 양재동 178-4 GPS 좌표 (운영 전 실제 현장에서 구글맵 확인 후 정확값 교체 필요)
+const LAT = 37.4725;
+const LNG = 127.0390;
 const PLACE_NAME = encodeURIComponent('향재원 스마트팜');
 const ADDR_ENC = encodeURIComponent(ADDRESS);
 
@@ -18,7 +17,7 @@ const MAP_APPS = [
     bg: 'bg-green-50',
     border: 'border-green-200',
     icon: 'ri-map-pin-2-line',
-    deepLink: `nmap://place?lat=${LAT}&lng=${LNG}&name=${PLACE_NAME}&appname=com.hyangjae.app`,
+    deepLink: `nmap://search?query=${ADDR_ENC}&appname=com.hyangjae.app`,
     webLink: `https://map.naver.com/v5/search/${ADDR_ENC}`,
     desc: '네이버 지도로 길찾기',
   },
@@ -29,8 +28,8 @@ const MAP_APPS = [
     bg: 'bg-yellow-50',
     border: 'border-yellow-200',
     icon: 'ri-map-2-line',
-    deepLink: `kakaomap://route?ep=${LAT},${LNG}&by=CAR`,
-    webLink: `https://map.kakao.com/link/to/${PLACE_NAME},${LAT},${LNG}`,
+    deepLink: `kakaomap://search?q=${ADDR_ENC}`,
+    webLink: `https://map.kakao.com/link/search/${ADDR_ENC}`,
     desc: '카카오맵으로 길찾기',
   },
   {
@@ -51,8 +50,8 @@ const MAP_APPS = [
     bg: 'bg-blue-50',
     border: 'border-blue-200',
     icon: 'ri-map-pin-line',
-    deepLink: `comgooglemaps://?daddr=${LAT},${LNG}&directionsmode=driving`,
-    webLink: `https://maps.google.com/maps?q=${LAT},${LNG}`,
+    deepLink: `comgooglemaps://?q=${ADDR_ENC}`,
+    webLink: `https://maps.google.com/maps?q=${ADDR_ENC}`,
     desc: '구글 지도로 길찾기',
   },
 ];
@@ -91,14 +90,15 @@ const TRANSIT_INFO = [
 ];
 
 function openMapApp(app: typeof MAP_APPS[0]) {
-  const iframe = document.createElement('iframe');
-  iframe.style.display = 'none';
-  iframe.src = app.deepLink;
-  document.body.appendChild(iframe);
-  setTimeout(() => {
-    document.body.removeChild(iframe);
+  const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+  if (isMobile) {
+    window.location.href = app.deepLink;
+    setTimeout(() => {
+      window.open(app.webLink, '_blank');
+    }, 1200);
+  } else {
     window.open(app.webLink, '_blank');
-  }, 1500);
+  }
 }
 
 export default function MapPage() {

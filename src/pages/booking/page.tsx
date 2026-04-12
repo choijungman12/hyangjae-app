@@ -27,6 +27,8 @@ type BookingItem = {
   /** 예약금 결제 트랜잭션 ID (네이버페이 Mock) */
   depositTransactionId?: string;
   addons?: string[];
+  /** 애견 동반 마릿수 (7번·8번 데크 한정) */
+  petCount?: number;
   createdAt: string;
 };
 
@@ -43,10 +45,22 @@ const DECK_BASE = {
 
 const TOTAL_DECKS = 8;
 
+/* 애견 동반 허용 데크 — 7번, 8번만 가능 */
+const PET_FRIENDLY_DECKS = [7, 8];
+
+/* 애견 동반 정책 */
+const PET_POLICY = {
+  feePerPet: 15000,      // 마리당 추가 요금 (원)
+  maxPets: 2,            // 데크당 최대 동반 가능 마릿수
+  weightLimit: 15,       // 소·중형견 체중 제한 (kg)
+  allowedDecks: PET_FRIENDLY_DECKS,
+};
+
 /* 8개 데크 목록 (추후 관리자에서 상태 변경 가능) */
 const DECKS = Array.from({ length: TOTAL_DECKS }, (_, i) => ({
   id: i + 1,
   label: `${i + 1}번 데크`,
+  petFriendly: PET_FRIENDLY_DECKS.includes(i + 1),
 }));
 
 /* 부가 옵션 */
@@ -205,6 +219,10 @@ export default function Booking() {
   const [selectedBookingAddons, setSelectedBookingAddons] = useState<string[]>([]);
   /** 선택된 체험 프로그램 — 최대 1개씩 선택 (id → 진행 시각) */
   const [selectedExperiences, setSelectedExperiences] = useState<SelectedExperience[]>([]);
+  /** 애견 동반 마릿수 (0~최대 2) */
+  const [petCount, setPetCount] = useState(0);
+  /** 애견 동반 주의사항 동의 여부 */
+  const [petRulesAgreed, setPetRulesAgreed] = useState(false);
   /** 데크 공간 소개 캐러셀 인덱스 */
   const [deckSlideIndex, setDeckSlideIndex] = useState(0);
 
@@ -239,7 +257,10 @@ export default function Booking() {
     if (!prog) return sum;
     return sum + prog.price * parsedGuests;
   }, 0);
-  const subtotal = basePrice + extraGuestTotal + extendTotal + addonsTotal + bookingAddonsTotal + experienceTotal;
+  // 애견 동반 추가 요금 — 7번·8번 데크만 가능
+  const isPetFriendlyDeck = Boolean(selectedDeckId && PET_FRIENDLY_DECKS.includes(selectedDeckId));
+  const petTotal = isPetFriendlyDeck ? petCount * PET_POLICY.feePerPet : 0;
+  const subtotal = basePrice + extraGuestTotal + extendTotal + addonsTotal + bookingAddonsTotal + experienceTotal + petTotal;
   const discountedPrice = combineDiscount ? Math.round(subtotal * 0.9) : subtotal;
   const payment = splitBookingPayment(discountedPrice);
   const harvestGrams = calcHarvestGrams(parsedGuests);
@@ -285,6 +306,10 @@ export default function Booking() {
       setFormError('데크, 날짜, 시간을 모두 선택해주세요.');
       return;
     }
+    if (isPetFriendlyDeck && petCount > 0 && !petRulesAgreed) {
+      setFormError('애견 동반 시 주의사항에 동의해 주세요.');
+      return;
+    }
     setFormError('');
 
     const addonLabels = selectedAddons.map(id => ADDONS.find(a => a.id === id)?.label ?? '').filter(Boolean);
@@ -297,6 +322,9 @@ export default function Booking() {
       const prog = EXPERIENCE_PROGRAMS.find(p => p.id === exp.id);
       if (prog) addonLabels.push(`${prog.name} (${exp.time}, ${parsedGuests}인)`);
     });
+    if (isPetFriendlyDeck && petCount > 0) {
+      addonLabels.push(`애견 동반 ${petCount}마리`);
+    }
 
     const orderId = `ORDER-${Date.now()}`;
     setIsPaying(true);
@@ -319,6 +347,7 @@ export default function Booking() {
         remainderAmount: payment.remainder,
         depositTransactionId: result.transactionId,
         addons: addonLabels,
+        petCount: isPetFriendlyDeck && petCount > 0 ? petCount : undefined,
         createdAt: new Date().toISOString(),
       };
       setBookings(prev => [newBooking, ...prev]);
@@ -328,6 +357,8 @@ export default function Booking() {
       setSelectedAddons([]);
       setSelectedBookingAddons([]);
       setSelectedExperiences([]);
+      setPetCount(0);
+      setPetRulesAgreed(false);
       setGuestCount('4');
       setExtendHours(0);
       setCombineDiscount(false);
@@ -462,7 +493,14 @@ export default function Booking() {
               {DECKS.map(deck => (
                 <button
                   key={deck.id}
-                  onClick={() => setSelectedDeckId(deck.id)}
+                  onClick={() => {
+                    setSelectedDeckId(deck.id);
+                    if (!PET_FRIENDLY_DECKS.includes(deck.id)) {
+                      // 애견 불가 데크 선택 시 애견 관련 상태 초기화
+                      setPetCount(0);
+                      setPetRulesAgreed(false);
+                    }
+                  }}
                   className={`relative aspect-square rounded-2xl border-2 flex flex-col items-center justify-center transition-all duration-300 ${
                     selectedDeckId === deck.id
                       ? 'border-orange-500 bg-gradient-to-br from-orange-50 to-amber-50 shadow-lg scale-105'
@@ -474,12 +512,23 @@ export default function Booking() {
                       <i className="ri-check-line text-white text-xs" />
                     </div>
                   )}
+                  {deck.petFriendly && selectedDeckId !== deck.id && (
+                    <div className="absolute top-1 right-1 w-5 h-5 bg-amber-400 rounded-full flex items-center justify-center shadow-sm" title="애견 동반 가능">
+                      <span className="text-[10px]" aria-hidden="true">🐕</span>
+                    </div>
+                  )}
                   <i className={`ri-tent-line text-2xl mb-1 ${selectedDeckId === deck.id ? 'text-orange-600' : 'text-gray-400'}`} />
                   <span className={`text-xs font-black ${selectedDeckId === deck.id ? 'text-orange-900' : 'text-gray-700'}`}>{deck.id}번</span>
                   <span className="text-[9px] text-gray-400">8인</span>
+                  {deck.petFriendly && (
+                    <span className="text-[8px] font-black text-amber-600 mt-0.5">애견 OK</span>
+                  )}
                 </button>
               ))}
             </div>
+            <p className="text-[10px] text-gray-400 text-center mt-3 font-bold">
+              🐕 애견 동반은 <b className="text-amber-600">7번·8번 데크</b>만 가능합니다
+            </p>
           </section>
 
           {/* 예약 폼 */}
@@ -789,6 +838,112 @@ export default function Booking() {
                   </div>
                 </div>
 
+                {/* 애견 동반 (7번·8번 데크만) */}
+                {isPetFriendlyDeck && (
+                  <div className="mb-4 rounded-2xl border-2 border-amber-300 bg-gradient-to-br from-amber-50 to-orange-50 p-4">
+                    <div className="flex items-start gap-3 mb-3">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center flex-shrink-0">
+                        <span className="text-xl" aria-hidden="true">🐕</span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs font-black text-amber-900">애견 동반 가능 데크</p>
+                        <p className="text-[11px] text-amber-700 mt-0.5 leading-relaxed">
+                          {selectedDeckId}번 데크는 반려견 동반 전용입니다 · 마리당 <b>{PET_POLICY.feePerPet.toLocaleString()}원</b> · 최대 {PET_POLICY.maxPets}마리
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* 마릿수 선택 */}
+                    <div className="bg-white rounded-xl p-3 mb-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[11px] font-black text-gray-600">반려견 동반 마릿수</span>
+                        <span className="text-[10px] font-black text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full" translate="no">
+                          {petCount}마리 / {PET_POLICY.maxPets}마리
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPetCount(prev => {
+                              const next = Math.max(0, prev - 1);
+                              if (next === 0) setPetRulesAgreed(false);
+                              return next;
+                            });
+                          }}
+                          disabled={petCount === 0}
+                          className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-xl disabled:opacity-30 active:scale-95 transition-all"
+                          aria-label="반려견 감소"
+                        >
+                          <i className="ri-subtract-line text-gray-700" />
+                        </button>
+                        <div className="flex-1 text-center">
+                          <p className="text-2xl font-black text-amber-700" translate="no">{petCount}</p>
+                          <p className="text-[10px] text-gray-500">마리</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setPetCount(prev => Math.min(PET_POLICY.maxPets, prev + 1))}
+                          disabled={petCount >= PET_POLICY.maxPets}
+                          className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-xl disabled:opacity-30 active:scale-95 transition-all"
+                          aria-label="반려견 증가"
+                        >
+                          <i className="ri-add-line text-gray-700" />
+                        </button>
+                      </div>
+                      {petCount > 0 && (
+                        <p className="text-[11px] font-black text-amber-700 text-center mt-2" translate="no">
+                          {petCount}마리 × {PET_POLICY.feePerPet.toLocaleString()}원 = {(petCount * PET_POLICY.feePerPet).toLocaleString()}원
+                        </p>
+                      )}
+                    </div>
+
+                    {/* 주의사항 */}
+                    {petCount > 0 && (
+                      <>
+                        <div className="bg-white rounded-xl p-3 mb-3 border border-amber-200">
+                          <p className="text-[11px] font-black text-amber-900 mb-2 flex items-center gap-1">
+                            <i className="ri-alert-fill text-amber-600" aria-hidden="true" />
+                            애견 동반 주의사항 (필독)
+                          </p>
+                          <ul className="text-[10px] text-gray-700 leading-relaxed space-y-1">
+                            <li>• <b>동반 가능</b>: 소·중형견 ({PET_POLICY.weightLimit}kg 이하) · 대형견 사전 협의 필수</li>
+                            <li>• <b>예방접종</b>: 광견병 등 필수 예방접종 완료견만 · 1년 이내 증빙 지참 권장</li>
+                            <li>• <b>리드줄</b>: 공용 구역(데크 외) 상시 <b>1.5m 이하 리드줄</b> + 주인 동행 필수</li>
+                            <li>• <b>출입 금지 구역</b>: 메인 하우스(고추냉이 스마트팜) · 전용 텃밭 · 공용 식당 내부</li>
+                            <li>• <b>배변 처리</b>: 배변 봉투 필수 지참 · 주인이 <b>즉시 수거</b></li>
+                            <li>• <b>소음 관리</b>: 타 고객 배려 · 짖음 지속 시 퇴장 조치 가능</li>
+                            <li>• <b>수영장·연못</b>: 낙상·익사 위험 · 보호자 상시 감독</li>
+                            <li>• <b>심야 관리</b>: 22시 이후 데크 밖 출입 자제</li>
+                            <li>• <b>책임·배상</b>: 기물 파손·타 고객 피해 발생 시 <b>동반자 전액 배상</b></li>
+                            <li>• <b>특수 청소비</b>: 심한 오염 발생 시 최대 <b>50,000원</b> 별도 청구</li>
+                            <li>• <b>금지 견종</b>: 전염성 질환 · 공격성 있는 견종 동반 불가</li>
+                            <li>• <b>면책</b>: 반려견 분실·부상에 대해 향재원은 책임지지 않습니다</li>
+                          </ul>
+                        </div>
+
+                        {/* 동의 체크박스 */}
+                        <button
+                          type="button"
+                          onClick={() => setPetRulesAgreed(v => !v)}
+                          className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${
+                            petRulesAgreed ? 'border-emerald-500 bg-emerald-50' : 'border-amber-300 bg-white'
+                          }`}
+                        >
+                          <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 ${
+                            petRulesAgreed ? 'border-emerald-500 bg-emerald-500' : 'border-amber-400'
+                          }`}>
+                            {petRulesAgreed && <i className="ri-check-line text-white text-xs" aria-hidden="true" />}
+                          </div>
+                          <span className="text-xs font-black text-gray-800 text-left">
+                            위 주의사항을 모두 읽고 동의합니다
+                          </span>
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+
                 {/* 가격 내역 (상세) — translate="no" + key 로 Papago 번역 캐시 우회 */}
                 <div
                   translate="no"
@@ -842,6 +997,12 @@ export default function Booking() {
                       </div>
                     );
                   })}
+                  {isPetFriendlyDeck && petCount > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-amber-700">+ 애견 동반 ({petCount}마리 × {PET_POLICY.feePerPet.toLocaleString()}원) 🐕</span>
+                      <span className="text-xs font-bold text-amber-700">{petTotal.toLocaleString()}원</span>
+                    </div>
+                  )}
                   {combineDiscount && (
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-emerald-600">할인 (-10%)</span>

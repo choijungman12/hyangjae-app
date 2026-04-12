@@ -70,8 +70,15 @@ const QUICK_LINKS = [
   { label: '회원 관리', icon: 'ri-group-line', to: '/admin/members', color: 'from-blue-400 to-indigo-500' },
   { label: '예약 관리', icon: 'ri-calendar-2-line', to: '/admin/bookings', color: 'from-emerald-400 to-teal-500' },
   { label: '가격/메뉴', icon: 'ri-price-tag-3-line', to: '/admin/products', color: 'from-purple-400 to-pink-500' },
-  { label: '콘텐츠 관리', icon: 'ri-image-edit-line', to: '/admin/content', color: 'from-orange-400 to-red-500' },
+  { label: '콘텐츠/이미지', icon: 'ri-image-edit-line', to: '/admin/content', color: 'from-orange-400 to-red-500' },
   { label: '사업자 대시보드', icon: 'ri-bar-chart-box-line', to: '/admin/business', color: 'from-emerald-500 to-teal-600' },
+  { label: '수익성 분석', icon: 'ri-funds-line', to: '/profit-analysis', color: 'from-purple-500 to-pink-600' },
+  { label: '시설 설비', icon: 'ri-building-line', to: '/facility-design', color: 'from-blue-500 to-indigo-600' },
+  { label: 'KAMIS 시세', icon: 'ri-line-chart-line', to: '/price-trends', color: 'from-cyan-500 to-blue-600' },
+  { label: 'IoT 센서', icon: 'ri-cpu-line', to: '/smart-farm-data', color: 'from-green-500 to-emerald-600' },
+  { label: '장비 제어', icon: 'ri-remote-control-line', to: '/device-control', color: 'from-slate-500 to-gray-600' },
+  { label: '재배 달력', icon: 'ri-calendar-check-line', to: '/cultivation-calendar', color: 'from-lime-500 to-green-600' },
+  { label: '작물 가이드', icon: 'ri-seedling-line', to: '/growing-guide', color: 'from-emerald-400 to-teal-500' },
 ];
 
 export default function AdminDashboard() {
@@ -228,17 +235,17 @@ export default function AdminDashboard() {
           <h3 className="text-sm font-black text-gray-900 mb-3 flex items-center gap-2">
             <i className="ri-apps-line text-gray-500" />관리 메뉴
           </h3>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-4 gap-2.5">
             {QUICK_LINKS.map(link => (
               <Link
                 key={link.label}
                 to={link.to}
-                className="flex flex-col items-center gap-1.5 p-3 rounded-2xl hover:bg-gray-50 transition-all"
+                className="flex flex-col items-center gap-1 p-2.5 rounded-2xl hover:bg-gray-50 active:scale-95 transition-all"
               >
-                <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${link.color} flex items-center justify-center shadow-md`}>
-                  <i className={`${link.icon} text-white text-xl`} />
+                <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${link.color} flex items-center justify-center shadow-md`}>
+                  <i className={`${link.icon} text-white text-lg`} />
                 </div>
-                <span className="text-[10px] font-black text-gray-700 text-center leading-tight">{link.label}</span>
+                <span className="text-[9px] font-black text-gray-700 text-center leading-tight">{link.label}</span>
               </Link>
             ))}
           </div>

@@ -222,6 +222,13 @@ export default function Home() {
               {userName && <span className="text-xs font-black text-white max-w-[60px] truncate">{userName}</span>}
             </Link>
             <Link
+              to="/admin"
+              className="w-10 h-10 flex items-center justify-center bg-gray-900 border border-gray-700 rounded-xl shadow-sm hover:shadow-md transition-all"
+              aria-label="관리자"
+            >
+              <i className="ri-shield-keyhole-line text-lg text-white"></i>
+            </Link>
+            <Link
               to="/map"
               className="w-10 h-10 flex items-center justify-center bg-white/80 border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all"
             >

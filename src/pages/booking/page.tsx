@@ -161,12 +161,16 @@ function useCustomImage(key: ImageKey, fallback: string): string {
   return src;
 }
 
+/** 체험 프로그램 선택 정보 */
+type SelectedExperience = {
+  id: string;
+  time: string;  // 체험 진행 시각 (평일 11:00 / 주말 11:00 또는 15:00)
+};
+
 export default function Booking() {
-  const [activeTab, setActiveTab] = useState<'deck' | 'experience'>('deck');
   const glampingOutdoor  = useCustomImage('glamping-outdoor',  '/facility-images/facility-09.jpg');
   const glampingInterior = useCustomImage('glamping-interior', '/facility-images/facility-00.jpg');
   const [selectedDeckId, setSelectedDeckId] = useState<number | null>(null);
-  const [selectedExp, setSelectedExp] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [guestCount, setGuestCount] = useState('4');
@@ -178,18 +182,15 @@ export default function Booking() {
   const [bookings, setBookings] = useLocalStorage<BookingItem[]>('farm-bookings', []);
   const [isPaying, setIsPaying] = useState(false);
   const [selectedBookingAddons, setSelectedBookingAddons] = useState<string[]>([]);
+  /** 선택된 체험 프로그램 — 최대 1개씩 선택 (id → 진행 시각) */
+  const [selectedExperiences, setSelectedExperiences] = useState<SelectedExperience[]>([]);
 
   const currentMonth = new Date().getMonth() + 1;
   const currentHarvest = getHarvestForMonth(currentMonth);
 
   const weekend = isWeekend(selectedDate);
-  const deckSlots = weekend ? WEEKEND_SLOTS : WEEKDAY_SLOTS;
+  const availableSlots = weekend ? WEEKEND_SLOTS : WEEKDAY_SLOTS;
   const experienceSlots = weekend ? EXPERIENCE_WEEKEND_SLOTS : EXPERIENCE_WEEKDAY_SLOTS;
-  const availableSlots = activeTab === 'experience' ? experienceSlots : deckSlots;
-  /** 같은 날짜에 확정된 데크 예약이 있어야 체험 예약 가능 */
-  const hasDeckBookingOnSelectedDate = Boolean(
-    selectedDate && bookings.some(b => b.type === 'deck' && b.date === selectedDate),
-  );
   const basePrice = weekend ? DECK_BASE.weekend : DECK_BASE.weekday;
   // 인원 추가 요금 (4인 초과 시 1명당 +2만원)
   const parsedGuests = parseInt(guestCount) || DECK_BASE.baseGuests;
@@ -201,7 +202,13 @@ export default function Booking() {
     (sum, id) => sum + (BOOKING_ADDONS.find(a => a.id === id)?.price ?? 0),
     0,
   );
-  const subtotal = basePrice + extraGuestTotal + extendTotal + addonsTotal + bookingAddonsTotal;
+  // 체험 프로그램 총액 — 인당 요금 × 참여 인원
+  const experienceTotal = selectedExperiences.reduce((sum, exp) => {
+    const prog = EXPERIENCE_PROGRAMS.find(p => p.id === exp.id);
+    if (!prog) return sum;
+    return sum + prog.price * parsedGuests;
+  }, 0);
+  const subtotal = basePrice + extraGuestTotal + extendTotal + addonsTotal + bookingAddonsTotal + experienceTotal;
   const discountedPrice = combineDiscount ? Math.round(subtotal * 0.9) : subtotal;
   const payment = splitBookingPayment(discountedPrice);
   const harvestGrams = calcHarvestGrams(parsedGuests);
@@ -211,14 +218,35 @@ export default function Booking() {
     if (selectedTime && !availableSlots.find(s => s.time === selectedTime)) {
       setSelectedTime('');
     }
+    // 체험 시간도 날짜 변경 시 재검증 — 평일↔주말 전환 시 잘못된 시간 초기화
+    setSelectedExperiences(prev =>
+      prev
+        .map(exp => {
+          const stillValid = experienceSlots.find(s => s.time === exp.time);
+          return stillValid ? exp : { ...exp, time: experienceSlots[0]?.time ?? '' };
+        })
+        .filter(exp => exp.time !== ''),
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate]);
 
-  const expInfo = EXPERIENCE_PROGRAMS.find(p => p.id === selectedExp);
-  const expTotal = expInfo ? expInfo.price * (parseInt(guestCount) || 1) : 0;
-
   const toggleAddon = (id: string) => {
     setSelectedAddons(prev => prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]);
+  };
+
+  const toggleExperience = (id: string) => {
+    setSelectedExperiences(prev => {
+      const exists = prev.find(e => e.id === id);
+      if (exists) return prev.filter(e => e.id !== id);
+      // 신규 선택 시 기본 시간 = 첫 번째 사용 가능 슬롯
+      const defaultTime = experienceSlots[0]?.time ?? '';
+      if (!defaultTime) return prev;
+      return [...prev, { id, time: defaultTime }];
+    });
+  };
+
+  const updateExperienceTime = (id: string, time: string) => {
+    setSelectedExperiences(prev => prev.map(e => (e.id === id ? { ...e, time } : e)));
   };
 
   const handleBookDeck = async () => {
@@ -233,6 +261,10 @@ export default function Booking() {
     selectedBookingAddons.forEach(id => {
       const a = BOOKING_ADDONS.find(b => b.id === id);
       if (a) addonLabels.push(a.name);
+    });
+    selectedExperiences.forEach(exp => {
+      const prog = EXPERIENCE_PROGRAMS.find(p => p.id === exp.id);
+      if (prog) addonLabels.push(`${prog.name} (${exp.time}, ${parsedGuests}인)`);
     });
 
     const orderId = `ORDER-${Date.now()}`;
@@ -264,57 +296,12 @@ export default function Booking() {
       setSelectedTime('');
       setSelectedAddons([]);
       setSelectedBookingAddons([]);
+      setSelectedExperiences([]);
       setGuestCount('4');
       setExtendHours(0);
       setCombineDiscount(false);
       setToast({
         message: `예약금 ${payment.deposit.toLocaleString()}원 결제 완료! 현장에서 ${payment.remainder.toLocaleString()}원 결제해 주세요.`,
-        type: 'success',
-      });
-    } finally {
-      setIsPaying(false);
-    }
-  };
-
-  const handleBookExp = async () => {
-    if (!selectedExp || !selectedDate || !selectedTime) {
-      setFormError('프로그램, 날짜, 시간을 모두 선택해주세요.');
-      return;
-    }
-    if (!hasDeckBookingOnSelectedDate) {
-      setFormError('체험 프로그램은 같은 날짜에 데크 예약을 하신 분만 이용하실 수 있습니다. 먼저 데크를 예약해 주세요.');
-      return;
-    }
-    setFormError('');
-
-    const expPayment = splitBookingPayment(expTotal);
-    const orderId = `EXP-${Date.now()}`;
-    setIsPaying(true);
-    try {
-      const result = await requestNaverPayMock({
-        orderId,
-        amount: expPayment.deposit,
-        productName: `${expInfo?.name ?? '체험'} · ${parseInt(guestCount) || 1}인`,
-      });
-      const newBooking: BookingItem = {
-        type: 'experience',
-        name: expInfo?.name || '',
-        date: selectedDate,
-        time: selectedTime,
-        guests: parseInt(guestCount) || 1,
-        price: expTotal,
-        depositAmount: expPayment.deposit,
-        remainderAmount: expPayment.remainder,
-        depositTransactionId: result.transactionId,
-        createdAt: new Date().toISOString(),
-      };
-      setBookings(prev => [newBooking, ...prev]);
-      setSelectedExp(null);
-      setSelectedDate('');
-      setSelectedTime('');
-      setGuestCount('1');
-      setToast({
-        message: `체험 예약금 ${expPayment.deposit.toLocaleString()}원 결제 완료!`,
         type: 'success',
       });
     } finally {
@@ -344,25 +331,7 @@ export default function Booking() {
         </div>
       </section>
 
-      {/* Tab */}
-      <div className="flex border-b border-gray-200 bg-white sticky top-0 z-10">
-        <button
-          onClick={() => { setActiveTab('deck'); setFormError(''); }}
-          className={`flex-1 py-3.5 text-sm font-bold transition-colors ${activeTab === 'deck' ? 'text-orange-600 border-b-2 border-orange-600' : 'text-gray-500'}`}
-        >
-          <i className="ri-tent-line mr-1.5" />공간 대여
-        </button>
-        <button
-          onClick={() => { setActiveTab('experience'); setFormError(''); }}
-          className={`flex-1 py-3.5 text-sm font-bold transition-colors ${activeTab === 'experience' ? 'text-emerald-600 border-b-2 border-emerald-600' : 'text-gray-500'}`}
-        >
-          <i className="ri-seedling-line mr-1.5" />체험 프로그램
-        </button>
-      </div>
-
-      {/* ═══════ 공간 대여 탭 ═══════ */}
-      {activeTab === 'deck' && (
-        <>
+      {/* ═══════ 공간 대여 (체험 프로그램 통합) ═══════ */}
           {/* 공간 소개 — 심플 Apple 스타일 */}
           <section className="px-4 pt-5">
             <div className="rounded-3xl overflow-hidden bg-white shadow-sm border border-gray-100">
@@ -664,24 +633,82 @@ export default function Booking() {
                   </div>
                 </div>
 
-                {/* 체험 연계 할인 */}
-                <button
-                  onClick={() => setCombineDiscount(v => !v)}
-                  className={`w-full flex items-center gap-3 p-3 rounded-xl mb-4 border-2 transition-all ${
-                    combineDiscount ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 bg-gray-50'
-                  }`}
-                >
-                  <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
-                    combineDiscount ? 'border-emerald-500 bg-emerald-500' : 'border-gray-300'
-                  }`}>
-                    {combineDiscount && <i className="ri-check-line text-white text-xs" />}
+                {/* 체험 프로그램 (데크 예약자 전용 · 인당 요금) */}
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-xs font-black text-gray-600">
+                      체험 프로그램 <span className="text-gray-400 font-medium">(선택 · 인당)</span>
+                    </label>
+                    <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                      {weekend ? '주말 2타임' : '평일 1타임'}
+                    </span>
                   </div>
-                  <div className="flex-1 text-left">
-                    <p className="text-xs font-black text-gray-900">스마트팜 체험 연계</p>
-                    <p className="text-[11px] text-gray-500">체험 프로그램 추가 시 공간대여 10% 할인</p>
+                  <p className="text-[10px] text-gray-500 mb-2 leading-relaxed">
+                    데크 예약자에게만 제공 · 평일 오전 11시 1회 / 주말 오전 11시·오후 3시 2회 운영
+                  </p>
+                  <div className="space-y-2">
+                    {EXPERIENCE_PROGRAMS.map(prog => {
+                      const selected = selectedExperiences.find(e => e.id === prog.id);
+                      const isSelected = Boolean(selected);
+                      return (
+                        <div
+                          key={prog.id}
+                          className={`rounded-xl border-2 transition-all ${
+                            isSelected ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 bg-white'
+                          }`}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => toggleExperience(prog.id)}
+                            className="w-full flex items-center gap-3 p-3 text-left"
+                          >
+                            <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${prog.color} flex items-center justify-center shadow-md flex-shrink-0`}>
+                              <i className={`${prog.icon} text-white text-lg`} aria-hidden="true" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-black text-gray-900 truncate">{prog.name}</p>
+                              <p className="text-[10px] text-gray-500 leading-tight line-clamp-2">{prog.desc}</p>
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              <p className="text-[11px] font-black text-emerald-600" translate="no">
+                                {prog.price.toLocaleString()}원/{prog.unit}
+                              </p>
+                              <div className={`w-4 h-4 mt-1 ml-auto rounded-md border-2 flex items-center justify-center ${
+                                isSelected ? 'border-emerald-500 bg-emerald-500' : 'border-gray-300'
+                              }`}>
+                                {isSelected && <i className="ri-check-line text-white text-[10px]" aria-hidden="true" />}
+                              </div>
+                            </div>
+                          </button>
+                          {isSelected && (
+                            <div className="px-3 pb-3 pt-1 border-t border-emerald-200">
+                              <p className="text-[10px] text-gray-600 font-bold mb-1.5">체험 시간 선택</p>
+                              <div className={`grid gap-1.5 ${experienceSlots.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                                {experienceSlots.map(slot => (
+                                  <button
+                                    key={slot.time}
+                                    type="button"
+                                    onClick={() => updateExperienceTime(prog.id, slot.time)}
+                                    className={`py-2 rounded-lg text-xs font-black transition-all ${
+                                      selected?.time === slot.time
+                                        ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow'
+                                        : 'bg-white text-gray-600 border border-gray-200 hover:border-emerald-300'
+                                    }`}
+                                  >
+                                    {slot.label} {slot.time}
+                                  </button>
+                                ))}
+                              </div>
+                              <p className="text-[10px] text-emerald-700 font-bold mt-2" translate="no">
+                                {parsedGuests}인 × {prog.price.toLocaleString()}원 = {(parsedGuests * prog.price).toLocaleString()}원
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
-                  <span className="text-xs font-black text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">-10%</span>
-                </button>
+                </div>
 
                 {/* 가격 내역 (상세) — translate="no" + key 로 Papago 번역 캐시 우회 */}
                 <div
@@ -723,9 +750,22 @@ export default function Booking() {
                       </div>
                     );
                   })}
+                  {selectedExperiences.map(exp => {
+                    const prog = EXPERIENCE_PROGRAMS.find(p => p.id === exp.id);
+                    if (!prog) return null;
+                    const lineTotal = prog.price * parsedGuests;
+                    return (
+                      <div key={exp.id} className="flex items-center justify-between">
+                        <span className="text-xs text-gray-600">
+                          + {prog.name} ({exp.time} · {parsedGuests}인)
+                        </span>
+                        <span className="text-xs font-bold text-gray-800">{lineTotal.toLocaleString()}원</span>
+                      </div>
+                    );
+                  })}
                   {combineDiscount && (
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-emerald-600">체험 연계 할인 (-10%)</span>
+                      <span className="text-xs text-emerald-600">할인 (-10%)</span>
                       <span className="text-xs font-bold text-emerald-600">-{(subtotal - discountedPrice).toLocaleString()}원</span>
                     </div>
                   )}
@@ -824,191 +864,6 @@ export default function Booking() {
             </div>
             <HarvestCalendar currentMonth={currentMonth} />
           </section>
-        </>
-      )}
-
-      {/* ═══════ 체험 탭 ═══════ */}
-      {activeTab === 'experience' && (
-        <>
-          {/* 체험 프로그램 정책 안내 */}
-          <section className="px-4 pt-4">
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-2xl p-4 flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0">
-                <i className="ri-lock-2-fill text-white text-lg" aria-hidden="true" />
-              </div>
-              <div className="flex-1">
-                <p className="text-xs font-black text-blue-900 mb-1">체험은 데크 예약자 전용입니다</p>
-                <ul className="text-[11px] text-blue-800 leading-relaxed space-y-0.5">
-                  <li>• 같은 날짜에 <b>데크 예약</b>이 있는 경우에만 체험 예약 가능</li>
-                  <li>• <b>평일</b>: 오전 11:00 1타임</li>
-                  <li>• <b>주말</b>: 오전 11:00 · 오후 15:00 2타임</li>
-                </ul>
-              </div>
-            </div>
-          </section>
-
-          <section className="px-4 pt-4 pb-2">
-            <h3 className="text-sm font-black text-gray-900 mb-3">체험 프로그램 선택</h3>
-            <div className="space-y-3">
-              {EXPERIENCE_PROGRAMS.map(prog => (
-                <button
-                  key={prog.id}
-                  onClick={() => setSelectedExp(prog.id)}
-                  className={`w-full bg-white rounded-2xl overflow-hidden shadow-sm border-2 transition-all text-left ${
-                    selectedExp === prog.id ? 'border-emerald-500' : 'border-transparent'
-                  }`}
-                >
-                  <div className="relative h-28">
-                    <img src={prog.image} alt={prog.name} className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                    <div className={`absolute top-2 right-2 w-9 h-9 flex items-center justify-center bg-gradient-to-br ${prog.color} rounded-xl shadow`}>
-                      <i className={`${prog.icon} text-white text-base`} />
-                    </div>
-                    <div className="absolute bottom-2 left-3">
-                      <p className="text-white font-black text-sm">{prog.name}</p>
-                      <p className="text-white/70 text-xs">{prog.duration} · {prog.unit}</p>
-                    </div>
-                  </div>
-                  <div className="px-4 py-3 flex items-center justify-between">
-                    <p className="text-xs text-gray-500">{prog.desc}</p>
-                    <p className="text-base font-black text-emerald-600 flex-shrink-0 ml-3">{prog.price.toLocaleString()}원</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </section>
-
-          {selectedExp && (
-            <section className="px-4 pb-6 mt-2">
-              <div className="bg-white rounded-2xl shadow-sm p-5">
-                <h3 className="text-sm font-bold text-gray-900 mb-4">예약 정보</h3>
-
-                <div className="mb-4">
-                  <label className="block text-xs font-semibold text-gray-600 mb-2">날짜</label>
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                  {selectedDate && !hasDeckBookingOnSelectedDate && (
-                    <div className="mt-2 bg-red-50 border border-red-200 rounded-xl p-3 flex items-start gap-2">
-                      <i className="ri-error-warning-fill text-red-500 text-sm mt-0.5" />
-                      <div className="flex-1">
-                        <p className="text-[11px] font-black text-red-700">해당 날짜에 데크 예약이 없습니다</p>
-                        <p className="text-[10px] text-red-600 mt-0.5">
-                          체험은 데크 예약자 전용입니다. 먼저 공간 대여 탭에서 데크를 예약해 주세요.
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => { setActiveTab('deck'); setFormError(''); }}
-                          className="mt-1.5 text-[11px] font-black text-red-700 underline"
-                        >
-                          → 공간 대여 탭으로 이동
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                  {selectedDate && hasDeckBookingOnSelectedDate && (
-                    <p className="text-[11px] mt-2 font-bold text-emerald-600 flex items-center gap-1">
-                      <i className="ri-checkbox-circle-fill" />
-                      해당 날짜에 데크 예약이 확인되었습니다
-                    </p>
-                  )}
-                </div>
-
-                <div className="mb-4">
-                  <label className="block text-xs font-semibold text-gray-600 mb-2">시간대</label>
-                  <div className={`grid gap-2 ${availableSlots.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
-                    {availableSlots.map(slot => (
-                      <button
-                        key={slot.time}
-                        onClick={() => setSelectedTime(slot.time)}
-                        className={`py-2.5 px-2 rounded-xl transition-all ${
-                          selectedTime === slot.time ? 'bg-emerald-500 text-white shadow-md' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
-                        }`}
-                      >
-                        <span className="block text-[10px] opacity-70">{slot.label}</span>
-                        <span className="block text-xs font-black">{slot.time}~{slot.endTime}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="mb-5">
-                  <label className="block text-xs font-semibold text-gray-600 mb-2">인원</label>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setGuestCount(prev => String(Math.max(1, (parseInt(prev) || 1) - 1)));
-                      }}
-                      disabled={(parseInt(guestCount) || 1) <= 1}
-                      className="w-11 h-11 flex items-center justify-center bg-gray-100 rounded-xl hover:bg-gray-200 active:scale-95 transition-all disabled:opacity-30 flex-shrink-0"
-                      aria-label="인원 감소"
-                    >
-                      <i className="ri-subtract-line text-xl text-gray-700" />
-                    </button>
-                    <input
-                      type="number"
-                      min={1}
-                      max={50}
-                      value={guestCount}
-                      onChange={(e) => {
-                        const v = parseInt(e.target.value);
-                        if (isNaN(v)) { setGuestCount(''); return; }
-                        setGuestCount(String(Math.max(1, Math.min(50, v))));
-                      }}
-                      onBlur={() => { if (!guestCount) setGuestCount('1'); }}
-                      className="flex-1 text-center text-xl font-black text-gray-900 bg-emerald-50 border-2 border-emerald-200 rounded-xl h-11 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
-                    />
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setGuestCount(prev => String((parseInt(prev) || 1) + 1));
-                      }}
-                      className="w-11 h-11 flex items-center justify-center bg-gray-100 rounded-xl hover:bg-gray-200 active:scale-95 transition-all flex-shrink-0"
-                      aria-label="인원 증가"
-                    >
-                      <i className="ri-add-line text-xl text-gray-700" />
-                    </button>
-                  </div>
-                </div>
-
-                <DepositBreakdown
-                  total={expTotal}
-                  deposit={splitBookingPayment(expTotal).deposit}
-                  remainder={splitBookingPayment(expTotal).remainder}
-                  className="mb-4"
-                />
-
-                {formError && <p className="text-xs text-red-500 mb-3">{formError}</p>}
-                <button
-                  type="button"
-                  onClick={handleBookExp}
-                  disabled={isPaying || expTotal === 0}
-                  className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white py-3.5 rounded-xl font-black text-sm transition-all shadow-lg disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {isPaying ? (
-                    <>
-                      <i className="ri-loader-4-line animate-spin text-base" aria-hidden="true" />
-                      네이버페이 결제 중…
-                    </>
-                  ) : (
-                    <>
-                      <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-white text-emerald-600 text-[10px] font-black" translate="no">N</span>
-                      <span translate="no">네이버페이로 예약금 {splitBookingPayment(expTotal).deposit.toLocaleString()}원 결제</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </section>
-          )}
-        </>
-      )}
 
       {/* 예약 내역 */}
       <section className="px-4 pb-6">

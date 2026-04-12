@@ -1,5 +1,4 @@
 {
-  "outputDirectory": "out",
   "rewrites": [
     { "source": "/(.*)", "destination": "/" }
   ]

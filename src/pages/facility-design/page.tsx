@@ -132,10 +132,10 @@ const fmtM = (n: number) => {
 export default function FacilityDesign() {
   const navigate = useNavigate();
 
-  // 🔒 사업자/관리자 인증 — 시설 비용 분석은 사업자 로그인 필요
-  useEffect(() => {
-    if (!isBusinessAuth()) navigate('/login?redirect=facility-design&role=business', { replace: true });
-  }, [navigate]);
+  // 🔒 사업자/관리자 인증 — 테스트 기간 중 개방 (운영 시 아래 주석 해제)
+  // useEffect(() => {
+  //   if (!isBusinessAuth()) navigate('/login?redirect=facility-design&role=business', { replace: true });
+  // }, [navigate]);
 
   const [areaUnit, setAreaUnit] = useState<'pyeong' | 'sqm'>('pyeong');
   const [areaInput, setAreaInput] = useState('150');

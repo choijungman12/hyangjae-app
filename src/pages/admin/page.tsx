@@ -82,7 +82,11 @@ export default function AdminDashboard() {
   const [pwError, setPwError] = useState('');
   const [showLogout, setShowLogout] = useState(false);
 
-  useEffect(() => { setAuthed(isAuth()); }, []);
+  // 🧪 테스트 모드: 비밀번호 없이 자동 로그인 (운영 시 아래 블록 삭제)
+  useEffect(() => {
+    if (!isAuth()) { login(); }
+    setAuthed(true);
+  }, []);
 
   const handleLogin = () => {
     if (pw === ADMIN_PASSWORD) {

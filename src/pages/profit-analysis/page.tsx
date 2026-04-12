@@ -103,10 +103,10 @@ export default function ProfitAnalysis() {
   const navigate = useNavigate();
   const scrollY = useScrollY();
 
-  // 🔒 사업자/관리자 인증 — 수지분석은 사업자 로그인 필요
-  useEffect(() => {
-    if (!isBusinessAuth()) navigate('/login?redirect=profit-analysis&role=business', { replace: true });
-  }, [navigate]);
+  // 🔒 사업자/관리자 인증 — 테스트 기간 중 개방 (운영 시 아래 주석 해제)
+  // useEffect(() => {
+  //   if (!isBusinessAuth()) navigate('/login?redirect=profit-analysis&role=business', { replace: true });
+  // }, [navigate]);
 
   // 입력 상태
   const [selectedCategory, setSelectedCategory] = useState<string>('herb');

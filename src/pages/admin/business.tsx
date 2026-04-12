@@ -147,11 +147,13 @@ export default function AdminBusiness() {
   const [authed, setAuthed] = useState(false);
   const [scenarioId, setScenarioId] = useState<Scenario['id']>('realistic');
 
-  useEffect(() => {
-    const ok = isAuth();
-    setAuthed(ok);
-    if (!ok) navigate('/admin', { replace: true });
-  }, [isAuth, navigate]);
+  // 🧪 테스트 모드: 인증 없이 접근 허용 (운영 시 아래 블록으로 교체)
+  useEffect(() => { setAuthed(true); }, []);
+  // useEffect(() => {
+  //   const ok = isAuth();
+  //   setAuthed(ok);
+  //   if (!ok) navigate('/admin', { replace: true });
+  // }, [isAuth, navigate]);
 
   const activeScenario = useMemo(
     () => SCENARIOS.find(s => s.id === scenarioId) ?? SCENARIOS[1],

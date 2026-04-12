@@ -70,21 +70,8 @@ const ADDONS = [
   },
 ];
 
-/* 체험 프로그램은 데크 예약자 전용.
- * 와사비 강판 체험은 데크 옵션(BOOKING_ADDONS)으로도 제공되며, 여기서는 단독 체험으로도 선택 가능.
- */
+/* 체험 프로그램은 데크 예약자 전용. */
 const EXPERIENCE_PROGRAMS = [
-  {
-    id: 'wasabi-grater',
-    name: '와사비 강판 체험',
-    duration: '15분',
-    price: 5000,
-    unit: '1인',
-    icon: 'ri-knife-line',
-    color: 'from-emerald-500 to-teal-600',
-    image: '/facility-images/facility-00.jpg',
-    desc: '메인 하우스(스마트팜 150평) 투어 중 직접 강판으로 고추냉이를 갈아보는 체험 (수확 불가)',
-  },
   {
     id: 'tutor',
     name: '영어 튜터 프로그램',
@@ -167,6 +154,40 @@ type SelectedExperience = {
   time: string;  // 체험 진행 시각 (평일 11:00 / 주말 11:00 또는 15:00)
 };
 
+/* 데크 공간 소개 캐러셀 — 내부·외부 혼합 · 6초마다 자동 전환 */
+const DECK_SLIDES: { src: string; caption: string; tag: '외부' | '내부 레이아웃' | '3D 렌더링' }[] = [
+  {
+    src: '/facility-images/향재원  (1).jpg',
+    caption: '야간 데크 · 풀사이드 불멍',
+    tag: '외부',
+  },
+  {
+    src: '/facility-images/facility-09.jpg',
+    caption: '데크 + 연못 · 야간 조명',
+    tag: '외부',
+  },
+  {
+    src: '/facility-images/향재원  (4).png',
+    caption: '일몰 수영장 야외 공간',
+    tag: '외부',
+  },
+  {
+    src: '/facility-images/향재원 조감도 (7).png',
+    caption: '8개 데크 + 전용 텃밭 배치',
+    tag: '내부 레이아웃',
+  },
+  {
+    src: '/facility-images/A_detailed_3D_rendering_of_a_luxurious_glamping_si-1760445157424.png',
+    caption: '럭셔리 글램핑 · 3D 렌더링',
+    tag: '3D 렌더링',
+  },
+  {
+    src: '/facility-images/향재원 조감도 (5).png',
+    caption: '달빛 야간 데크 · 보라 스마트팜',
+    tag: '외부',
+  },
+];
+
 export default function Booking() {
   const glampingOutdoor  = useCustomImage('glamping-outdoor',  '/facility-images/facility-09.jpg');
   const glampingInterior = useCustomImage('glamping-interior', '/facility-images/facility-00.jpg');
@@ -184,6 +205,16 @@ export default function Booking() {
   const [selectedBookingAddons, setSelectedBookingAddons] = useState<string[]>([]);
   /** 선택된 체험 프로그램 — 최대 1개씩 선택 (id → 진행 시각) */
   const [selectedExperiences, setSelectedExperiences] = useState<SelectedExperience[]>([]);
+  /** 데크 공간 소개 캐러셀 인덱스 */
+  const [deckSlideIndex, setDeckSlideIndex] = useState(0);
+
+  // 데크 캐러셀 자동 전환 (6초 간격)
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setDeckSlideIndex(prev => (prev + 1) % DECK_SLIDES.length);
+    }, 6000);
+    return () => clearInterval(timer);
+  }, []);
 
   const currentMonth = new Date().getMonth() + 1;
   const currentHarvest = getHarvestForMonth(currentMonth);
@@ -332,15 +363,63 @@ export default function Booking() {
       </section>
 
       {/* ═══════ 공간 대여 (체험 프로그램 통합) ═══════ */}
-          {/* 공간 소개 — 심플 Apple 스타일 */}
+          {/* 공간 소개 — 애니메이션 캐러셀 (Ken Burns + 자동 전환) */}
           <section className="px-4 pt-5">
             <div className="rounded-3xl overflow-hidden bg-white shadow-sm border border-gray-100">
-              <div className="relative h-44">
-                <img src={glampingOutdoor} alt="향재원 파머스 글램핑" className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                <div className="absolute bottom-4 left-4 right-4 text-white">
-                  <p className="text-[11px] font-semibold text-white/80 mb-0.5">Farmers Glamping · 서울 양재동</p>
-                  <h3 className="text-xl font-black tracking-tight">데크별 전용 텃밭</h3>
+              <div className="relative h-56">
+                {/* 배경 이미지 레이어 (크로스페이드 + Ken Burns) */}
+                {DECK_SLIDES.map((slide, i) => (
+                  <div
+                    key={slide.src}
+                    className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+                      i === deckSlideIndex ? 'opacity-100' : 'opacity-0'
+                    }`}
+                    aria-hidden={i !== deckSlideIndex}
+                  >
+                    <img
+                      src={slide.src}
+                      alt={slide.caption}
+                      className={`w-full h-full object-cover ${i === deckSlideIndex ? 'animate-ken-burns' : ''}`}
+                      loading={i === 0 ? 'eager' : 'lazy'}
+                    />
+                  </div>
+                ))}
+
+                {/* 하단 그라데이션 오버레이 */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent pointer-events-none" />
+
+                {/* 태그 배지 (우측 상단) */}
+                <div className="absolute top-3 right-3">
+                  <span
+                    key={`tag-${deckSlideIndex}`}
+                    className="inline-block px-2.5 py-1 rounded-full bg-black/40 backdrop-blur-xl border border-white/25 text-[10px] font-black text-white animate-slide-in-left"
+                  >
+                    {DECK_SLIDES[deckSlideIndex].tag}
+                  </span>
+                </div>
+
+                {/* 텍스트 컨텐츠 */}
+                <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
+                  <div key={`caption-${deckSlideIndex}`} className="animate-slide-in-left">
+                    <p className="text-[11px] font-semibold text-white/80 mb-0.5">Farmers Glamping · 서울 양재동</p>
+                    <h3 className="text-xl font-black tracking-tight mb-1">데크별 전용 텃밭</h3>
+                    <p className="text-[11px] text-emerald-200 font-bold">{DECK_SLIDES[deckSlideIndex].caption}</p>
+                  </div>
+
+                  {/* 인디케이터 도트 */}
+                  <div className="flex gap-1.5 mt-3">
+                    {DECK_SLIDES.map((_, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setDeckSlideIndex(i)}
+                        aria-label={`${i + 1}번째 슬라이드`}
+                        className={`h-1 rounded-full transition-all duration-500 ${
+                          i === deckSlideIndex ? 'w-6 bg-white' : 'w-1.5 bg-white/40 hover:bg-white/70'
+                        }`}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
               <div className="px-5 py-4">

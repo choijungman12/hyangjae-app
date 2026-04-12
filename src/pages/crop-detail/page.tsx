@@ -761,8 +761,8 @@ export default function CropDetail() {
                 <span>약 <b>20분 가이드 투어</b> + 웰컴 와사비 시식 (데크 예약에 기본 포함)</span>
               </li>
               <li className="flex items-start gap-2">
-                <i className="ri-knife-line text-blue-600 mt-0.5 flex-shrink-0" />
-                <span>투어 중 직접 강판으로 갈아보는 <b>와사비 강판 체험(+5,000원)</b> 옵션 제공</span>
+                <i className="ri-walk-line text-blue-600 mt-0.5 flex-shrink-0" />
+                <span><b>영어 튜터 프로그램 · 심화 투어</b> 등 체험은 데크 예약자에게만 옵션으로 제공됩니다</span>
               </li>
             </ul>
           </div>

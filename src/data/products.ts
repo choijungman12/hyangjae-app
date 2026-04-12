@@ -467,10 +467,4 @@ export const BOOKING_ADDONS: BookingAddOn[] = [
     description: '딸기 시즌 한정 대량 수확 체험',
     availability: '12월 ~ 5월',
   },
-  {
-    id: 'wasabi-grater',
-    name: '와사비 강판 체험',
-    price: 5000,
-    description: '투어 중 직접 강판으로 고추냉이 갈아보기',
-  },
 ];

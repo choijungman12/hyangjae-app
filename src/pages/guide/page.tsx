@@ -78,9 +78,21 @@ function getImagePath(index: number): string {
   return `/guide-images/guide-${String(index).padStart(2, '0')}.${ext}`;
 }
 
+/* ═══════ 향재원 소개 웹툰 — 10화 (public/webtoon/1~10.jpg) ═══════ */
+const INTRO_TOTAL = 10;
+
+function getIntroPath(index: number): string {
+  // index는 0부터 시작, 파일은 1부터 시작
+  return `/webtoon/${index + 1}.jpg`;
+}
+
+type WebtoonCategory = 'intro' | 'guide';
+
 export default function GuidePage() {
+  const [category, setCategory] = useState<WebtoonCategory>('intro');
   const [activeChapter, setActiveChapter] = useState<number | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [introLightboxIndex, setIntroLightboxIndex] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<'chapters' | 'all'>('chapters');
   const chapterRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
@@ -93,13 +105,13 @@ export default function GuidePage() {
   };
 
   useEffect(() => {
-    if (lightboxIndex !== null) {
+    if (lightboxIndex !== null || introLightboxIndex !== null) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
     }
     return () => { document.body.style.overflow = ''; };
-  }, [lightboxIndex]);
+  }, [lightboxIndex, introLightboxIndex]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (lightboxIndex === null) return;
@@ -128,19 +140,107 @@ export default function GuidePage() {
             <i className="ri-arrow-left-line text-xl text-gray-300" aria-hidden="true" />
           </Link>
           <div className="flex-1">
-            <h1 className="text-base font-bold text-white">향재원 재배 가이드</h1>
-            <p className="text-xs text-emerald-400">고추냉이 스마트팜 웹툰 가이드 · {TOTAL_IMAGES}화</p>
+            <h1 className="text-base font-bold text-white">향재원 웹툰</h1>
+            <p className="text-xs text-emerald-400">
+              {category === 'intro' ? `향재원 소개 · ${INTRO_TOTAL}화` : `재배 가이드 · ${TOTAL_IMAGES}화`}
+            </p>
           </div>
-          <div className="flex gap-2">
+          {category === 'guide' && (
             <button
               onClick={() => setViewMode(viewMode === 'chapters' ? 'all' : 'chapters')}
               className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-800 text-gray-300 hover:bg-gray-700 transition-colors"
             >
               {viewMode === 'chapters' ? '전체보기' : '챕터별'}
             </button>
-          </div>
+          )}
+        </div>
+
+        {/* 카테고리 탭 */}
+        <div className="px-4 pb-3 flex gap-2">
+          <button
+            type="button"
+            onClick={() => setCategory('intro')}
+            className={`flex-1 px-4 py-2.5 rounded-xl text-xs font-black transition-all ${
+              category === 'intro'
+                ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg'
+                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+            }`}
+          >
+            <i className="ri-sparkling-line mr-1" />
+            향재원 소개 웹툰
+          </button>
+          <button
+            type="button"
+            onClick={() => setCategory('guide')}
+            className={`flex-1 px-4 py-2.5 rounded-xl text-xs font-black transition-all ${
+              category === 'guide'
+                ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg'
+                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+            }`}
+          >
+            <i className="ri-book-open-line mr-1" />
+            재배 가이드 웹툰
+          </button>
         </div>
       </header>
+
+      {/* ═══════ 향재원 소개 웹툰 카테고리 ═══════ */}
+      {category === 'intro' && (
+        <div className="pt-4 pb-8">
+          <div className="px-4 mb-5">
+            <div className="rounded-2xl bg-gradient-to-br from-emerald-900/60 to-teal-900/60 border border-emerald-800/50 p-5 text-center">
+              <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-xl">
+                <i className="ri-sparkling-fill text-2xl text-white" />
+              </div>
+              <h2 className="text-white font-black text-base mb-1">향재원 소개 웹툰</h2>
+              <p className="text-emerald-200 text-xs">A Heartwarming Evening at Hyangjaewon</p>
+              <p className="text-gray-400 text-[11px] mt-2" translate="no">총 {INTRO_TOTAL}화 · 순서대로 읽어주세요</p>
+            </div>
+          </div>
+
+          {Array.from({ length: INTRO_TOTAL }, (_, i) => i).map((index) => (
+            <div key={index} className="relative group">
+              <div className="absolute top-3 left-3 z-10 bg-black/70 backdrop-blur-sm text-white text-xs font-bold px-2.5 py-1 rounded-full pointer-events-none" translate="no">
+                #{index + 1}
+              </div>
+              <button
+                type="button"
+                className="w-full block cursor-zoom-in"
+                onClick={() => setIntroLightboxIndex(index)}
+                aria-label={`향재원 소개 웹툰 ${index + 1}화 크게 보기`}
+              >
+                <img
+                  src={getIntroPath(index)}
+                  alt={`향재원 소개 웹툰 ${index + 1}`}
+                  className="w-full object-contain block"
+                  loading="lazy"
+                />
+              </button>
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200 pointer-events-none" />
+            </div>
+          ))}
+
+          {/* 끝 카드 */}
+          <div className="mx-4 mt-6 rounded-2xl bg-gradient-to-br from-emerald-900/50 to-teal-900/50 border border-emerald-800/50 p-6 text-center">
+            <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-xl">
+              <i className="ri-heart-fill text-2xl text-white" />
+            </div>
+            <h3 className="text-white font-black text-base mb-1">향재원 소개 웹툰 완독!</h3>
+            <p className="text-gray-400 text-xs mb-4" translate="no">총 {INTRO_TOTAL}화</p>
+            <button
+              type="button"
+              onClick={() => setCategory('guide')}
+              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition-colors shadow-lg"
+            >
+              <i className="ri-book-open-line" />
+              재배 가이드 웹툰 보기
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════ 재배 가이드 웹툰 카테고리 ═══════ */}
+      {category === 'guide' && (<>
 
       {/* Chapter Overview */}
       {viewMode === 'chapters' && (
@@ -274,6 +374,9 @@ export default function GuidePage() {
         </div>
       )}
 
+      </>)}
+      {/* ═══════ /재배 가이드 웹툰 카테고리 ═══════ */}
+
       {/* Lightbox */}
       {lightboxIndex !== null && (
         <div
@@ -334,6 +437,59 @@ export default function GuidePage() {
             <button
               onClick={() => setLightboxIndex((prev) => (prev !== null && prev < TOTAL_IMAGES - 1 ? prev + 1 : prev))}
               disabled={lightboxIndex === TOTAL_IMAGES - 1}
+              className="flex items-center gap-2 px-4 py-2.5 bg-gray-800 disabled:opacity-30 rounded-xl text-white text-sm font-semibold hover:bg-gray-700 transition-colors"
+            >
+              다음
+              <i className="ri-arrow-right-s-line text-lg" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 향재원 소개 웹툰 전용 Lightbox */}
+      {introLightboxIndex !== null && (
+        <div
+          className="fixed inset-0 z-[200] bg-black/95 flex flex-col"
+          onClick={() => setIntroLightboxIndex(null)}
+        >
+          <div className="flex items-center justify-between px-4 py-3 bg-black/80 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+            <div>
+              <p className="text-white font-bold text-sm">향재원 소개 웹툰</p>
+              <p className="text-gray-400 text-xs" translate="no">#{introLightboxIndex + 1} / {INTRO_TOTAL}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIntroLightboxIndex(null)}
+              className="w-10 h-10 flex items-center justify-center bg-gray-800 rounded-xl text-white hover:bg-gray-700 transition-colors"
+              aria-label="닫기"
+            >
+              <i className="ri-close-line text-xl" />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-auto flex items-start justify-center" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={getIntroPath(introLightboxIndex)}
+              alt={`향재원 소개 웹툰 ${introLightboxIndex + 1}`}
+              className="max-w-full w-full object-contain"
+            />
+          </div>
+
+          <div className="flex items-center justify-between px-4 py-4 bg-black/80 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => setIntroLightboxIndex((prev) => (prev !== null && prev > 0 ? prev - 1 : prev))}
+              disabled={introLightboxIndex === 0}
+              className="flex items-center gap-2 px-4 py-2.5 bg-gray-800 disabled:opacity-30 rounded-xl text-white text-sm font-semibold hover:bg-gray-700 transition-colors"
+            >
+              <i className="ri-arrow-left-s-line text-lg" />
+              이전
+            </button>
+            <span className="text-gray-400 text-xs" translate="no">{introLightboxIndex + 1} / {INTRO_TOTAL}</span>
+            <button
+              type="button"
+              onClick={() => setIntroLightboxIndex((prev) => (prev !== null && prev < INTRO_TOTAL - 1 ? prev + 1 : prev))}
+              disabled={introLightboxIndex === INTRO_TOTAL - 1}
               className="flex items-center gap-2 px-4 py-2.5 bg-gray-800 disabled:opacity-30 rounded-xl text-white text-sm font-semibold hover:bg-gray-700 transition-colors"
             >
               다음

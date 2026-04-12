@@ -70,16 +70,6 @@ const ADDONS = [
   },
 ];
 
-/* 매점 제공 품목 */
-const STORE_ITEMS = [
-  { icon: 'ri-shopping-basket-2-line', label: '과자 · 스낵', desc: '간단한 스낵류' },
-  { icon: 'ri-cup-line', label: '일회용 식기', desc: '접시·컵·수저' },
-  { icon: 'ri-fire-line', label: '버너·부탄', desc: '휴대용 버너 대여' },
-  { icon: 'ri-scissors-cut-line', label: '집게·가위', desc: '조리 도구 대여' },
-  { icon: 'ri-restaurant-2-line', label: '식판', desc: '식사용 식판' },
-  { icon: 'ri-plant-line', label: '고추냉이', desc: '매장 판매 상품' },
-];
-
 /* 체험 프로그램은 데크 예약자 전용.
  * 와사비 강판 체험은 데크 옵션(BOOKING_ADDONS)으로도 제공되며, 여기서는 단독 체험으로도 선택 가능.
  */
@@ -175,7 +165,6 @@ export default function Booking() {
   const [activeTab, setActiveTab] = useState<'deck' | 'experience'>('deck');
   const glampingOutdoor  = useCustomImage('glamping-outdoor',  '/facility-images/facility-09.jpg');
   const glampingInterior = useCustomImage('glamping-interior', '/facility-images/facility-00.jpg');
-  const storeInterior    = useCustomImage('store-interior',    '/facility-images/facility-16.jpg');
   const [selectedDeckId, setSelectedDeckId] = useState<number | null>(null);
   const [selectedExp, setSelectedExp] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState('');
@@ -374,162 +363,43 @@ export default function Booking() {
       {/* ═══════ 공간 대여 탭 ═══════ */}
       {activeTab === 'deck' && (
         <>
-          {/* 공간 소개 이미지 */}
-          <section className="px-4 pt-4">
-            <div className="bg-white rounded-3xl shadow-sm overflow-hidden border border-gray-100">
-              <div className="grid grid-cols-2 gap-0.5 bg-gray-100">
-                <div className="relative h-32">
-                  <img
-                    src={glampingOutdoor}
-                    alt="데크 전용 텃밭 외부"
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute bottom-1.5 left-1.5 bg-black/70 backdrop-blur-sm text-white text-[10px] font-black px-2 py-0.5 rounded flex items-center gap-1">
-                    <i className="ri-home-4-fill text-[9px]" />
-                    데크 + 전용 텃밭
-                  </div>
-                </div>
-                <div className="relative h-32">
-                  <img
-                    src={glampingInterior}
-                    alt="메인 하우스 고추냉이 스마트팜"
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute bottom-1.5 left-1.5 bg-emerald-600/90 backdrop-blur-sm text-white text-[10px] font-black px-2 py-0.5 rounded flex items-center gap-1">
-                    <i className="ri-plant-fill text-[9px]" />
-                    메인 하우스 (고추냉이)
-                  </div>
+          {/* 공간 소개 — 심플 Apple 스타일 */}
+          <section className="px-4 pt-5">
+            <div className="rounded-3xl overflow-hidden bg-white shadow-sm border border-gray-100">
+              <div className="relative h-44">
+                <img src={glampingOutdoor} alt="향재원 파머스 글램핑" className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                <div className="absolute bottom-4 left-4 right-4 text-white">
+                  <p className="text-[11px] font-semibold text-white/80 mb-0.5">Farmers Glamping · 서울 양재동</p>
+                  <h3 className="text-xl font-black tracking-tight">데크별 전용 텃밭</h3>
                 </div>
               </div>
-              <div className="p-4">
-                <div className="flex items-start justify-between gap-3 mb-2">
-                  <div>
-                    <h3 className="text-base font-black text-gray-900">데크별 전용 텃밭 · 파머스 글램핑</h3>
-                    <p className="text-xs text-gray-500 mt-0.5">1~8번 · 4인 기준 · 최대 8인 · 시기별 작물 직접 수확</p>
-                  </div>
-                  <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black px-2.5 py-1 rounded-lg flex-shrink-0">텃밭 포함</span>
-                </div>
-                <div className="flex gap-2 mt-3">
-                  <div className="flex-1 bg-blue-50 rounded-xl p-2.5 text-center">
+              <div className="px-5 py-4">
+                <p className="text-[12px] text-gray-500 leading-relaxed">
+                  메인 하우스에서는 <b className="text-gray-800">한국 국산 고추냉이</b>를 재배하며,
+                  각 데크는 <b className="text-gray-800">시기별 쌈채소·딸기</b>를 직접 수확할 수 있는 전용 텃밭과 함께 운영됩니다.
+                </p>
+                <div className="flex gap-2 mt-4">
+                  <div className="flex-1 rounded-2xl bg-gray-50 px-3 py-2.5">
                     <p className="text-[10px] text-gray-500">평일 · 4인</p>
-                    <p className="text-sm font-black text-blue-700">{DECK_BASE.weekday.toLocaleString()}원</p>
+                    <p className="text-sm font-black text-gray-900" translate="no">{DECK_BASE.weekday.toLocaleString()}원</p>
                   </div>
-                  <div className="flex-1 bg-orange-50 rounded-xl p-2.5 text-center">
+                  <div className="flex-1 rounded-2xl bg-gray-50 px-3 py-2.5">
                     <p className="text-[10px] text-gray-500">주말 · 4인</p>
-                    <p className="text-sm font-black text-orange-700">{DECK_BASE.weekend.toLocaleString()}원</p>
+                    <p className="text-sm font-black text-gray-900" translate="no">{DECK_BASE.weekend.toLocaleString()}원</p>
+                  </div>
+                  <div className="flex-1 rounded-2xl bg-emerald-50 px-3 py-2.5">
+                    <p className="text-[10px] text-emerald-700">+1명당</p>
+                    <p className="text-sm font-black text-emerald-700" translate="no">20,000원</p>
                   </div>
                 </div>
-                <p className="text-[10px] text-gray-400 text-center mt-2 font-bold">
-                  4인 초과 시 <span className="text-orange-600">1명당 +20,000원</span>
-                </p>
               </div>
             </div>
           </section>
 
-          {/* 시설 구조 안내 — 메인 하우스(고추냉이) + 데크(시기별 텃밭) */}
-          <section className="px-4 pt-4">
-            <div className="bg-gradient-to-br from-emerald-50 via-teal-50 to-emerald-50 border-2 border-emerald-300 rounded-3xl p-5 shadow-lg">
-              <div className="flex items-start gap-3 mb-3">
-                <div className="w-11 h-11 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-md flex-shrink-0">
-                  <i className="ri-plant-fill text-2xl text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="inline-flex items-center gap-1 bg-emerald-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full mb-1.5">
-                    <i className="ri-information-fill" />
-                    시설 구조 안내
-                  </div>
-                  <h3 className="text-sm font-black text-emerald-900 leading-snug">
-                    향재원 <span className="bg-emerald-600 text-white px-1.5 py-0.5 rounded">메인 하우스 + 데크 8개</span>
-                  </h3>
-                </div>
-              </div>
-
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-3 mb-3 border border-emerald-200 space-y-2">
-                <div className="flex items-start gap-2">
-                  <div className="w-6 h-6 rounded-md bg-emerald-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <i className="ri-home-4-fill text-emerald-700 text-xs" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-[11px] font-black text-gray-900">메인 하우스 · 150평 고추냉이 스마트팜</p>
-                    <p className="text-[10px] text-gray-600 leading-relaxed mt-0.5">
-                      한국 국산 고추냉이를 IoT 기반으로 재배하는 전용 공간. <b className="text-emerald-700">가이드 투어만 가능 (수확 불가)</b>
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2">
-                  <div className="w-6 h-6 rounded-md bg-teal-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <i className="ri-tent-fill text-teal-700 text-xs" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-[11px] font-black text-gray-900">데크 1~8번 · 각 데크 전용 텃밭</p>
-                    <p className="text-[10px] text-gray-600 leading-relaxed mt-0.5">
-                      시기별로 <b className="text-teal-700">상추·깻잎·로메인·양상추·딸기 등 다양한 작물</b>이 재배되며, 예약 시 직접 수확 체험 가능
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-red-50 border border-red-200 rounded-2xl p-3 text-center">
-                <p className="text-[11px] font-black text-red-700 flex items-center justify-center gap-1.5">
-                  <i className="ri-hand-line text-sm" />
-                  메인 하우스 내부의 IoT 센서·장비는 손대지 말아 주세요
-                </p>
-                <p className="text-[9px] text-red-600 font-bold mt-1">장비 파손 시 실손 배상 청구</p>
-              </div>
-            </div>
-          </section>
-
-          {/* 콜키지 프리 배너 (Sprint-03) */}
+          {/* 콜키지 프리 — 한 줄 배너만 */}
           <section className="px-4 pt-4">
             <ColkijeFreeBanner />
-          </section>
-
-          {/* 데크 예약 포함 내역 (Sprint-03) */}
-          <section className="px-4 pt-4">
-            <div className="mb-2 flex items-center gap-2">
-              <i className="ri-checkbox-circle-fill text-emerald-500 dark:text-emerald-400" aria-hidden="true" />
-              <h3 className="text-sm font-black text-gray-900">데크 예약에 포함된 것</h3>
-            </div>
-            <IncludedItemsList
-              items={[
-                {
-                  icon: '🌱',
-                  title: `내 데크 전용 텃밭 수확 ${harvestGrams}g`,
-                  description: `${currentMonth}월 시기별 작물: ${[...currentHarvest.primary, ...currentHarvest.rotation].join(' · ') || '상추·깻잎'} (데크별 수확 가능)`,
-                  highlight: true,
-                },
-                {
-                  icon: '🌿',
-                  title: '메인 하우스 고추냉이 스마트팜 투어 (약 20분)',
-                  description: '150평 스마트팜 · 웰컴 와사비 시식 · 투어 전용 (수확 불가)',
-                },
-                {
-                  icon: '🏕️',
-                  title: '데크 3시간 · 집기 일체',
-                  description: '4인 기준 · 최대 8인 · 안전 안내 포함',
-                },
-                {
-                  icon: '🍖',
-                  title: '콜키지 프리 (외부 음식·주류 자유 반입)',
-                  description: '모든 식재료·음료 자유 반입 · 추가 요금 없음',
-                },
-                {
-                  icon: '🥩',
-                  title: '파트너 정육점·한식당 배달 가능',
-                  description: '협의 중 · 예약 확정 시 파트너 상점 안내',
-                },
-                {
-                  icon: '✨',
-                  title: '체험 프로그램 이용 자격 (데크 예약자 전용)',
-                  description: '영어 튜터 · 와사비 강판 · 심화 투어 (평일 오전 1타임 / 주말 2타임)',
-                },
-              ]}
-            />
-          </section>
-
-          {/* 월별 수확 달력 (Sprint-03) */}
-          <section className="px-4 pt-4">
-            <HarvestCalendar currentMonth={currentMonth} />
           </section>
 
           {/* 데크 선택 */}
@@ -913,40 +783,46 @@ export default function Booking() {
             </div>
           </section>
 
-          {/* 매점 소개 */}
-          <section className="px-4 pb-6">
-            <div className="bg-white rounded-3xl shadow-sm overflow-hidden border border-gray-100">
-              <div className="relative h-36">
-                <img
-                  src={storeInterior}
-                  alt="향재원 매점"
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                <div className="absolute bottom-3 left-3 right-3 text-white">
-                  <div className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-md px-2 py-0.5 rounded-full mb-1 border border-white/30">
-                    <i className="ri-store-2-line text-[10px]" />
-                    <span className="text-[10px] font-black">향재원 매점</span>
-                  </div>
-                  <p className="text-sm font-black">Farm-to-Table 매점</p>
-                  <p className="text-[11px] text-white/80">고추냉이 상품 · 조리도구 대여</p>
-                </div>
-              </div>
-              <div className="p-4">
-                <p className="text-xs text-gray-600 font-medium mb-3 leading-relaxed">
-                  향재원 내부 매점에서 간단한 스낵과 일회용 식기, 조리 도구를 구입·대여하실 수 있습니다.
-                </p>
-                <div className="grid grid-cols-3 gap-2">
-                  {STORE_ITEMS.map(item => (
-                    <div key={item.label} className="bg-gray-50 rounded-xl p-2.5 text-center">
-                      <i className={`${item.icon} text-emerald-600 text-lg`} />
-                      <p className="text-[10px] font-black text-gray-800 mt-1">{item.label}</p>
-                      <p className="text-[9px] text-gray-500 mt-0.5 leading-tight">{item.desc}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
+          {/* 데크 예약 포함 내역 — 데크 선택 및 예약 폼 이후로 이동 */}
+          <section className="px-4 pt-6">
+            <div className="mb-3">
+              <h3 className="text-sm font-black text-gray-900">데크 예약에 포함된 것</h3>
+              <p className="text-[11px] text-gray-500 mt-0.5">전부 기본 요금에 포함됩니다</p>
             </div>
+            <IncludedItemsList
+              items={[
+                {
+                  icon: '🌱',
+                  title: `내 데크 전용 텃밭 수확 ${harvestGrams}g`,
+                  description: `${currentMonth}월 시기별 작물: ${[...currentHarvest.primary, ...currentHarvest.rotation].join(' · ') || '상추·깻잎'}`,
+                  highlight: true,
+                },
+                {
+                  icon: '🌿',
+                  title: '메인 하우스 스마트팜 투어 20분',
+                  description: '고추냉이 IoT 재배 견학 · 웰컴 와사비 시식',
+                },
+                {
+                  icon: '🏕️',
+                  title: '데크 3시간 · 집기 일체',
+                  description: '4인 기준 · 최대 8인 수용',
+                },
+                {
+                  icon: '🍖',
+                  title: '콜키지 프리',
+                  description: '외부 음식·주류 자유 반입 · 추가 요금 없음',
+                },
+              ]}
+            />
+          </section>
+
+          {/* 월별 수확 달력 — 데크 선택 및 예약 폼 이후로 이동 */}
+          <section className="px-4 pt-4 pb-8">
+            <div className="mb-3">
+              <h3 className="text-sm font-black text-gray-900">시기별 수확 작물</h3>
+              <p className="text-[11px] text-gray-500 mt-0.5">월별로 수확 가능한 작물이 달라집니다</p>
+            </div>
+            <HarvestCalendar currentMonth={currentMonth} />
           </section>
         </>
       )}
@@ -1165,35 +1041,27 @@ export default function Booking() {
         )}
       </section>
 
-      {/* 이용 안내 */}
-      <section className="px-4 pb-6">
-        <div className="bg-blue-50 rounded-2xl p-4 border border-blue-100">
-          <div className="flex gap-3">
-            <i className="ri-information-line text-xl text-blue-600 flex-shrink-0" />
-            <div>
-              <h4 className="text-xs font-black text-blue-900 mb-1.5">이용 안내</h4>
-              <ul className="text-xs text-blue-700 space-y-1 leading-relaxed">
-                <li>• <b>파머스 글램핑 데크 8개</b>: 각 데크 전용 텃밭에서 시기별 작물 직접 수확</li>
-                <li>• <b>메인 하우스 150평</b>: 한국 국산 고추냉이 스마트팜 (가이드 투어 전용·수확 불가)</li>
-                <li className="text-red-700 font-black">⚠ 메인 하우스 내부 IoT 장비는 <b>손대지 마세요</b></li>
-                <li>• 모든 데크는 <b>4인 기준</b> · 최대 8인 수용</li>
-                <li>• <b>4인 초과 시 1명당 +20,000원</b> 추가</li>
-                <li>• <b>데크 타임 - 평일 2타임</b>: 11:00~14:00 / 18:00~21:00 (3시간)</li>
-                <li>• <b>데크 타임 - 주말 3타임</b>: 11:00~14:00 / 15:00~18:00 / 18:00~21:00 (3시간)</li>
-                <li>• <b>체험 프로그램</b>: 데크 예약자 전용 · 평일 오전 1타임 · 주말 오전·오후 2타임</li>
-                <li>• 시간 연장 시 <b>1텐트당 시간당 40,000원</b></li>
-                <li>• 외부 <b>음식·주류 반입 전면 허용</b> (콜키지 프리)</li>
-                <li>• 고기 필요 시 <b>파트너 정육점 배달</b> 가능 (협의 중)</li>
-                <li>• 매점에서 일회용 소모품·스낵·음료 구입 가능 (고기·식재료 판매 없음)</li>
-                <li>• <b>불멍 세트 · 숯불 그릴</b> 추가 가능</li>
-                <li>• 예약금 30% 네이버페이 선결제 · 잔액은 현장 결제</li>
-                <li>• 취소는 2일 전까지 무료 · 1일 전 50% · 당일 환불 불가</li>
-                {/* TODO: 🟡 EDIT:PHONE ─ 대표 전화번호 */}
-                <li>• 문의: 010-4929-0070</li>
-              </ul>
-            </div>
+      {/* 이용 안내 — 접이식 */}
+      <section className="px-4 pb-8">
+        <details className="group rounded-2xl bg-gray-50 border border-gray-100 overflow-hidden">
+          <summary className="flex items-center justify-between px-5 py-4 cursor-pointer list-none">
+            <span className="text-sm font-black text-gray-900">이용 안내</span>
+            <i className="ri-arrow-down-s-line text-xl text-gray-400 group-open:rotate-180 transition-transform" aria-hidden="true" />
+          </summary>
+          <div className="px-5 pb-5">
+            <ul className="text-[12px] text-gray-600 space-y-1.5 leading-relaxed">
+              <li>• 4인 기준 · 최대 8인 · 1명당 +20,000원</li>
+              <li>• 평일 2타임 / 주말 3타임 · 기본 3시간</li>
+              <li>• 시간 연장: 시간당 +40,000원</li>
+              <li>• 체험 프로그램: 데크 예약자 전용</li>
+              <li>• 콜키지 프리 · 파트너 정육점 배달 가능</li>
+              <li>• 예약금 30% 네이버페이 선결제, 잔액 현장</li>
+              <li>• 취소: 2일 전 무료 · 1일 전 50% · 당일 불가</li>
+              <li className="text-red-600 font-bold">⚠ 메인 하우스 IoT 장비는 손대지 마세요</li>
+              <li className="pt-1 border-t border-gray-200 mt-2" translate="no">문의 · 010-4929-0070</li>
+            </ul>
           </div>
-        </div>
+        </details>
       </section>
 
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}

@@ -1,13 +1,81 @@
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import BottomNav from '@/components/BottomNav';
+import FacilityGallery from '@/components/FacilityGallery';
 import { useScrollY } from '@/hooks/useScrollY';
 import { AUTH_KEY } from '@/pages/login/page';
 
+type FacilityKey = 'smartfarm' | 'store' | 'deck' | 'site';
+
+interface FacilityInfo {
+  key: FacilityKey;
+  label: string;
+  subtitle: string;
+  thumbnail: string;
+  images: string[];
+}
+
+const FACILITIES: FacilityInfo[] = [
+  {
+    key: 'smartfarm',
+    label: '메인 하우스',
+    subtitle: '고추냉이 스마트팜 150평',
+    thumbnail: '/facility-images/facility-00.jpg',
+    images: [
+      '/facility-images/facility-00.jpg',
+      '/facility-images/facility-02.jpg',
+      '/facility-images/facility-05.png',
+      '/facility-images/facility-06.png',
+      '/facility-images/facility-13.png',
+      '/facility-images/facility-14.jpg',
+    ],
+  },
+  {
+    key: 'store',
+    label: '향재원 매점',
+    subtitle: 'Farm-to-Table 스토어',
+    thumbnail: '/facility-images/facility-03.jpg',
+    images: [
+      '/facility-images/facility-01.jpg',
+      '/facility-images/facility-03.jpg',
+      '/facility-images/facility-16.jpg',
+      '/facility-images/facility-17.jpg',
+    ],
+  },
+  {
+    key: 'deck',
+    label: '체험 데크',
+    subtitle: '파머스 글램핑 8개소',
+    thumbnail: '/facility-images/facility-09.jpg',
+    images: [
+      '/facility-images/facility-09.jpg',
+      '/facility-images/facility-11.jpg',
+      '/facility-images/facility-15.jpg',
+      '/facility-images/facility-22.jpg',
+      '/facility-images/facility-23.jpg',
+      '/facility-images/facility-26.jpg',
+    ],
+  },
+  {
+    key: 'site',
+    label: '전체 부지',
+    subtitle: '양재동 178-4 · 536평',
+    thumbnail: '/facility-images/facility-12.jpg',
+    images: [
+      '/facility-images/facility-10.jpg',
+      '/facility-images/facility-12.jpg',
+      '/facility-images/facility-18.png',
+      '/facility-images/facility-19.png',
+      '/facility-images/facility-20.png',
+    ],
+  },
+];
+
 export default function Home() {
   const scrollY = useScrollY();
-  const [activeFeature, setActiveFeature] = useState(0);
   const [userName, setUserName] = useState<string | null>(null);
+  const [galleryKey, setGalleryKey] = useState<FacilityKey | null>(null);
+  const activeFacility = FACILITIES.find(f => f.key === galleryKey) ?? null;
 
   useEffect(() => {
     const raw = localStorage.getItem(AUTH_KEY);
@@ -64,14 +132,6 @@ export default function Home() {
       bgGradient: 'from-slate-50 to-gray-50'
     }
   ];
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveFeature((prev) => (prev + 1) % features.length);
-    }, 3000);
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const stats = [
     { label: '재배 작물', value: '3,000주', icon: 'ri-plant-line', gradientClass: 'from-emerald-400 to-emerald-600', bgClass: 'bg-emerald-100' },
@@ -146,21 +206,39 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Facility Photo Strip */}
+      {/* Facility Photo Strip — 클릭 시 갤러리 오픈 */}
       <section className="px-4 pb-6">
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-          {[
-            { src: '/facility-images/facility-00.jpg', label: '스마트팜 내부' },
-            { src: '/facility-images/facility-01.jpg', label: 'Farm-to-Table' },
-            { src: '/facility-images/facility-09.jpg', label: '체험 데크' },
-            { src: '/facility-images/facility-03.jpg', label: '향재원 매점' },
-            { src: '/facility-images/facility-12.jpg', label: '전체 부지' },
-          ].map((photo, i) => (
-            <div key={i} className="flex-shrink-0 w-28 rounded-2xl overflow-hidden shadow-md relative">
-              <img src={photo.src} alt={photo.label} className="w-28 h-20 object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-              <p className="absolute bottom-1 left-0 right-0 text-center text-white text-[10px] font-bold">{photo.label}</p>
-            </div>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-black text-gray-900">시설 둘러보기</h3>
+          <span className="text-[10px] text-gray-400 font-bold">탭하여 사진 더 보기</span>
+        </div>
+        <div className="grid grid-cols-2 gap-2.5">
+          {FACILITIES.map(f => (
+            <button
+              key={f.key}
+              type="button"
+              onClick={() => setGalleryKey(f.key)}
+              className="relative rounded-2xl overflow-hidden shadow-md hover:shadow-xl active:scale-[0.98] transition-all duration-300 text-left group"
+              aria-label={`${f.label} 사진 더 보기`}
+            >
+              <img
+                src={f.thumbnail}
+                alt={f.label}
+                className="w-full h-24 object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-xl flex items-center justify-center border border-white/40">
+                  <i className="ri-gallery-line text-white text-lg" aria-hidden="true" />
+                </div>
+              </div>
+              <div className="absolute bottom-2 left-3 right-3 text-white">
+                <p className="text-xs font-black leading-tight">{f.label}</p>
+                <p className="text-[10px] text-white/80 leading-tight" translate="no">
+                  {f.images.length}장
+                </p>
+              </div>
+            </button>
           ))}
         </div>
       </section>
@@ -189,18 +267,8 @@ export default function Home() {
 
       {/* Main Features with 3D Cards */}
       <section className="px-4 pb-8">
-        <div className="flex items-center justify-between mb-5">
+        <div className="mb-5">
           <h3 className="text-lg font-black text-gray-900">주요 기능</h3>
-          <div className="flex gap-1">
-            {features.map((_, i) => (
-              <div 
-                key={i}
-                className={`h-1.5 rounded-full transition-all duration-500 ${
-                  i === activeFeature ? 'w-6 bg-emerald-500' : 'w-1.5 bg-gray-300'
-                }`}
-              ></div>
-            ))}
-          </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
           {features.map((feature, index) => (
@@ -382,6 +450,15 @@ export default function Home() {
           ))}
         </div>
       </section>
+
+      {/* 시설 이미지 갤러리 모달 */}
+      <FacilityGallery
+        open={activeFacility !== null}
+        title={activeFacility?.label ?? ''}
+        subtitle={activeFacility?.subtitle}
+        images={activeFacility?.images ?? []}
+        onClose={() => setGalleryKey(null)}
+      />
 
       <BottomNav />
     </div>

@@ -83,15 +83,33 @@ const FACILITIES: FacilityInfo[] = [
   },
 ];
 
+/* 히어로 캐러셀 이미지 — 6초마다 자동 로테이션 + Ken Burns 효과 */
+const HERO_SLIDES: { src: string; caption: string }[] = [
+  { src: '/facility-images/A_detailed_3D_rendering_of_a_luxurious_glamping_si-1760445157424.png', caption: '파머스 글램핑 8개소' },
+  { src: '/facility-images/향재원 조감도 (3).png',                                                   caption: '양재동 스마트팜 전경' },
+  { src: '/facility-images/향재원 조감도 (2).png',                                                   caption: '고추냉이 스마트팜 150평' },
+  { src: '/facility-images/A_3D_rendering_of_a_landscape_in_the_evening_rese-1760446537669.png',     caption: '데크별 전용 텃밭' },
+  { src: '/facility-images/향재원 조감도 (4).png',                                                   caption: '536평 전체 부지' },
+];
+
 export default function Home() {
   const scrollY = useScrollY();
   const [userName, setUserName] = useState<string | null>(null);
   const [galleryKey, setGalleryKey] = useState<FacilityKey | null>(null);
+  const [heroIndex, setHeroIndex] = useState(0);
   const activeFacility = FACILITIES.find(f => f.key === galleryKey) ?? null;
 
   useEffect(() => {
     const raw = localStorage.getItem(AUTH_KEY);
     if (raw) { try { setUserName(JSON.parse(raw).name); } catch { /* noop */ } }
+  }, []);
+
+  // 히어로 캐러셀 자동 전환 (6초 간격)
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setHeroIndex(prev => (prev + 1) % HERO_SLIDES.length);
+    }, 6000);
+    return () => clearInterval(timer);
   }, []);
 
   const features = [
@@ -198,22 +216,85 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Hero Section */}
+      {/* Hero Section — 애니메이션 캐러셀 + Ken Burns 효과 */}
       <section className="px-4 pt-6 pb-4 relative">
-        <div className="relative h-56 rounded-3xl overflow-hidden shadow-2xl transform hover:scale-[1.02] transition-transform duration-500">
-          <img
-            src="/facility-images/facility-10.jpg"
-            alt="향재원 스마트팜 전경"
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
-          <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-2 rounded-full mb-3 border border-white/30">
-              <i className="ri-sparkling-line text-sm animate-pulse"></i>
-              <span className="text-xs font-bold">서울 서초구 양재동 · Farm-to-Table</span>
+        <div className="relative h-72 rounded-3xl overflow-hidden shadow-2xl border border-white/20">
+          {/* 배경 이미지 레이어 (크로스페이드 + Ken Burns) */}
+          {HERO_SLIDES.map((slide, i) => (
+            <div
+              key={slide.src}
+              className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+                i === heroIndex ? 'opacity-100' : 'opacity-0'
+              }`}
+              aria-hidden={i !== heroIndex}
+            >
+              <img
+                src={slide.src}
+                alt={slide.caption}
+                className={`w-full h-full object-cover ${i === heroIndex ? 'animate-ken-burns' : ''}`}
+                loading={i === 0 ? 'eager' : 'lazy'}
+              />
             </div>
-            <h2 className="text-2xl font-black mb-1 drop-shadow-lg">향재원 스마트팜</h2>
-            <p className="text-sm text-white/90 font-medium">고추냉이 특화 스마트팜 + 체험 공간</p>
+          ))}
+
+          {/* 그라데이션 오버레이 (어두운 하단 + 상단 살짝) */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/30 pointer-events-none" />
+
+          {/* 반짝이는 라이트 스윕 효과 */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute -inset-y-4 w-1/3 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 animate-shimmer" />
+          </div>
+
+          {/* 상단 우측 · 라이브 배지 (펄스 링) */}
+          <div className="absolute top-4 right-4 flex items-center gap-1.5 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20">
+            <span className="relative flex items-center justify-center w-2 h-2">
+              <span className="absolute inline-flex w-full h-full rounded-full bg-emerald-400 animate-pulse-ring" />
+              <span className="relative inline-flex rounded-full w-2 h-2 bg-emerald-500" />
+            </span>
+            <span className="text-[10px] font-black text-white tracking-wide" translate="no">LIVE</span>
+          </div>
+
+          {/* 텍스트 컨텐츠 (슬라이드 인) */}
+          <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+            <div
+              key={`hero-${heroIndex}`}
+              className="animate-slide-in-left"
+            >
+              <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-xl px-3 py-1.5 rounded-full mb-3 border border-white/25">
+                <i className="ri-map-pin-2-fill text-xs text-emerald-300" aria-hidden="true" />
+                <span className="text-[11px] font-bold" translate="no">서울 서초구 양재동 178-4</span>
+              </div>
+              <h2 className="text-2xl font-black mb-1 drop-shadow-lg tracking-tight">향재원</h2>
+              <p className="text-xs text-emerald-200 font-semibold mb-1">HYANGJAEWON · Farm-to-Table</p>
+              <p className="text-sm text-white/90 font-medium">{HERO_SLIDES[heroIndex].caption}</p>
+            </div>
+
+            {/* 인디케이터 도트 */}
+            <div className="flex gap-1.5 mt-4">
+              {HERO_SLIDES.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setHeroIndex(i)}
+                  aria-label={`슬라이드 ${i + 1}로 이동`}
+                  className={`h-1 rounded-full transition-all duration-500 ${
+                    i === heroIndex ? 'w-8 bg-white' : 'w-1.5 bg-white/40 hover:bg-white/70'
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* 히어로 밑 · 재생 중인 슬라이드 정보 카드 */}
+        <div className="mt-3 flex items-center justify-between px-2">
+          <div className="flex items-center gap-2 text-xs text-gray-500">
+            <i className="ri-time-line" aria-hidden="true" />
+            <span>2027년 6월 정식 오픈</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs text-emerald-600 font-black">
+            <i className="ri-sparkling-fill animate-pulse" aria-hidden="true" />
+            <span translate="no">{heroIndex + 1} / {HERO_SLIDES.length}</span>
           </div>
         </div>
       </section>

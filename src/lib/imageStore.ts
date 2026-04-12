@@ -5,6 +5,19 @@
  * 다른 페이지에서 키로 조회해서 사용합니다.
  *
  * 저장 가능한 이미지 키 목록:
+ *   ── 홈 페이지 히어로 캐러셀 (메인 화면 자동 슬라이드) ──
+ *   - hero-slide-1 ~ hero-slide-5 : 홈 히어로 슬라이드 5장
+ *
+ *   ── 예약 페이지 데크 캐러셀 (Apple 스타일 슬라이드) ──
+ *   - deck-slide-1 ~ deck-slide-5 : 데크 히어로 슬라이드 5장
+ *
+ *   ── 시설 둘러보기 대표 썸네일 ──
+ *   - facility-mainhouse-thumb : 메인 하우스 대표 썸네일
+ *   - facility-store-thumb     : 향재원 매점 대표 썸네일
+ *   - facility-deck-thumb      : 체험 데크 대표 썸네일
+ *   - facility-site-thumb      : 전체 부지 대표 썸네일
+ *
+ *   ── (기존 · 호환성 유지) ──
  *   - glamping-outdoor : 글램핑 데크 외부 전경
  *   - glamping-interior: 글램핑 데크 내부
  *   - store-interior   : 향재원 매점 내부
@@ -16,6 +29,24 @@ const MAX_WIDTH = 1280; // 원본이 너무 크면 리사이즈 (용량 절감)
 const JPEG_QUALITY = 0.85;
 
 export type ImageKey =
+  // 홈 히어로 캐러셀
+  | 'hero-slide-1'
+  | 'hero-slide-2'
+  | 'hero-slide-3'
+  | 'hero-slide-4'
+  | 'hero-slide-5'
+  // 예약 페이지 데크 캐러셀
+  | 'deck-slide-1'
+  | 'deck-slide-2'
+  | 'deck-slide-3'
+  | 'deck-slide-4'
+  | 'deck-slide-5'
+  // 시설 둘러보기 대표 썸네일
+  | 'facility-mainhouse-thumb'
+  | 'facility-store-thumb'
+  | 'facility-deck-thumb'
+  | 'facility-site-thumb'
+  // 기존 호환
   | 'glamping-outdoor'
   | 'glamping-interior'
   | 'store-interior'

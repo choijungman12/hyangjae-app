@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 import BottomNav from '@/components/BottomNav';
 import FacilityGallery from '@/components/FacilityGallery';
 import { useScrollY } from '@/hooks/useScrollY';
+import { useCustomImage } from '@/hooks/useCustomImage';
+import type { ImageKey } from '@/lib/imageStore';
 import { AUTH_KEY } from '@/pages/login/page';
 
 type FacilityKey = 'smartfarm' | 'store' | 'deck' | 'site';
@@ -83,14 +85,32 @@ const FACILITIES: FacilityInfo[] = [
   },
 ];
 
-/* 히어로 캐러셀 이미지 — 6초마다 자동 로테이션 + Ken Burns 효과 */
-const HERO_SLIDES: { src: string; caption: string }[] = [
-  { src: '/facility-images/A_detailed_3D_rendering_of_a_luxurious_glamping_si-1760445157424.png', caption: '파머스 글램핑 8개소' },
-  { src: '/facility-images/향재원 조감도 (3).png',                                                   caption: '양재동 스마트팜 전경' },
-  { src: '/facility-images/향재원 조감도 (2).png',                                                   caption: '고추냉이 스마트팜 150평' },
-  { src: '/facility-images/A_3D_rendering_of_a_landscape_in_the_evening_rese-1760446537669.png',     caption: '데크별 전용 텃밭' },
-  { src: '/facility-images/향재원 조감도 (4).png',                                                   caption: '536평 전체 부지' },
+/* 히어로 캐러셀 이미지 — 관리자 페이지에서 업로드한 이미지가 있으면 그것을 사용, 없으면 fallback */
+const HERO_SLIDES: { key: ImageKey; fallback: string; caption: string }[] = [
+  { key: 'hero-slide-1', fallback: '/facility-images/A_detailed_3D_rendering_of_a_luxurious_glamping_si-1760445157424.png', caption: '파머스 글램핑 8개소' },
+  { key: 'hero-slide-2', fallback: '/facility-images/향재원 조감도 (3).png',                                                   caption: '양재동 스마트팜 전경' },
+  { key: 'hero-slide-3', fallback: '/facility-images/향재원 조감도 (2).png',                                                   caption: '고추냉이 스마트팜 150평' },
+  { key: 'hero-slide-4', fallback: '/facility-images/A_3D_rendering_of_a_landscape_in_the_evening_rese-1760446537669.png',     caption: '데크별 전용 텃밭' },
+  { key: 'hero-slide-5', fallback: '/facility-images/향재원 조감도 (4).png',                                                   caption: '536평 전체 부지' },
 ];
+
+/** 히어로 슬라이드 개별 이미지 (커스텀 업로드 자동 반영) */
+function HeroSlideImage({ slide, active, eager }: { slide: { key: ImageKey; fallback: string; caption: string }; active: boolean; eager: boolean }) {
+  const src = useCustomImage(slide.key, slide.fallback);
+  return (
+    <div
+      className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${active ? 'opacity-100' : 'opacity-0'}`}
+      aria-hidden={!active}
+    >
+      <img
+        src={src}
+        alt={slide.caption}
+        className={`w-full h-full object-cover ${active ? 'animate-ken-burns' : ''}`}
+        loading={eager ? 'eager' : 'lazy'}
+      />
+    </div>
+  );
+}
 
 export default function Home() {
   const scrollY = useScrollY();
@@ -163,11 +183,6 @@ export default function Home() {
     }
   ];
 
-  const stats = [
-    { label: '재배 작물', value: '3,000주', icon: 'ri-plant-line', gradientClass: 'from-emerald-400 to-emerald-600', bgClass: 'bg-emerald-100' },
-    { label: '스마트팜', value: '150평', icon: 'ri-home-gear-line', gradientClass: 'from-blue-400 to-blue-600', bgClass: 'bg-blue-100' },
-    { label: '연 매출 목표', value: '₩4억', icon: 'ri-money-dollar-circle-line', gradientClass: 'from-purple-400 to-purple-600', bgClass: 'bg-purple-100' }
-  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-emerald-50 pb-20 overflow-hidden">
@@ -221,20 +236,12 @@ export default function Home() {
         <div className="relative h-72 rounded-3xl overflow-hidden shadow-2xl border border-white/20">
           {/* 배경 이미지 레이어 (크로스페이드 + Ken Burns) */}
           {HERO_SLIDES.map((slide, i) => (
-            <div
-              key={slide.src}
-              className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-                i === heroIndex ? 'opacity-100' : 'opacity-0'
-              }`}
-              aria-hidden={i !== heroIndex}
-            >
-              <img
-                src={slide.src}
-                alt={slide.caption}
-                className={`w-full h-full object-cover ${i === heroIndex ? 'animate-ken-burns' : ''}`}
-                loading={i === 0 ? 'eager' : 'lazy'}
-              />
-            </div>
+            <HeroSlideImage
+              key={slide.key}
+              slide={slide}
+              active={i === heroIndex}
+              eager={i === 0}
+            />
           ))}
 
           {/* 그라데이션 오버레이 (어두운 하단 + 상단 살짝) */}
@@ -332,28 +339,6 @@ export default function Home() {
                 </p>
               </div>
             </button>
-          ))}
-        </div>
-      </section>
-
-      {/* Stats Cards with 3D Effect */}
-      <section className="px-4 pb-8 relative z-10">
-        <div className="grid grid-cols-3 gap-3">
-          {stats.map((stat, index) => (
-            <div 
-              key={index} 
-              className="relative group"
-              style={{ animationDelay: `${index * 0.1}s` }}
-            >
-              <div className={`absolute inset-0 bg-gradient-to-br ${stat.gradientClass} rounded-2xl blur-xl opacity-0 group-hover:opacity-50 transition-opacity duration-500`}></div>
-              <div className="relative bg-white rounded-2xl p-4 shadow-lg hover:shadow-2xl transform hover:-translate-y-2 transition-all duration-500 border border-gray-100">
-                <div className={`w-10 h-10 flex items-center justify-center bg-gradient-to-br ${stat.gradientClass} rounded-xl mb-3 shadow-lg transform group-hover:rotate-12 transition-transform duration-500`}>
-                  <i className={`${stat.icon} text-xl text-white`}></i>
-                </div>
-                <p className="text-xs text-gray-500 mb-1 font-medium">{stat.label}</p>
-                <p className="text-base font-black text-gray-900">{stat.value}</p>
-              </div>
-            </div>
           ))}
         </div>
       </section>

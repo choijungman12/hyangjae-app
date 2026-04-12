@@ -8,7 +8,8 @@ import HarvestCalendar from '@/components/HarvestCalendar';
 import DepositBreakdown from '@/components/DepositBreakdown';
 import PartnerStoreCard from '@/components/PartnerStoreCard';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { getImage, type ImageKey } from '@/lib/imageStore';
+import { useCustomImage } from '@/hooks/useCustomImage';
+import type { ImageKey } from '@/lib/imageStore';
 import { requestNaverPayMock, splitBookingPayment } from '@/lib/naverPayMock';
 import { calcHarvestGrams, getHarvestForMonth, PARTNER_STORES, BOOKING_ADDONS } from '@/data/products';
 
@@ -50,7 +51,7 @@ const PET_FRIENDLY_DECKS = [7, 8];
 
 /* 애견 동반 정책 */
 const PET_POLICY = {
-  feePerPet: 15000,      // 마리당 추가 요금 (원)
+  feePerPet: 10000,      // 마리당 추가 요금 (원)
   maxPets: 2,            // 데크당 최대 동반 가능 마릿수
   weightLimit: 15,       // 소·중형견 체중 제한 (kg)
   allowedDecks: PET_FRIENDLY_DECKS,
@@ -146,21 +147,6 @@ function isWeekend(dateStr: string): boolean {
   return day === 0 || day === 6;
 }
 
-/** 커스텀 업로드 이미지가 있으면 사용, 없으면 기존 facility 이미지 fallback */
-function useCustomImage(key: ImageKey, fallback: string): string {
-  const [src, setSrc] = useState<string>(() => getImage(key) ?? fallback);
-  useEffect(() => {
-    const update = () => setSrc(getImage(key) ?? fallback);
-    update();
-    window.addEventListener('hyangjae-image-updated', update);
-    window.addEventListener('storage', update);
-    return () => {
-      window.removeEventListener('hyangjae-image-updated', update);
-      window.removeEventListener('storage', update);
-    };
-  }, [key, fallback]);
-  return src;
-}
 
 /** 체험 프로그램 선택 정보 */
 type SelectedExperience = {
@@ -168,43 +154,59 @@ type SelectedExperience = {
   time: string;  // 체험 진행 시각 (평일 11:00 / 주말 11:00 또는 15:00)
 };
 
-/* 데크 공간 소개 캐러셀 — 내부·외부 혼합 · 6초마다 자동 전환 */
-const DECK_SLIDES: { src: string; caption: string; tag: '외부' | '내부 레이아웃' | '3D 렌더링' }[] = [
+/* 데크 공간 소개 캐러셀 — 관리자 페이지에서 업로드한 이미지가 있으면 그것을 사용, 없으면 fallback */
+const DECK_SLIDES: { key: ImageKey; fallback: string; caption: string; tag: '외부' | '내부' | '항공뷰' | '3D 렌더링' }[] = [
   {
-    src: '/facility-images/향재원  (1).jpg',
-    caption: '야간 데크 · 풀사이드 불멍',
+    key: 'deck-slide-1',
+    fallback: '/facility-images/KakaoTalk_20260410_165225697_03.png',
+    caption: 'A-frame 데크 · 석양 조명',
     tag: '외부',
   },
   {
-    src: '/facility-images/facility-09.jpg',
-    caption: '데크 + 연못 · 야간 조명',
-    tag: '외부',
+    key: 'deck-slide-2',
+    fallback: '/facility-images/KakaoTalk_20260410_165225697_02.png',
+    caption: '데크 내부 · 플랜트 라운지',
+    tag: '내부',
   },
   {
-    src: '/facility-images/향재원  (4).png',
-    caption: '일몰 수영장 야외 공간',
-    tag: '외부',
-  },
-  {
-    src: '/facility-images/향재원 조감도 (7).png',
-    caption: '8개 데크 + 전용 텃밭 배치',
-    tag: '내부 레이아웃',
-  },
-  {
-    src: '/facility-images/A_detailed_3D_rendering_of_a_luxurious_glamping_si-1760445157424.png',
-    caption: '럭셔리 글램핑 · 3D 렌더링',
+    key: 'deck-slide-3',
+    fallback: '/facility-images/A_street_view-style_3D_rendering_of_Hyangjaewons_-1760446648462.png',
+    caption: '사이트 전경 · 낮 · 벚꽃길',
     tag: '3D 렌더링',
   },
   {
-    src: '/facility-images/향재원 조감도 (5).png',
-    caption: '달빛 야간 데크 · 보라 스마트팜',
-    tag: '외부',
+    key: 'deck-slide-4',
+    fallback: '/facility-images/향재원 조감도 (7).png',
+    caption: '8개 데크 · 낮 항공뷰',
+    tag: '항공뷰',
+  },
+  {
+    key: 'deck-slide-5',
+    fallback: '/facility-images/A_detailed_3D_rendering_of_a_luxurious_glamping_si-1760445157424.png',
+    caption: '럭셔리 글램핑 · 3D 렌더링',
+    tag: '3D 렌더링',
   },
 ];
 
+/** 데크 슬라이드 개별 이미지 (커스텀 업로드 자동 반영) */
+function DeckSlideImage({ slide, active, eager }: { slide: { key: ImageKey; fallback: string; caption: string }; active: boolean; eager: boolean }) {
+  const src = useCustomImage(slide.key, slide.fallback);
+  return (
+    <div
+      className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${active ? 'opacity-100' : 'opacity-0'}`}
+      aria-hidden={!active}
+    >
+      <img
+        src={src}
+        alt={slide.caption}
+        className={`w-full h-full object-cover ${active ? 'animate-ken-burns' : ''}`}
+        loading={eager ? 'eager' : 'lazy'}
+      />
+    </div>
+  );
+}
+
 export default function Booking() {
-  const glampingOutdoor  = useCustomImage('glamping-outdoor',  '/facility-images/facility-09.jpg');
-  const glampingInterior = useCustomImage('glamping-interior', '/facility-images/facility-00.jpg');
   const [selectedDeckId, setSelectedDeckId] = useState<number | null>(null);
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
@@ -375,82 +377,57 @@ export default function Booking() {
     <div className="min-h-screen bg-gray-50 pb-20">
       <PageHeader title="체험·공간대여" subtitle="Farm-to-Table 향재원" />
 
-      {/* Hero Banner */}
-      <section className="relative h-56 overflow-hidden">
-        <img
-          src={glampingOutdoor}
-          alt="향재원 스마트팜 데크 전경"
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/30 to-black/75" />
-        <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-          <div className="inline-flex items-center gap-1.5 bg-emerald-500/90 backdrop-blur-md px-2.5 py-1 rounded-full mb-2 border border-white/30">
-            <i className="ri-plant-fill text-xs" />
-            <span className="text-[10px] font-black">데크별 전용 텃밭 · 파머스 글램핑 8개소</span>
+      {/* Hero Banner — 밝은 글램핑 캐러셀 (Ken Burns + 자동 전환) */}
+      <section className="relative h-64 overflow-hidden">
+        {DECK_SLIDES.map((slide, i) => (
+          <DeckSlideImage
+            key={slide.key}
+            slide={slide}
+            active={i === deckSlideIndex}
+            eager={i === 0}
+          />
+        ))}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/10 to-black/70 pointer-events-none" />
+
+        {/* 반짝이는 라이트 스윕 효과 */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -inset-y-4 w-1/3 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 animate-shimmer" />
+        </div>
+
+        <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
+          <div key={`hero-caption-${deckSlideIndex}`} className="animate-slide-in-left">
+            <div className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-xl px-2.5 py-1 rounded-full mb-2 border border-white/25">
+              <i className="ri-plant-fill text-xs text-emerald-300" aria-hidden="true" />
+              <span className="text-[10px] font-black">데크별 전용 텃밭 · 파머스 글램핑 8개소</span>
+            </div>
+            <h2 className="text-xl font-black mb-0.5 tracking-tight">향재원 파머스 글램핑</h2>
+            <p className="text-[11px] text-emerald-200 font-bold">{DECK_SLIDES[deckSlideIndex].caption}</p>
           </div>
-          <h2 className="text-lg font-black mb-0.5">향재원 파머스 글램핑</h2>
-          <p className="text-xs text-white/80">서울 서초구 양재동 · 데크별 전용 텃밭 수확 + 고추냉이 스마트팜 투어</p>
         </div>
       </section>
 
       {/* ═══════ 공간 대여 (체험 프로그램 통합) ═══════ */}
-          {/* 공간 소개 — 애니메이션 캐러셀 (Ken Burns + 자동 전환) */}
+          {/* 가격 정보 카드 — 심플 */}
           <section className="px-4 pt-5">
-            <div className="rounded-3xl overflow-hidden bg-white shadow-sm border border-gray-100">
-              <div className="relative h-56">
-                {/* 배경 이미지 레이어 (크로스페이드 + Ken Burns) */}
-                {DECK_SLIDES.map((slide, i) => (
-                  <div
-                    key={slide.src}
-                    className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-                      i === deckSlideIndex ? 'opacity-100' : 'opacity-0'
-                    }`}
-                    aria-hidden={i !== deckSlideIndex}
-                  >
-                    <img
-                      src={slide.src}
-                      alt={slide.caption}
-                      className={`w-full h-full object-cover ${i === deckSlideIndex ? 'animate-ken-burns' : ''}`}
-                      loading={i === 0 ? 'eager' : 'lazy'}
-                    />
-                  </div>
-                ))}
-
-                {/* 하단 그라데이션 오버레이 */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent pointer-events-none" />
-
-                {/* 태그 배지 (우측 상단) */}
-                <div className="absolute top-3 right-3">
-                  <span
-                    key={`tag-${deckSlideIndex}`}
-                    className="inline-block px-2.5 py-1 rounded-full bg-black/40 backdrop-blur-xl border border-white/25 text-[10px] font-black text-white animate-slide-in-left"
-                  >
-                    {DECK_SLIDES[deckSlideIndex].tag}
-                  </span>
+            <div className="rounded-3xl bg-white shadow-sm border border-gray-100">
+              {/* 히어로 캐러셀 인디케이터 */}
+              <div className="flex items-center justify-between px-5 pt-4">
+                <div>
+                  <p className="text-[11px] font-semibold text-gray-500">Farmers Glamping · 서울 양재동</p>
+                  <h3 className="text-base font-black tracking-tight text-gray-900 mt-0.5">데크별 전용 텃밭</h3>
                 </div>
-
-                {/* 텍스트 컨텐츠 */}
-                <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
-                  <div key={`caption-${deckSlideIndex}`} className="animate-slide-in-left">
-                    <p className="text-[11px] font-semibold text-white/80 mb-0.5">Farmers Glamping · 서울 양재동</p>
-                    <h3 className="text-xl font-black tracking-tight mb-1">데크별 전용 텃밭</h3>
-                    <p className="text-[11px] text-emerald-200 font-bold">{DECK_SLIDES[deckSlideIndex].caption}</p>
-                  </div>
-
-                  {/* 인디케이터 도트 */}
-                  <div className="flex gap-1.5 mt-3">
-                    {DECK_SLIDES.map((_, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => setDeckSlideIndex(i)}
-                        aria-label={`${i + 1}번째 슬라이드`}
-                        className={`h-1 rounded-full transition-all duration-500 ${
-                          i === deckSlideIndex ? 'w-6 bg-white' : 'w-1.5 bg-white/40 hover:bg-white/70'
-                        }`}
-                      />
-                    ))}
-                  </div>
+                <div className="flex gap-1.5 items-center">
+                  {DECK_SLIDES.map((_, i) => (
+                    <button
+                      key={`dot-${i}`}
+                      type="button"
+                      onClick={() => setDeckSlideIndex(i)}
+                      aria-label={`${i + 1}번째 슬라이드`}
+                      className={`h-1 rounded-full transition-all duration-500 ${
+                        i === deckSlideIndex ? 'w-5 bg-emerald-500' : 'w-1.5 bg-gray-300 hover:bg-gray-400'
+                      }`}
+                    />
+                  ))}
                 </div>
               </div>
               <div className="px-5 py-4">
@@ -913,7 +890,6 @@ export default function Booking() {
                             <li>• <b>출입 금지 구역</b>: 메인 하우스(고추냉이 스마트팜) · 전용 텃밭 · 공용 식당 내부</li>
                             <li>• <b>배변 처리</b>: 배변 봉투 필수 지참 · 주인이 <b>즉시 수거</b></li>
                             <li>• <b>소음 관리</b>: 타 고객 배려 · 짖음 지속 시 퇴장 조치 가능</li>
-                            <li>• <b>수영장·연못</b>: 낙상·익사 위험 · 보호자 상시 감독</li>
                             <li>• <b>심야 관리</b>: 22시 이후 데크 밖 출입 자제</li>
                             <li>• <b>책임·배상</b>: 기물 파손·타 고객 피해 발생 시 <b>동반자 전액 배상</b></li>
                             <li>• <b>특수 청소비</b>: 심한 오염 발생 시 최대 <b>50,000원</b> 별도 청구</li>

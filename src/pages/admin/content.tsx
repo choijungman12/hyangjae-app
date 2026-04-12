@@ -283,30 +283,31 @@ interface ImageSlotDef {
 }
 
 const IMAGE_SLOTS: ImageSlotDef[] = [
-  {
-    key: 'glamping-outdoor',
-    label: '스마트팜 데크 외부',
-    description: '예약 페이지 상단 · 외부 전경 이미지',
-    gradient: 'from-orange-400 to-red-500',
-  },
-  {
-    key: 'glamping-interior',
-    label: '스마트팜 내부',
-    description: '예약 페이지 상단 · 텐트 내부 이미지',
-    gradient: 'from-emerald-400 to-teal-500',
-  },
-  {
-    key: 'store-interior',
-    label: '매점 내부',
-    description: '예약 페이지 하단 · 향재원 매점 전경',
-    gradient: 'from-amber-400 to-orange-500',
-  },
-  {
-    key: 'store-products',
-    label: '매점 상품',
-    description: '가공상품 진열대 이미지',
-    gradient: 'from-purple-400 to-pink-500',
-  },
+  // ── 홈 페이지 히어로 캐러셀 (5장 자동 슬라이드) ──
+  { key: 'hero-slide-1', label: '홈 히어로 #1', description: '메인 화면 상단 · 첫 번째 슬라이드', gradient: 'from-emerald-400 to-teal-500' },
+  { key: 'hero-slide-2', label: '홈 히어로 #2', description: '메인 화면 상단 · 두 번째 슬라이드', gradient: 'from-emerald-400 to-teal-500' },
+  { key: 'hero-slide-3', label: '홈 히어로 #3', description: '메인 화면 상단 · 세 번째 슬라이드', gradient: 'from-emerald-400 to-teal-500' },
+  { key: 'hero-slide-4', label: '홈 히어로 #4', description: '메인 화면 상단 · 네 번째 슬라이드', gradient: 'from-emerald-400 to-teal-500' },
+  { key: 'hero-slide-5', label: '홈 히어로 #5', description: '메인 화면 상단 · 다섯 번째 슬라이드', gradient: 'from-emerald-400 to-teal-500' },
+
+  // ── 예약 페이지 데크 캐러셀 (5장 자동 슬라이드) ──
+  { key: 'deck-slide-1', label: '예약 데크 #1', description: '예약 페이지 상단 · 첫 번째 슬라이드', gradient: 'from-orange-400 to-red-500' },
+  { key: 'deck-slide-2', label: '예약 데크 #2', description: '예약 페이지 상단 · 두 번째 슬라이드', gradient: 'from-orange-400 to-red-500' },
+  { key: 'deck-slide-3', label: '예약 데크 #3', description: '예약 페이지 상단 · 세 번째 슬라이드', gradient: 'from-orange-400 to-red-500' },
+  { key: 'deck-slide-4', label: '예약 데크 #4', description: '예약 페이지 상단 · 네 번째 슬라이드', gradient: 'from-orange-400 to-red-500' },
+  { key: 'deck-slide-5', label: '예약 데크 #5', description: '예약 페이지 상단 · 다섯 번째 슬라이드', gradient: 'from-orange-400 to-red-500' },
+
+  // ── 시설 둘러보기 대표 썸네일 ──
+  { key: 'facility-mainhouse-thumb', label: '시설 · 메인 하우스', description: '홈 화면 시설 둘러보기 · 메인 하우스 카드 대표 이미지', gradient: 'from-blue-400 to-indigo-500' },
+  { key: 'facility-store-thumb', label: '시설 · 향재원 매점', description: '홈 화면 시설 둘러보기 · 매점 카드 대표 이미지', gradient: 'from-amber-400 to-orange-500' },
+  { key: 'facility-deck-thumb', label: '시설 · 체험 데크', description: '홈 화면 시설 둘러보기 · 체험 데크 카드 대표 이미지', gradient: 'from-emerald-400 to-teal-500' },
+  { key: 'facility-site-thumb', label: '시설 · 전체 부지', description: '홈 화면 시설 둘러보기 · 전체 부지 카드 대표 이미지', gradient: 'from-purple-400 to-pink-500' },
+
+  // ── 기존 호환 슬롯 (삭제 금지 · 하위 호환) ──
+  { key: 'glamping-outdoor', label: '(구) 데크 외부', description: '레거시 호환 슬롯', gradient: 'from-gray-400 to-gray-500' },
+  { key: 'glamping-interior', label: '(구) 데크 내부', description: '레거시 호환 슬롯', gradient: 'from-gray-400 to-gray-500' },
+  { key: 'store-interior', label: '매점 내부', description: '예약 페이지 · 향재원 매점 전경', gradient: 'from-amber-400 to-orange-500' },
+  { key: 'store-products', label: '매점 상품', description: '가공상품 진열대 이미지', gradient: 'from-purple-400 to-pink-500' },
 ];
 
 function ImageUploadSection() {

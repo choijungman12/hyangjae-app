@@ -12,12 +12,43 @@ export function useAdminAuth() {
   return { isAuth, login, logout };
 }
 
-/* ── 더미 통계 ── */
+/* ── 더미 통계 (운영 현황) ── */
 const STATS = [
   { label: '총 회원', value: '127명', sub: '이번주 +8', icon: 'ri-group-line', grad: 'from-blue-500 to-indigo-600' },
   { label: '이번달 예약', value: '43건', sub: '전월 대비 +12%', icon: 'ri-calendar-check-line', grad: 'from-emerald-500 to-teal-600' },
   { label: '이번달 매출', value: '214만원', sub: '목표 대비 79%', icon: 'ri-money-dollar-circle-line', grad: 'from-purple-500 to-pink-600' },
   { label: '미확인 문의', value: '5건', sub: '즉시 처리 필요', icon: 'ri-chat-3-line', grad: 'from-orange-500 to-red-500' },
+];
+
+/* ── 사업자 전용 · 시설·수확 지표 (과거에는 홈에 노출됨 → 사업자 페이지로 이동) ── */
+const FACILITY_METRICS = [
+  {
+    label: '스마트팜 면적',
+    value: '150평',
+    sub: '메인 하우스 · 고추냉이 재배 전용',
+    icon: 'ri-home-gear-line',
+    grad: 'from-blue-400 to-indigo-500',
+    linkLabel: '시설 설비 설계',
+    linkTo: '/facility-design',
+  },
+  {
+    label: '재배 작물',
+    value: '3,000주',
+    sub: '고추냉이 정식 기준 (18~24개월 성장)',
+    icon: 'ri-plant-line',
+    grad: 'from-emerald-400 to-teal-500',
+    linkLabel: '작목반장 지표',
+    linkTo: '/profit-analysis',
+  },
+  {
+    label: '연 매출 목표',
+    value: '₩4억',
+    sub: 'ROI 22% · BEP 3개월 · 초기 투자 15억',
+    icon: 'ri-money-dollar-circle-line',
+    grad: 'from-purple-400 to-pink-500',
+    linkLabel: '수익성 분석',
+    linkTo: '/profit-analysis',
+  },
 ];
 
 const RECENT_BOOKINGS = [
@@ -145,6 +176,46 @@ export default function AdminDashboard() {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* 사업자 전용 · 시설·수확 지표 */}
+        <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-black text-gray-900 flex items-center gap-2">
+              <i className="ri-line-chart-line text-emerald-500" aria-hidden="true" />
+              사업자 전용 · 시설·수확 지표
+            </h3>
+            <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+              사업자 전용
+            </span>
+          </div>
+          <p className="text-[11px] text-gray-500 leading-relaxed mb-3">
+            과거 홈 화면에 노출되던 면적·작물·재무 지표가 사업자 전용 페이지로 이전되었습니다. 상세 분석은 각 링크에서 확인하세요.
+          </p>
+          <div className="space-y-2">
+            {FACILITY_METRICS.map(metric => (
+              <Link
+                key={metric.label}
+                to={metric.linkTo}
+                className="flex items-center gap-3 p-3 rounded-2xl bg-gray-50 hover:bg-gray-100 transition-all border border-gray-100"
+              >
+                <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${metric.grad} flex items-center justify-center shadow-md flex-shrink-0`}>
+                  <i className={`${metric.icon} text-lg text-white`} aria-hidden="true" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-sm font-black text-gray-900" translate="no">{metric.value}</p>
+                    <p className="text-[11px] text-gray-600 font-bold">{metric.label}</p>
+                  </div>
+                  <p className="text-[10px] text-gray-500 mt-0.5 leading-tight truncate">{metric.sub}</p>
+                </div>
+                <div className="flex items-center gap-1 text-[10px] text-emerald-700 font-black flex-shrink-0">
+                  {metric.linkLabel}
+                  <i className="ri-arrow-right-s-line text-sm" aria-hidden="true" />
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
 
         {/* 빠른 메뉴 */}

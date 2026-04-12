@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import BottomNav from '@/components/BottomNav';
 import PageHeader from '@/components/PageHeader';
+import { isBusinessAuth } from '@/lib/businessAuth';
 
 // ─────────────────────────────────────────────
 // 실제 시장 단가 데이터 (2026년 기준)
@@ -129,6 +130,13 @@ const fmtM = (n: number) => {
 };
 
 export default function FacilityDesign() {
+  const navigate = useNavigate();
+
+  // 🔒 사업자/관리자 인증 — 시설 비용 분석은 사업자 로그인 필요
+  useEffect(() => {
+    if (!isBusinessAuth()) navigate('/login?redirect=facility-design&role=business', { replace: true });
+  }, [navigate]);
+
   const [areaUnit, setAreaUnit] = useState<'pyeong' | 'sqm'>('pyeong');
   const [areaInput, setAreaInput] = useState('150');
   const [facilityType, setFacilityType] = useState<FacilityId>('truss');
@@ -474,7 +482,7 @@ export default function FacilityDesign() {
           <div className="bg-gray-50 rounded-2xl p-4 border border-gray-200">
             <p className="text-xs font-bold text-gray-700 mb-2 flex items-center gap-1.5">
               <i className="ri-information-line text-blue-500" />
-              단가 산출 근거 (2025~2026년 기준)
+              단가 산출 근거 (2026년 기준)
             </p>
             <ul className="text-[10px] text-gray-500 space-y-1 leading-relaxed">
               <li>• 비닐하우스: 농림부 비닐하우스 표준 기준단가 (연동 20~30만원/평)</li>

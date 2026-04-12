@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { kakaoLogin, KAKAO_CONFIGURED } from '@/lib/kakaoAuth';
+import { loginAsBusiness } from '@/lib/businessAuth';
 
 export const AUTH_KEY = 'hyangjae_user';
 
@@ -14,12 +15,16 @@ export interface UserInfo {
   bookings: number;
 }
 
-type Step = 'main' | 'loading' | 'error';
+type Step = 'main' | 'loading' | 'error' | 'business-login';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const [step, setStep] = useState<Step>('main');
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get('redirect');
+  const wantsBusiness = searchParams.get('role') === 'business';
+  const [step, setStep] = useState<Step>(wantsBusiness ? 'business-login' : 'main');
   const [errorMsg, setErrorMsg] = useState('');
+  const [bizForm, setBizForm] = useState({ name: '', businessName: '', phone: '', email: '' });
 
   const saveUser = (user: UserInfo) => {
     localStorage.setItem(AUTH_KEY, JSON.stringify(user));
@@ -115,6 +120,20 @@ export default function LoginPage() {
               게스트로 둘러보기
             </button>
 
+            <div className="flex items-center gap-3 mt-2">
+              <div className="flex-1 h-px bg-gray-200" />
+              <span className="text-xs text-gray-400 font-medium">사업자</span>
+              <div className="flex-1 h-px bg-gray-200" />
+            </div>
+
+            <button
+              onClick={() => setStep('business-login')}
+              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-sm py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02]"
+            >
+              <i className="ri-building-line text-lg" />
+              사업자 · 예비사업자 로그인
+            </button>
+
             <p className="text-center text-xs text-gray-400 leading-relaxed pt-2">
               로그인 시{' '}
               <span className="text-emerald-600 font-bold">서비스 이용약관</span>
@@ -122,6 +141,113 @@ export default function LoginPage() {
               <span className="text-emerald-600 font-bold">개인정보처리방침</span>
               에 동의합니다.
             </p>
+          </div>
+        )}
+
+        {/* ── 사업자 로그인 / 가입 신청 ── */}
+        {step === 'business-login' && (
+          <div className="w-full max-w-sm">
+            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-300 rounded-3xl p-6 mb-4">
+              <div className="text-center mb-5">
+                <div className="w-14 h-14 mx-auto bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-xl mb-3">
+                  <i className="ri-building-line text-2xl text-white" />
+                </div>
+                <h3 className="text-lg font-black text-gray-900">사업자 로그인</h3>
+                <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                  사업자 또는 예비사업자로 가입하시면<br />
+                  <b>수지분석 · 시설설계 · 작목반장 시세</b> 서비스를 이용할 수 있습니다
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-[11px] font-black text-gray-600 mb-1">이름 (대표자명)</label>
+                  <input
+                    type="text"
+                    value={bizForm.name}
+                    onChange={e => setBizForm(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="홍길동"
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-black text-gray-600 mb-1">사업장명 (예비사업자는 예정 명칭)</label>
+                  <input
+                    type="text"
+                    value={bizForm.businessName}
+                    onChange={e => setBizForm(prev => ({ ...prev, businessName: e.target.value }))}
+                    placeholder="OO 스마트팜"
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-black text-gray-600 mb-1">연락처</label>
+                  <input
+                    type="tel"
+                    value={bizForm.phone}
+                    onChange={e => setBizForm(prev => ({ ...prev, phone: e.target.value }))}
+                    placeholder="010-0000-0000"
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-black text-gray-600 mb-1">이메일</label>
+                  <input
+                    type="email"
+                    value={bizForm.email}
+                    onChange={e => setBizForm(prev => ({ ...prev, email: e.target.value }))}
+                    placeholder="example@email.com"
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (!bizForm.name || !bizForm.businessName || !bizForm.phone || !bizForm.email) {
+                    setErrorMsg('모든 항목을 입력해 주세요.');
+                    return;
+                  }
+                  setErrorMsg('');
+                  loginAsBusiness(bizForm);
+                  const dest = redirectTo ? `/${redirectTo}` : '/profit-analysis';
+                  navigate(dest);
+                }}
+                className="w-full mt-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-sm py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all"
+              >
+                <i className="ri-login-box-line mr-1.5" />
+                사업자 로그인 / 가입 신청
+              </button>
+
+              {errorMsg && (
+                <p className="text-xs text-red-500 text-center mt-2 font-bold">{errorMsg}</p>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setStep('main')}
+              className="w-full text-center text-xs text-gray-500 font-bold py-2 hover:text-gray-700 transition-colors"
+            >
+              ← 일반 로그인으로 돌아가기
+            </button>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mt-3">
+              <div className="flex items-start gap-2">
+                <i className="ri-information-line text-blue-500 text-sm mt-0.5 flex-shrink-0" />
+                <div className="text-[11px] text-blue-800 leading-relaxed">
+                  <p className="font-black mb-1">사업자 서비스 안내</p>
+                  <ul className="space-y-0.5">
+                    <li>• <b>수지분석</b>: 작물별 ROI · 원가 · 수익 시뮬레이션</li>
+                    <li>• <b>시설설계</b>: 평당 비용 · 하우스 종류별 견적</li>
+                    <li>• <b>작목반장 시세</b>: KAMIS 기반 작물 시세 밴드</li>
+                    <li>• 각 사업자는 <b>자기 사업장의 데이터만</b> 확인 가능</li>
+                    <li>• 향재원 자체 재무 데이터는 <b>관리자 전용</b></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 

@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import BottomNav from '@/components/BottomNav';
 import { useScrollY } from '@/hooks/useScrollY';
 import { CROP_VISUAL } from '@/data/crops';
 import { getMultipleCropPrices, type CropPriceInfo } from '@/lib/kamisApi';
+import { isBusinessAuth } from '@/lib/businessAuth';
 
 /* ───────── 작물 데이터 (2026년 KAMIS 평균 시세 기준) ─────────
  * pricePerKg는 KAMIS API에서 받아온 실시간 값으로 런타임에 덮어씁니다.
@@ -99,7 +100,13 @@ function fmt만(v: number) {
 
 /* ───────── 컴포넌트 ───────── */
 export default function ProfitAnalysis() {
+  const navigate = useNavigate();
   const scrollY = useScrollY();
+
+  // 🔒 사업자/관리자 인증 — 수지분석은 사업자 로그인 필요
+  useEffect(() => {
+    if (!isBusinessAuth()) navigate('/login?redirect=profit-analysis&role=business', { replace: true });
+  }, [navigate]);
 
   // 입력 상태
   const [selectedCategory, setSelectedCategory] = useState<string>('herb');

@@ -2,15 +2,16 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAdminAuth } from './page';
 
+// 가격 계산: basePrice(평일139K/주말159K) + 추가인원(4인 초과 × 20K) + 불멍(30K) + 숯불(20K)
 const ALL_BOOKINGS = [
-  { id: 'B2040', name: '김민준', phone: '010-1234-5678', type: '3번 데크 + 불멍', date: '2026-04-12', time: '18:30', guests: 6, price: 229000, status: 'confirmed' },
-  { id: 'B2039', name: '박지영', phone: '010-2345-6789', type: '와사비 수확 체험',   date: '2026-04-11', time: '11:00', guests: 2, price: 50000,  status: 'pending' },
-  { id: 'B2038', name: '이서현', phone: '010-3456-7890', type: '7번 데크 + 숯불',    date: '2026-04-11', time: '16:00', guests: 8, price: 179000, status: 'confirmed' },
-  { id: 'B2037', name: '정도현', phone: '010-4567-8901', type: '1번 데크',           date: '2026-04-10', time: '13:30', guests: 4, price: 139000, status: 'done' },
-  { id: 'B2036', name: '최수아', phone: '010-5678-9012', type: '스마트팜 투어',       date: '2026-04-10', time: '13:00', guests: 3, price: 45000,  status: 'confirmed' },
-  { id: 'B2035', name: '강현우', phone: '010-6789-0123', type: '5번 데크',           date: '2026-04-09', time: '16:00', guests: 3, price: 139000, status: 'cancelled' },
-  { id: 'B2034', name: '윤서연', phone: '010-7890-1234', type: '영어 튜터 프로그램',  date: '2026-04-08', time: '15:00', guests: 1, price: 45000,  status: 'done' },
-  { id: 'B2033', name: '임재원', phone: '010-8901-2345', type: '2번 데크 + 불멍+숯불',date: '2026-04-07', time: '18:30', guests: 7, price: 189000, status: 'done' },
+  { id: 'B2040', name: '김민준', phone: '010-1234-5678', type: '3번 데크 + 불멍',     date: '2026-04-12', time: '18:30', guests: 6, price: 229000, status: 'confirmed' },  // 주말159+2명40+불멍30=229
+  { id: 'B2039', name: '박지영', phone: '010-2345-6789', type: '심화 투어',           date: '2026-04-11', time: '11:00', guests: 2, price: 30000,  status: 'pending' },    // 15K×2인=30K
+  { id: 'B2038', name: '이서현', phone: '010-3456-7890', type: '7번 데크 + 숯불',     date: '2026-04-11', time: '16:00', guests: 8, price: 259000, status: 'confirmed' },  // 평일139+4명80+숯불20+애견10=249 (or 주말159+4명80+숯불20=259)
+  { id: 'B2037', name: '정도현', phone: '010-4567-8901', type: '1번 데크',            date: '2026-04-10', time: '13:30', guests: 4, price: 139000, status: 'done' },       // 평일139
+  { id: 'B2036', name: '최수아', phone: '010-5678-9012', type: '심화 투어',           date: '2026-04-10', time: '13:00', guests: 3, price: 45000,  status: 'confirmed' },  // 15K×3인=45K
+  { id: 'B2035', name: '강현우', phone: '010-6789-0123', type: '5번 데크',            date: '2026-04-09', time: '16:00', guests: 3, price: 139000, status: 'cancelled' },  // 평일139
+  { id: 'B2034', name: '윤서연', phone: '010-7890-1234', type: '영어 튜터 프로그램',   date: '2026-04-08', time: '15:00', guests: 1, price: 45000,  status: 'done' },       // 45K×1인=45K
+  { id: 'B2033', name: '임재원', phone: '010-8901-2345', type: '2번 데크 + 불멍+숯불', date: '2026-04-07', time: '18:30', guests: 7, price: 249000, status: 'done' },       // 평일139+3명60+불멍30+숯불20=249
 ];
 
 const STATUS_META = {

@@ -52,11 +52,11 @@ const FACILITY_METRICS = [
 ];
 
 const RECENT_BOOKINGS = [
-  { id: 'B2040', name: '김민준', type: '3번 데크 + 불멍',    date: '2026-04-12', status: 'confirmed', amount: 189000 },
-  { id: 'B2039', name: '박지영', type: '와사비 수확 체험',    date: '2026-04-11', status: 'pending',   amount: 50000  },
-  { id: 'B2038', name: '이서현', type: '7번 데크 + 숯불',    date: '2026-04-11', status: 'confirmed', amount: 179000 },
-  { id: 'B2037', name: '정도현', type: '1번 데크',           date: '2026-04-10', status: 'done',      amount: 139000 },
-  { id: 'B2036', name: '최수아', type: '스마트팜 투어',       date: '2026-04-10', status: 'confirmed', amount: 45000  },
+  { id: 'B2040', name: '김민준', type: '3번 데크 + 불멍',     date: '2026-04-12', status: 'confirmed', amount: 229000 },
+  { id: 'B2039', name: '박지영', type: '심화 투어',           date: '2026-04-11', status: 'pending',   amount: 30000  },
+  { id: 'B2038', name: '이서현', type: '7번 데크 + 숯불',     date: '2026-04-11', status: 'confirmed', amount: 259000 },
+  { id: 'B2037', name: '정도현', type: '1번 데크',            date: '2026-04-10', status: 'done',      amount: 139000 },
+  { id: 'B2036', name: '최수아', type: '심화 투어',           date: '2026-04-10', status: 'confirmed', amount: 45000  },
 ];
 
 const STATUS_META = {

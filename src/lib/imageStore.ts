@@ -18,8 +18,8 @@
  *   - facility-site-thumb      : 전체 부지 대표 썸네일
  *
  *   ── (기존 · 호환성 유지) ──
- *   - glamping-outdoor : 글램핑 데크 외부 전경
- *   - glamping-interior: 글램핑 데크 내부
+ *   - glamping-outdoor : 스마트팜 체험 데크 외부 전경 (레거시 키)
+ *   - glamping-interior: 스마트팜 체험 데크 내부 (레거시 키)
  *   - store-interior   : 향재원 매점 내부
  *   - store-products   : 매점 상품 진열대
  */

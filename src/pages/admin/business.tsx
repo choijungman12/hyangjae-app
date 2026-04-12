@@ -18,7 +18,7 @@ import { CROP_MARKET_DETAILS } from '@/data/cropMarketInfo';
 const FACILITY_KPI = [
   { label: '메인 하우스 면적',    value: '150평',    sub: '고추냉이 IoT 스마트팜',    icon: 'ri-home-gear-line', grad: 'from-blue-500 to-indigo-600' },
   { label: '전체 부지',           value: '536평',    sub: '양재동 178-4',            icon: 'ri-landscape-line', grad: 'from-sky-500 to-cyan-600' },
-  { label: '글램핑 데크',         value: '8개',      sub: '애견 가능 2개 포함',        icon: 'ri-tent-line',      grad: 'from-emerald-500 to-teal-600' },
+  { label: '스마트팜 체험 데크',   value: '8개',      sub: '애견 가능 2개 포함',        icon: 'ri-tent-line',      grad: 'from-emerald-500 to-teal-600' },
   { label: '고추냉이 정식 주수',   value: '3,000주',  sub: '18~24개월 성장 주기',      icon: 'ri-plant-line',     grad: 'from-green-500 to-emerald-600' },
   { label: '연 매출 목표',        value: '₩4억',     sub: '공간+체험+제품 합산',       icon: 'ri-money-dollar-circle-line', grad: 'from-purple-500 to-pink-600' },
   { label: 'ROI · BEP · 투자',   value: '22%',      sub: 'BEP 3개월 · 초기 15억',    icon: 'ri-line-chart-line', grad: 'from-orange-500 to-red-500' },

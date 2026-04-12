@@ -55,7 +55,7 @@ const FACILITIES: FacilityInfo[] = [
   {
     key: 'deck',
     label: '체험 데크',
-    subtitle: '파머스 글램핑 8개소',
+    subtitle: '스마트팜 체험 데크 8개소',
     thumbnail: '/facility-images/향재원 조감도 (3).png',
     images: [
       '/facility-images/향재원 조감도 (3).png',
@@ -87,7 +87,7 @@ const FACILITIES: FacilityInfo[] = [
 
 /* 히어로 캐러셀 이미지 — 관리자 페이지에서 업로드한 이미지가 있으면 그것을 사용, 없으면 fallback */
 const HERO_SLIDES: { key: ImageKey; fallback: string; caption: string }[] = [
-  { key: 'hero-slide-1', fallback: '/facility-images/A_detailed_3D_rendering_of_a_luxurious_glamping_si-1760445157424.png', caption: '파머스 글램핑 8개소' },
+  { key: 'hero-slide-1', fallback: '/facility-images/A_detailed_3D_rendering_of_a_luxurious_glamping_si-1760445157424.png', caption: '스마트팜 공간대여 · 체험 데크 8개소' },
   { key: 'hero-slide-2', fallback: '/facility-images/향재원 조감도 (3).png',                                                   caption: '양재동 스마트팜 전경' },
   { key: 'hero-slide-3', fallback: '/facility-images/향재원 조감도 (2).png',                                                   caption: '고추냉이 스마트팜 150평' },
   { key: 'hero-slide-4', fallback: '/facility-images/A_3D_rendering_of_a_landscape_in_the_evening_rese-1760446537669.png',     caption: '데크별 전용 텃밭' },

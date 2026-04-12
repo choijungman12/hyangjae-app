@@ -183,7 +183,7 @@ const DECK_SLIDES: { key: ImageKey; fallback: string; caption: string; tag: '외
   {
     key: 'deck-slide-5',
     fallback: '/facility-images/A_detailed_3D_rendering_of_a_luxurious_glamping_si-1760445157424.png',
-    caption: '럭셔리 글램핑 · 3D 렌더링',
+    caption: '스마트팜 공간대여 · 3D 렌더링',
     tag: '3D 렌더링',
   },
 ];
@@ -339,7 +339,7 @@ export default function Booking() {
 
       const newBooking: BookingItem = {
         type: 'deck',
-        name: `${selectedDeckId}번 글램핑 데크 · ${parsedGuests}인 · ${3 + extendHours}시간`,
+        name: `${selectedDeckId}번 스마트팜 체험 데크 · ${parsedGuests}인 · ${3 + extendHours}시간`,
         deckId: selectedDeckId,
         date: selectedDate,
         time: selectedTime,
@@ -377,7 +377,7 @@ export default function Booking() {
     <div className="min-h-screen bg-gray-50 pb-20">
       <PageHeader title="체험·공간대여" subtitle="Farm-to-Table 향재원" />
 
-      {/* Hero Banner — 밝은 글램핑 캐러셀 (Ken Burns + 자동 전환) */}
+      {/* Hero Banner — 스마트팜 공간대여 캐러셀 (Ken Burns + 자동 전환) */}
       <section className="relative h-64 overflow-hidden">
         {DECK_SLIDES.map((slide, i) => (
           <DeckSlideImage
@@ -398,22 +398,43 @@ export default function Booking() {
           <div key={`hero-caption-${deckSlideIndex}`} className="animate-slide-in-left">
             <div className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-xl px-2.5 py-1 rounded-full mb-2 border border-white/25">
               <i className="ri-plant-fill text-xs text-emerald-300" aria-hidden="true" />
-              <span className="text-[10px] font-black">데크별 전용 텃밭 · 파머스 글램핑 8개소</span>
+              <span className="text-[10px] font-black">스마트팜 공간대여 · 체험 데크 8개소</span>
             </div>
-            <h2 className="text-xl font-black mb-0.5 tracking-tight">향재원 파머스 글램핑</h2>
+            <h2 className="text-xl font-black mb-0.5 tracking-tight">향재원 스마트팜 공간대여</h2>
             <p className="text-[11px] text-emerald-200 font-bold">{DECK_SLIDES[deckSlideIndex].caption}</p>
           </div>
         </div>
       </section>
 
       {/* ═══════ 공간 대여 (체험 프로그램 통합) ═══════ */}
+
+          {/* 🚨 중요 고지 — 스마트팜 공간대여 서비스 (글램핑 아님) */}
+          <section className="px-4 pt-4">
+            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-400 rounded-2xl p-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0">
+                  <i className="ri-alert-fill text-white text-lg" aria-hidden="true" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-black text-emerald-900 mb-1">
+                    본 시설은 <span className="bg-emerald-600 text-white px-1.5 py-0.5 rounded">스마트팜 공간대여 서비스</span>입니다
+                  </p>
+                  <p className="text-[11px] text-emerald-800 leading-relaxed">
+                    일반 글램핑 시설이 아닙니다. <b>한국 국산 고추냉이 스마트팜(150평)</b>과 데크별 전용 텃밭이
+                    실제로 운영되는 <b>농업 체험 공간대여</b>이며, IoT 센서·관수 장비 등 재배 설비에는 손대지 말아 주세요.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
           {/* 가격 정보 카드 — 심플 */}
           <section className="px-4 pt-5">
             <div className="rounded-3xl bg-white shadow-sm border border-gray-100">
               {/* 히어로 캐러셀 인디케이터 */}
               <div className="flex items-center justify-between px-5 pt-4">
                 <div>
-                  <p className="text-[11px] font-semibold text-gray-500">Farmers Glamping · 서울 양재동</p>
+                  <p className="text-[11px] font-semibold text-gray-500">Smart Farm Space · 서울 양재동</p>
                   <h3 className="text-base font-black tracking-tight text-gray-900 mt-0.5">데크별 전용 텃밭</h3>
                 </div>
                 <div className="flex gap-1.5 items-center">

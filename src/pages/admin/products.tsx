@@ -7,7 +7,7 @@ const PRODUCTS_KEY = 'hyangjae_products';
 const DEFAULT_PRODUCTS = {
   // 8개 데크는 모두 동일한 요금 체계 (8인 수용)
   deckBase: {
-    label: '글램핑 데크',
+    label: '스마트팜 체험 데크',
     capacity: '8인',
     totalCount: 8,
     weekday: 139000,

@@ -1,0 +1,7 @@
+- [Project: 향재원 overview](project_hyangjaewon.md) — 스마트팜 공간대여 앱, 4파트(독스/부킹/스마트팜/디자인) 단일 저장소 협업, 2027년 6월 오픈 예정
+- [Project: Sprint 진행 상태](project_sprint_status.md) — Sprint-02(예약금/스탬프) + Sprint-03(텃밭수확/콜키지/파트너) 스펙 확정·작업 분담 발행됨
+- [Project: 핵심 사업 데이터](project_business_data.md) — 가격·타임·시설·재무 절대값 (불일치 = 버그)
+- [Feedback: 글램핑 표현 금지](feedback_no_glamping.md) — "글램핑" 표현 사용 금지, "스마트팜 공간대여"만 사용
+- [Feedback: 원산지 한국 국산](feedback_origin_korean.md) — 고추냉이는 "한국 국산", "일본산" 표기 절대 금지
+- [Feedback: 역할 경계 엄수](feedback_role_boundaries.md) — 4개 파트는 본인 담당 폴더 외 수정 금지, 독스만 .md/데이터 수정
+- [Reference: 프로젝트 문서 위치](reference_project_docs.md) — CLAUDE.md/memory/handoff/specs 위치

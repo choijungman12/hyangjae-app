@@ -1,5 +1,24 @@
 # 🌿 향재원(HYANGJAEWON) — 프로젝트 통합 가이드
 
+> **🤖 Claude 부트스트랩 — 새 세션 첫 작업 (필독)**
+>
+> 이 프로젝트를 처음 보는 Claude 인스턴스라면, 사용자에게 답하기 전에 **반드시 다음 파일들을 모두 읽어라.** 이전 세션과 합의된 사용자 선호·금지 사항·진행 중인 스프린트 상태가 들어있다 — 이걸 읽지 않으면 같은 실수를 반복하게 된다.
+>
+> 1. `memory/claude-context/MEMORY.md` (인덱스)
+> 2. `memory/claude-context/project_hyangjaewon.md` (프로젝트 개요)
+> 3. `memory/claude-context/project_business_data.md` (사업 절대값)
+> 4. `memory/claude-context/project_sprint_status.md` (스프린트 진행)
+> 5. `memory/claude-context/feedback_no_glamping.md` (금기어)
+> 6. `memory/claude-context/feedback_origin_korean.md` (원산지 규칙)
+> 7. `memory/claude-context/feedback_role_boundaries.md` (4파트 역할 경계)
+> 8. `memory/claude-context/reference_project_docs.md` (문서 위치)
+> 9. `memory/specs/*.md` (확정 스펙)
+> 10. `memory/handoff/**/*.md` (작업 지시서)
+>
+> 이 부트스트랩 영역은 컴퓨터에 무관하게 git 으로 동기화되므로, 어떤 머신에서 clone 받아도 동일한 컨텍스트를 즉시 복원할 수 있다.
+
+---
+
 **운용 방식**: 단일 저장소(main) 기반, 역할별 브랜치로 작업. **독스(기획자/QA) 가 메인 조율자**이며 나머지 3개 역할(부킹·스마트팜·디자인)은 독스의 지시서(`memory/handoff/*.md`)에 따라 본인 브랜치에서 작업 후 푸시합니다.
 
 - **기준 날짜**: 2026-04-12

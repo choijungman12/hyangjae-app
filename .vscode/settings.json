@@ -1,0 +1,72 @@
+{
+  "// ": "Better Comments 확장 색상 설정 - 확장 설치 후 자동 적용됨",
+  "better-comments.tags": [
+    {
+      "tag": "!",
+      "color": "#FF2D2D",
+      "strikethrough": false,
+      "underline": false,
+      "backgroundColor": "transparent",
+      "bold": true,
+      "italic": false
+    },
+    {
+      "tag": "*",
+      "color": "#22C55E",
+      "strikethrough": false,
+      "underline": false,
+      "backgroundColor": "transparent",
+      "bold": true,
+      "italic": false
+    },
+    {
+      "tag": "?",
+      "color": "#3B82F6",
+      "strikethrough": false,
+      "underline": false,
+      "backgroundColor": "transparent",
+      "bold": true,
+      "italic": false
+    },
+    {
+      "tag": "TODO:",
+      "color": "#F59E0B",
+      "strikethrough": false,
+      "underline": false,
+      "backgroundColor": "transparent",
+      "bold": true,
+      "italic": false
+    },
+    {
+      "tag": "🟣",
+      "color": "#A855F7",
+      "strikethrough": false,
+      "underline": false,
+      "backgroundColor": "transparent",
+      "bold": true,
+      "italic": false
+    }
+  ],
+  "todo-tree.general.tags": ["EDIT", "TODO", "FIXME", "HACK"],
+  "todo-tree.highlights.customHighlight": {
+    "EDIT": {
+      "icon": "pencil",
+      "foreground": "#ffffff",
+      "background": "#F59E0B",
+      "iconColour": "#F59E0B"
+    }
+  },
+  "editor.tokenColorCustomizations": {
+    "textMateRules": [
+      {
+        "scope": ["comment.line"],
+        "settings": {
+          "fontStyle": ""
+        }
+      }
+    ]
+  },
+  "i18n-ally.localesPaths": [
+    "src/i18n"
+  ]
+}

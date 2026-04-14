@@ -13,6 +13,8 @@ import type { ImageKey } from '@/lib/imageStore';
 import { requestNaverPayMock, splitBookingPayment } from '@/lib/naverPayMock';
 import { calcHarvestGrams, getHarvestForMonth, PARTNER_STORES, BOOKING_ADDONS } from '@/data/products';
 
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
+
 type BookingItem = {
   type: 'deck' | 'experience';
   name: string;
@@ -95,7 +97,7 @@ const EXPERIENCE_PROGRAMS = [
     unit: '1인',
     icon: 'ri-book-open-line',
     color: 'from-blue-500 to-indigo-600',
-    image: '/facility-images/facility-16.jpg',
+    image: BASE + '/facility-images/facility-16.jpg',
     desc: '팜 환경에서 진행하는 영어 교육 프로그램',
   },
   {
@@ -106,7 +108,7 @@ const EXPERIENCE_PROGRAMS = [
     unit: '1인',
     icon: 'ri-walk-line',
     color: 'from-purple-500 to-pink-600',
-    image: '/facility-images/facility-00.jpg',
+    image: BASE + '/facility-images/facility-00.jpg',
     desc: '메인 하우스에서 진행하는 고추냉이 IoT 재배 시설 심화 견학 (기본 20분 투어는 데크 예약에 포함)',
   },
 ];
@@ -158,31 +160,31 @@ type SelectedExperience = {
 const DECK_SLIDES: { key: ImageKey; fallback: string; caption: string; tag: '외부' | '내부' | '항공뷰' | '3D 렌더링' }[] = [
   {
     key: 'deck-slide-1',
-    fallback: '/facility-images/KakaoTalk_20260410_165225697_03.png',
+    fallback: BASE + '/facility-images/KakaoTalk_20260410_165225697_03.png',
     caption: 'A-frame 데크 · 석양 조명',
     tag: '외부',
   },
   {
     key: 'deck-slide-2',
-    fallback: '/facility-images/KakaoTalk_20260410_165225697_02.png',
+    fallback: BASE + '/facility-images/KakaoTalk_20260410_165225697_02.png',
     caption: '데크 내부 · 플랜트 라운지',
     tag: '내부',
   },
   {
     key: 'deck-slide-3',
-    fallback: '/facility-images/A_street_view-style_3D_rendering_of_Hyangjaewons_-1760446648462.png',
+    fallback: BASE + '/facility-images/A_street_view-style_3D_rendering_of_Hyangjaewons_-1760446648462.png',
     caption: '사이트 전경 · 낮 · 벚꽃길',
     tag: '3D 렌더링',
   },
   {
     key: 'deck-slide-4',
-    fallback: '/facility-images/향재원 조감도 (7).png',
+    fallback: BASE + '/facility-images/향재원 조감도 (7).png',
     caption: '8개 데크 · 낮 항공뷰',
     tag: '항공뷰',
   },
   {
     key: 'deck-slide-5',
-    fallback: '/facility-images/A_detailed_3D_rendering_of_a_luxurious_glamping_si-1760445157424.png',
+    fallback: BASE + '/facility-images/A_detailed_3D_rendering_of_a_luxurious_glamping_si-1760445157424.png',
     caption: '스마트팜 공간대여 · 3D 렌더링',
     tag: '3D 렌더링',
   },

@@ -73,9 +73,11 @@ const TOTAL_IMAGES = 55;
 
 const EXTENSIONS: Record<number, string> = { 1: 'png', 3: 'png' };
 
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
+
 function getImagePath(index: number): string {
   const ext = EXTENSIONS[index] ?? 'jpg';
-  return `/guide-images/guide-${String(index).padStart(2, '0')}.${ext}`;
+  return `${BASE}/guide-images/guide-${String(index).padStart(2, '0')}.${ext}`;
 }
 
 /* ═══════ 향재원 소개 웹툰 — 10화 (public/webtoon/1~10.jpg) ═══════ */
@@ -83,7 +85,7 @@ const INTRO_TOTAL = 10;
 
 function getIntroPath(index: number): string {
   // index는 0부터 시작, 파일은 1부터 시작
-  return `/webtoon/${index + 1}.jpg`;
+  return `${BASE}/webtoon/${index + 1}.jpg`;
 }
 
 type WebtoonCategory = 'intro' | 'guide';

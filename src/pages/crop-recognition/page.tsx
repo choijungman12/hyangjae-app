@@ -161,7 +161,7 @@ export default function CropRecognition() {
             aiFamily = plantResult.family;
             aiConfidence = plantResult.probability;
             aiDescription = plantResult.description;
-            aiDiseases = plantResult.diseases.map(d => `${d.name} (${(d.probability * 100).toFixed(0)}%)`);
+            aiDiseases = [];
             aiSource = 'plantnet';
           }
         } catch { /* API 실패 시 색상 분석 fallback */ }

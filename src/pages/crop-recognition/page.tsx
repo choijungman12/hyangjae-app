@@ -456,13 +456,19 @@ export default function CropRecognition() {
                   onCapture={(imageData, aiResult) => {
                     setSelectedImage(imageData);
                     closeCamera();
-                    // AI 결과를 기존 분석 결과로 변환
+                    // AI 실제 픽셀 분석 결과를 기존 분석 결과로 변환
                     setResult({
                       ...result,
-                      cropName: aiResult.detections[0]?.label || '고추냉이',
-                      confidence: aiResult.detections[0]?.confidence || 0.95,
+                      cropName: aiResult.detected ? '감지된 작물' : '미감지',
+                      confidence: aiResult.detected ? aiResult.healthScore / 100 : 0,
                       healthScore: aiResult.healthScore,
-                      diseases: aiResult.diseaseRisk.filter(d => d.probability > 0.2).map(d => d.name),
+                      greenRatio: aiResult.greenRatio,
+                      brownRatio: aiResult.brownRatio,
+                      yellowRatio: aiResult.yellowRatio,
+                      growthStage: aiResult.growthStage,
+                      issues: aiResult.issues,
+                      prescriptions: aiResult.prescriptions,
+                      diseases: aiResult.issues.filter(i => !i.startsWith('✅')),
                       aiAnalysis: aiResult,
                     });
                   }}

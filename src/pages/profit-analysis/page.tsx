@@ -44,7 +44,7 @@ const CROP_DB_INITIAL: CropInfo[] = [
   { id: 'radish',        name: '무',       pricePerKg: 2800,  yieldPerPlant: 2500, rotationsPerYear: 4, seedlingCost: 300,  category: 'root' },
   { id: 'carrot',        name: '당근',     pricePerKg: 4200,  yieldPerPlant: 1800, rotationsPerYear: 3, seedlingCost: 350,  category: 'root' },
   // 허브류
-  { id: 'wasabi',        name: '고추냉이', pricePerKg: 85000, yieldPerPlant: 350,  rotationsPerYear: 1, seedlingCost: 3500, category: 'herb', tag: '향재원 주력' },
+  { id: 'wasabi',        name: '고추냉이', pricePerKg: 120000, yieldPerPlant: 45,  rotationsPerYear: 1, seedlingCost: 3000, category: 'herb', tag: '향재원 주력' },
   { id: 'basil',         name: '바질',     pricePerKg: 38000, yieldPerPlant: 180,  rotationsPerYear: 8, seedlingCost: 600,  category: 'herb' },
   { id: 'mint',          name: '민트',     pricePerKg: 32000, yieldPerPlant: 200,  rotationsPerYear: 7, seedlingCost: 600,  category: 'herb' },
 ];
@@ -96,6 +96,276 @@ function fmt만(v: number) {
   const abs = Math.abs(v);
   if (abs >= 100000000) return `${(v / 100000000).toFixed(1)}억`;
   return `${Math.round(v / 10000).toLocaleString()}만원`;
+}
+
+/* ═══════ 고추냉이 전용 5개년 수지분석 ═══════ */
+function WasabiDetailAnalysis({ plants, area }: { plants: number; area: number }) {
+  const [rootRatio, setRootRatio] = useState(30);
+  const [leafRoute, setLeafRoute] = useState<'wholesale' | 'b2b' | 'direct'>('b2b');
+  const [rootRoute, setRootRoute] = useState<'wholesale' | 'b2b' | 'premium'>('b2b');
+  const [rootWeight, setRootWeight] = useState(45);
+
+  const LEAF_PRICES = { wholesale: 1200, b2b: 2000, direct: 3000 };
+  const ROOT_PRICES = { wholesale: 80000, b2b: 120000, premium: 180000 };
+  const leafPrice = LEAF_PRICES[leafRoute];
+  const rootPriceKg = ROOT_PRICES[rootRoute];
+
+  const rootPlants = Math.round(plants * rootRatio / 100);
+  const leafPlants = plants - rootPlants;
+  const rootPerPlant = (rootWeight / 1000) * rootPriceKg;
+
+  // 투자 구조 (150평 기준 비례)
+  const areaRatio = area / 500; // 500m² = 약 150평
+  const investStructure = 430_815_000;
+  const investEquip = Math.round(225_555_000 * areaRatio);
+  const investSeedling = plants * 3000;
+  const investReserve = 20_000_000;
+  const totalInvest = investStructure + investEquip + investSeedling + investReserve;
+  const subsidy = 90_000_000;
+  const loan = 200_000_000;
+  const selfFund = Math.max(0, totalInvest - subsidy - loan);
+
+  // 연간 운영비
+  const annualCost = Math.round(
+    15_000_000 * Math.pow(areaRatio, 0.7) + 5_250_000 * areaRatio +
+    6_000_000 * Math.pow(areaRatio, 0.6) + 12_000_000 * Math.pow(areaRatio, 0.5) +
+    2_000_000 + 3_000_000
+  );
+
+  // 5개년 계산
+  const years = [
+    { label: '1년차', leafRev: leafPlants * leafPrice * 8, rootRev: 0 },
+    { label: '2년차', leafRev: leafPlants * leafPrice * 12, rootRev: rootPlants * rootPerPlant * 1 },
+    { label: '3년차', leafRev: leafPlants * leafPrice * 12, rootRev: rootPlants * rootPerPlant * 1.5 },
+    { label: '4년차', leafRev: leafPlants * leafPrice * 12, rootRev: rootPlants * rootPerPlant * 2 },
+    { label: '5년차', leafRev: leafPlants * leafPrice * 12, rootRev: rootPlants * rootPerPlant * 2 },
+  ];
+
+  let cumulative = -selfFund;
+  const yearData = years.map(y => {
+    const rev = y.leafRev + y.rootRev;
+    const profit = rev - annualCost;
+    cumulative += profit;
+    return { ...y, rev, profit, cumulative };
+  });
+
+  const maxRev = Math.max(...yearData.map(y => y.rev), 1);
+  let recoverYear: number | null = null;
+  for (let i = 0; i < yearData.length; i++) {
+    if (yearData[i].cumulative >= 0) {
+      recoverYear = i === 0 ? 1 : i + (-yearData[i - 1].cumulative) / yearData[i].profit;
+      break;
+    }
+  }
+
+  const fmt = (n: number) => {
+    const a = Math.abs(n);
+    if (a >= 100_000_000) return `${(n / 100_000_000).toFixed(1)}억`;
+    if (a >= 10_000) return `${Math.round(n / 10_000).toLocaleString()}만`;
+    return n.toLocaleString();
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* 슬라이더 패널 */}
+      <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-5">
+        <p className="text-[11px] font-black text-emerald-700 mb-4 flex items-center gap-1.5">
+          <i className="ri-settings-3-line" /> 변수 설정 — 슬라이더 조절 시 모든 수치 실시간 반영
+        </p>
+
+        <div className="space-y-5">
+          {/* 근경 비율 */}
+          <div>
+            <div className="flex justify-between mb-1">
+              <span className="text-xs text-gray-600">근경 재배 비율</span>
+              <span className="text-sm font-black text-emerald-600" translate="no">{rootRatio}%</span>
+            </div>
+            <input type="range" min={0} max={70} step={5} value={rootRatio}
+              onChange={e => setRootRatio(Number(e.target.value))}
+              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-500" />
+            <div className="flex justify-between text-[9px] text-gray-400 mt-1">
+              <span>잎 전용 0%</span><span>근경 70%</span>
+            </div>
+          </div>
+
+          {/* 근경 무게 */}
+          <div>
+            <div className="flex justify-between mb-1">
+              <span className="text-xs text-gray-600">근경 수확 무게</span>
+              <span className="text-sm font-black text-emerald-600" translate="no">{rootWeight}g/주</span>
+            </div>
+            <input type="range" min={10} max={100} step={5} value={rootWeight}
+              onChange={e => setRootWeight(Number(e.target.value))}
+              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-500" />
+          </div>
+
+          {/* 잎 판로 */}
+          <div>
+            <p className="text-xs text-gray-600 mb-2">잎 판로</p>
+            <div className="grid grid-cols-3 gap-1.5">
+              {([['wholesale', '도매', '1,200원'], ['b2b', 'B2B', '2,000원'], ['direct', '직판', '3,000원']] as const).map(([k, l, p]) => (
+                <button key={k} type="button" onClick={() => setLeafRoute(k)}
+                  className={`py-2 rounded-xl text-[10px] font-black transition-all ${leafRoute === k ? 'bg-emerald-500 text-white shadow' : 'bg-gray-100 text-gray-600'}`}>
+                  {l}<br /><span className="text-[9px] opacity-70">{p}/주·월</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 근경 판로 */}
+          <div>
+            <p className="text-xs text-gray-600 mb-2">근경 판로</p>
+            <div className="grid grid-cols-3 gap-1.5">
+              {([['wholesale', '도매', '8만/kg'], ['b2b', '가공B2B', '12만/kg'], ['premium', '고급소매', '18만/kg']] as const).map(([k, l, p]) => (
+                <button key={k} type="button" onClick={() => setRootRoute(k)}
+                  className={`py-2 rounded-xl text-[10px] font-black transition-all ${rootRoute === k ? 'bg-amber-500 text-white shadow' : 'bg-gray-100 text-gray-600'}`}>
+                  {l}<br /><span className="text-[9px] opacity-70">{p}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* KPI 카드 */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-white rounded-2xl p-4 border border-gray-100">
+          <p className="text-[10px] text-gray-500 mb-1">묘목 비용</p>
+          <p className="text-lg font-black text-gray-900" translate="no">{fmt(investSeedling)}</p>
+          <p className="text-[10px] text-gray-400">{plants.toLocaleString()}주 × 3,000원</p>
+        </div>
+        <div className="bg-white rounded-2xl p-4 border border-gray-100">
+          <p className="text-[10px] text-gray-500 mb-1">실 자부담</p>
+          <p className="text-lg font-black text-amber-600" translate="no">{fmt(selfFund)}</p>
+          <p className="text-[10px] text-gray-400">총 {fmt(totalInvest)} - 보조·융자</p>
+        </div>
+        <div className="bg-white rounded-2xl p-4 border border-gray-100">
+          <p className="text-[10px] text-gray-500 mb-1">2년차 매출</p>
+          <p className="text-lg font-black text-emerald-600" translate="no">{fmt(yearData[1].rev)}</p>
+          <p className="text-[10px] text-gray-400">잎 {fmt(yearData[1].leafRev)} + 근경 {fmt(yearData[1].rootRev)}</p>
+        </div>
+        <div className="bg-white rounded-2xl p-4 border border-gray-100">
+          <p className="text-[10px] text-gray-500 mb-1">투자 회수</p>
+          <p className={`text-lg font-black ${recoverYear && recoverYear <= 3 ? 'text-emerald-600' : recoverYear ? 'text-amber-600' : 'text-red-500'}`} translate="no">
+            {recoverYear ? `${recoverYear.toFixed(1)}년` : '5년+ 초과'}
+          </p>
+          <p className="text-[10px] text-gray-400">자부담 {fmt(selfFund)} 기준</p>
+        </div>
+      </div>
+
+      {/* 연도별 바 차트 */}
+      <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-5">
+        <p className="text-[11px] font-black text-gray-700 mb-3">연도별 매출 구성</p>
+        <div className="flex gap-4 mb-3 text-[10px]">
+          <span className="flex items-center gap-1"><span className="w-3 h-3 bg-emerald-500 rounded" />잎 매출</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 bg-amber-500 rounded" />근경 매출</span>
+        </div>
+        <div className="space-y-2">
+          {yearData.map(y => (
+            <div key={y.label} className="flex items-center gap-2">
+              <span className="text-[10px] text-gray-500 w-12 flex-shrink-0 font-mono">{y.label}</span>
+              <div className="flex-1 h-7 bg-gray-100 rounded-lg overflow-hidden flex">
+                <div className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 flex items-center px-1.5 transition-all duration-500"
+                  style={{ width: `${(y.leafRev / maxRev * 100).toFixed(1)}%` }}>
+                  {y.leafRev > maxRev * 0.1 && <span className="text-[9px] font-black text-white whitespace-nowrap">{fmt(y.leafRev)}</span>}
+                </div>
+                {y.rootRev > 0 && (
+                  <div className="h-full bg-gradient-to-r from-amber-400 to-amber-500 flex items-center px-1.5 transition-all duration-500"
+                    style={{ width: `${(y.rootRev / maxRev * 100).toFixed(1)}%` }}>
+                    {y.rootRev > maxRev * 0.08 && <span className="text-[9px] font-black text-white whitespace-nowrap">{fmt(y.rootRev)}</span>}
+                  </div>
+                )}
+              </div>
+              <span className="text-[10px] font-mono font-black text-gray-700 w-16 text-right" translate="no">{fmt(y.rev)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 5개년 상세 테이블 */}
+      <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="p-4 border-b border-gray-100">
+          <p className="text-[11px] font-black text-gray-700">5개년 수지 상세</p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-[10px]">
+            <thead>
+              <tr className="bg-gray-50">
+                <th className="px-3 py-2 text-left font-black text-gray-500">연도</th>
+                <th className="px-3 py-2 text-right font-black text-gray-500">잎 매출</th>
+                <th className="px-3 py-2 text-right font-black text-gray-500">근경 매출</th>
+                <th className="px-3 py-2 text-right font-black text-gray-500">운영비</th>
+                <th className="px-3 py-2 text-right font-black text-gray-500">순이익</th>
+                <th className="px-3 py-2 text-right font-black text-gray-500">누적</th>
+              </tr>
+            </thead>
+            <tbody>
+              {yearData.map((y, i) => (
+                <tr key={y.label} className="border-t border-gray-50 hover:bg-emerald-50/30">
+                  <td className="px-3 py-2.5 font-black text-gray-900">
+                    {y.label}
+                    {recoverYear && i === Math.ceil(recoverYear) - 1 && (
+                      <span className="ml-1 text-[8px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">회수</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2.5 text-right font-mono text-emerald-600" translate="no">{fmt(y.leafRev)}</td>
+                  <td className="px-3 py-2.5 text-right font-mono text-amber-600" translate="no">{y.rootRev > 0 ? fmt(y.rootRev) : '—'}</td>
+                  <td className="px-3 py-2.5 text-right font-mono text-red-500" translate="no">{fmt(annualCost)}</td>
+                  <td className={`px-3 py-2.5 text-right font-mono font-black ${y.profit >= 0 ? 'text-emerald-600' : 'text-red-500'}`} translate="no">{fmt(y.profit)}</td>
+                  <td className={`px-3 py-2.5 text-right font-mono font-black ${y.cumulative >= 0 ? 'text-emerald-600' : 'text-red-500'}`} translate="no">{fmt(y.cumulative)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* 투자 구조 */}
+      <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-5">
+        <p className="text-[11px] font-black text-gray-700 mb-3">투자 구조 (보조금·융자 포함)</p>
+        <div className="space-y-2 text-xs">
+          {[
+            { label: '트러스와이어 구조물·토목', value: investStructure, color: 'bg-gray-400' },
+            { label: `샘통 재배설비 (${Math.round(area / 3.3)}평)`, value: investEquip, color: 'bg-emerald-500' },
+            { label: '묘목 비용', value: investSeedling, color: 'bg-amber-500' },
+            { label: '초기 운영자금', value: investReserve, color: 'bg-blue-400' },
+          ].map(item => (
+            <div key={item.label} className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${item.color}`} />
+              <span className="flex-1 text-gray-600">{item.label}</span>
+              <span className="font-mono text-gray-900" translate="no">{fmt(item.value)}</span>
+            </div>
+          ))}
+          <div className="border-t border-gray-100 pt-2 mt-2 space-y-1">
+            <div className="flex justify-between"><span className="text-gray-600">총합계</span><span className="font-mono font-black" translate="no">{fmt(totalInvest)}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">보조금 (무상)</span><span className="font-mono text-emerald-600" translate="no">-{fmt(subsidy)}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">융자 (이자 1%)</span><span className="font-mono text-blue-600" translate="no">-{fmt(loan)}</span></div>
+            <div className="flex justify-between border-t border-gray-200 pt-1"><span className="font-black text-gray-900">실 자부담</span><span className="font-mono font-black text-amber-600" translate="no">{fmt(selfFund)}</span></div>
+          </div>
+        </div>
+      </div>
+
+      {/* 투자 회수 게이지 */}
+      <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-5">
+        <p className="text-[11px] font-black text-gray-700 mb-3">연도별 투자 회수 진행률</p>
+        {yearData.map(y => {
+          const pct = Math.min(100, Math.max(0, ((selfFund + y.cumulative) / selfFund) * 100));
+          const done = y.cumulative >= 0;
+          return (
+            <div key={y.label} className="mb-3">
+              <div className="flex justify-between text-[10px] mb-1">
+                <span className="text-gray-500 font-mono">{y.label}</span>
+                <span className={`font-mono font-black ${done ? 'text-emerald-600' : 'text-gray-500'}`}>{done ? '✓ 완료' : `${pct.toFixed(0)}%`}</span>
+              </div>
+              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div className={`h-full rounded-full transition-all duration-700 ${done ? 'bg-emerald-500' : 'bg-emerald-300'}`} style={{ width: `${pct}%` }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 /* ───────── 컴포넌트 ───────── */
@@ -519,6 +789,22 @@ export default function ProfitAnalysis() {
           </button>
         </div>
       </section>
+
+      {/* ══ 고추냉이 전문 5개년 분석 (wasabi 선택 시) ══ */}
+      {cropId === 'wasabi' && showResult && (
+        <section className="px-4 pb-6 relative z-10">
+          <div className="mb-3 flex items-center gap-2">
+            <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center">
+              <i className="ri-seedling-fill text-white text-sm" />
+            </div>
+            <div>
+              <p className="text-sm font-black text-gray-900">고추냉이 전문 5개년 수지분석</p>
+              <p className="text-[10px] text-gray-500">잎 + 근경 분리 · 투자 회수 · 보조금/융자 포함</p>
+            </div>
+          </div>
+          <WasabiDetailAnalysis plants={parseInt(plants) || 3000} area={parseInt(areaM2) || 500} />
+        </section>
+      )}
 
       {/* ══ 결과 ══ */}
       {showResult && (

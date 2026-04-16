@@ -139,35 +139,39 @@ export default function CropRecognition() {
       });
     }, 200);
 
-    // 실제 이미지 로드 → Canvas 픽셀 분석 + Plant.id API 식별
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = async () => {
-      // ── Plant.id API로 정확한 식물 식별 시도 ──
-      let aiName = '';
-      let aiScientific = '';
-      let aiFamily = '';
-      let aiConfidence = 0;
-      let aiDescription = '';
-      let aiDiseases: string[] = [];
-      let aiSource: 'plantnet' | 'color-fallback' = 'color-fallback';
+    // ── PlantNet API 식물 식별 (이미지 로드와 병렬 진행) ──
+    let aiName = '';
+    let aiScientific = '';
+    let aiFamily = '';
+    let aiConfidence = 0;
+    let aiDescription = '';
+    let aiDiseases: string[] = [];
+    let aiSource: 'plantnet' | 'color-fallback' = 'color-fallback';
 
-      if (PLANT_ID_CONFIGURED && imageUrl) {
-        try {
-          const plantResult = await identifyPlant(imageUrl);
-          if (plantResult.success) {
-            aiName = plantResult.name;
-            aiScientific = plantResult.scientificName;
-            aiFamily = plantResult.family;
-            aiConfidence = plantResult.probability;
-            aiDescription = plantResult.description;
-            aiDiseases = [];
+    const plantnetPromise = (PLANT_ID_CONFIGURED && imageUrl)
+      ? identifyPlant(imageUrl).then(result => {
+          if (result.success) {
+            aiName = result.name;
+            aiScientific = result.scientificName;
+            aiFamily = result.family;
+            aiConfidence = result.probability;
+            aiDescription = result.description;
             aiSource = 'plantnet';
           }
-        } catch { /* API 실패 시 색상 분석 fallback */ }
-      }
+        }).catch(() => { /* API 실패 → 색상 분석 fallback */ })
+      : Promise.resolve();
 
-      // ── Canvas 픽셀 분석 (색상 기반 건강도 + 크기 측정) ──
+    // ── 이미지 로드 → Canvas 픽셀 분석 ──
+    const img = new Image();
+    // data: URL에는 crossOrigin 설정하지 않음 (충돌 방지)
+    if (imageUrl && !imageUrl.startsWith('data:')) {
+      img.crossOrigin = 'anonymous';
+    }
+    img.onload = async () => {
+      // PlantNet 결과 대기
+      await plantnetPromise;
+
+      // Canvas 픽셀 분석 (색상 기반 건강도 + 크기 측정)
       const cvs = document.createElement('canvas');
       const w = Math.min(img.width, 640); // 성능을 위해 640px로 다운스케일
       const h = Math.round((img.height / img.width) * w);
@@ -413,7 +417,12 @@ export default function CropRecognition() {
       });
       setAnalyzing(false);
     };
-    img.src = imageUrl || '';
+    // 이미지 소스 설정 — 비어있으면 분석 중단
+    if (!imageUrl) {
+      setAnalyzing(false);
+      return;
+    }
+    img.src = imageUrl;
   };
 
   const recentScans = [

@@ -148,6 +148,7 @@ export default function CropRecognition() {
     let aiDiseases: string[] = [];
     let aiSource: 'plantnet' | 'color-fallback' = 'color-fallback';
 
+    let apiError = '';
     const plantnetPromise = (PLANT_ID_CONFIGURED && imageUrl)
       ? identifyPlant(imageUrl).then(result => {
           if (result.success) {
@@ -157,8 +158,12 @@ export default function CropRecognition() {
             aiConfidence = result.probability;
             aiDescription = result.description;
             aiSource = 'plantnet';
+          } else {
+            apiError = result.scientificName || 'API 응답 없음';
           }
-        }).catch(() => { /* API 실패 → 색상 분석 fallback */ })
+        }).catch((err) => {
+          apiError = err instanceof Error ? err.message : 'PlantNet API 연결 실패 (CORS)';
+        })
       : Promise.resolve();
 
     // ── 이미지 로드 → Canvas 픽셀 분석 ──
@@ -219,18 +224,24 @@ export default function CropRecognition() {
 
       if (greenR >= 12) {
         plantType = 'leaf';
-        if (greenR > 30 && avgG > avgR * 1.2) {
-          cropName = '엽채류 (쌈채소 계열)';
-          scientificName = 'Lactuca / Perilla 추정';
-          family = '국화과 또는 꿀풀과';
+        const darkLeaf = avgG > 40 && avgG < 120 && avgR < avgG;
+        const brightLeafG = avgG > 120;
+        if (darkLeaf && greenR < 35) {
+          cropName = '안스리움 / 필로덴드론 추정 (짙은 잎 관엽식물)';
+          scientificName = 'Anthurium / Philodendron (색상 패턴 기반)';
+          family = '천남성과 (Araceae) 추정';
+        } else if (brightLeafG && greenR > 30) {
+          cropName = '상추 / 포토스 추정 (밝은 녹색 잎)';
+          scientificName = 'Lactuca / Epipremnum (색상 패턴 기반)';
+          family = '국화과 또는 천남성과 추정';
         } else if (greenR > 15 && brownR > 5) {
-          cropName = '허브류 또는 근경 식물';
-          scientificName = 'Eutrema / Ocimum 추정';
-          family = '십자화과 또는 꿀풀과';
+          cropName = '허브류 / 근경 식물 추정';
+          scientificName = 'Ocimum / Mentha (색상 패턴 기반)';
+          family = '꿀풀과 또는 십자화과 추정';
         } else {
-          cropName = '녹색 엽채류';
-          scientificName = '상세 판별은 AI 모델 연동 필요';
-          family = '엽채류 추정';
+          cropName = '관엽식물 (상세 품종은 근접 촬영 필요)';
+          scientificName = '잎·꽃을 화면 가득 촬영하면 정확도 향상';
+          family = '관엽식물 추정';
         }
       } else if (redR > 10 || (avgR > 150 && avgG < 100)) {
         plantType = 'fruit';
@@ -240,13 +251,13 @@ export default function CropRecognition() {
           family = '장미과 또는 가지과';
         } else {
           cropName = '붉은 열매 식물';
-          scientificName = '상세 판별은 AI 모델 연동 필요';
+          scientificName = '색상 패턴 기반 추정 · 정확한 판별은 잎·꽃 근접 촬영 권장';
           family = '과실류 추정';
         }
       } else if (yellowR > 10) {
         plantType = 'flower';
         cropName = '황색 꽃 또는 숙성 과실';
-        scientificName = '상세 판별은 AI 모델 연동 필요';
+        scientificName = '색상 패턴 기반 추정 · 정확한 판별은 잎·꽃 근접 촬영 권장';
         family = '판별 중';
       } else if (greenR < 3 && brownR < 3) {
         cropName = '식물이 감지되지 않았습니다';
@@ -324,8 +335,37 @@ export default function CropRecognition() {
         recommendations.unshift(`📊 신뢰도: ${(aiConfidence * 100).toFixed(1)}%`);
         if (aiDescription) recommendations.push(`📋 ${aiDescription}`);
       } else {
-        recommendations.unshift('⚠ PlantNet API 연결 실패 — 색상 기반 분석만 제공');
-        recommendations.push('💡 네트워크 확인 후 재촬영 시 정확한 식물 식별 가능');
+        // PlantNet 실패 시 HSV 색상 패턴으로 상세 추정
+        const hue = avgG > avgR && avgG > avgB ? 'green-dominant' :
+                    avgR > avgG && avgR > avgB ? 'red-dominant' :
+                    avgR > 130 && avgG > 110 ? 'yellow-warm' : 'neutral';
+        const darkLeaf = avgG > 40 && avgG < 120 && avgR < avgG;
+        const brightLeaf = avgG > 120;
+
+        let guesses: string[] = [];
+        if (plantType === 'leaf') {
+          if (darkLeaf && greenR > 15 && greenR < 35) {
+            guesses = ['안스리움 (Anthurium)', '필로덴드론 (Philodendron)', '스파티필럼 (Spathiphyllum)', '알로카시아 (Alocasia)'];
+          } else if (brightLeaf && greenR > 30) {
+            guesses = ['상추 (Lactuca sativa)', '포토스 (Epipremnum)', '고무나무 (Ficus elastica)', '몬스테라 (Monstera)'];
+          } else if (greenR > 20) {
+            guesses = ['관엽식물 계열', '깻잎 (Perilla)', '바질 (Ocimum)', '민트 (Mentha)'];
+          } else {
+            guesses = ['다육식물 또는 허브류', '선인장 계열', '로즈마리', '라벤더'];
+          }
+        } else if (plantType === 'fruit') {
+          guesses = ['딸기 (Fragaria)', '토마토 (Solanum)', '고추 (Capsicum)', '파프리카'];
+        } else if (plantType === 'flower') {
+          guesses = ['국화 (Chrysanthemum)', '해바라기 (Helianthus)', '금잔화 (Calendula)'];
+        }
+
+        if (guesses.length > 0) {
+          recommendations.unshift(`🌱 AI 추정 후보: ${guesses.join(' / ')}`);
+          recommendations.push(`💡 정확한 판별을 위해 잎·꽃을 화면 가득 촬영해 주세요`);
+        }
+        if (apiError) {
+          recommendations.push(`⚠ PlantNet API: ${apiError}`);
+        }
       }
 
       setResult({

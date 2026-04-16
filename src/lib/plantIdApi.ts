@@ -9,9 +9,10 @@
 
 const DIRECT_API_KEY = '2b10bCzINx9zSmdtXNE9XxUUVO';
 const DIRECT_API_URL = 'https://my-api.plantnet.org/v2/identify/all';
-// Vercel 배포 시: /api/plantnet 프록시 사용 (CORS 우회)
-// 로컬 개발 시: Vite proxy로 /api/plantnet → PlantNet 직접 호출
-const PROXY_URL = '/api/plantnet';
+// Vercel 프록시 URL (절대 경로 — 어디서든 작동)
+const VERCEL_PROXY = 'https://hyangjae-docs-743jifoex-choijungman12s-projects.vercel.app/api/plantnet';
+// 로컬 프록시 (Vite dev server)
+const LOCAL_PROXY = '/api/plantnet';
 
 export const PLANT_ID_CONFIGURED = true;
 
@@ -49,23 +50,18 @@ export async function identifyPlant(imageBase64: string): Promise<PlantIdResult>
     const formData = new FormData();
     formData.append('images', blob, 'plant.jpg');
 
-    const directUrl = `${DIRECT_API_URL}?include-related-images=true&no-reject=true&lang=en&api-key=${DIRECT_API_KEY}`;
-    // CORS 프록시 (GitHub Pages 등 서버리스 없는 환경 대응)
-    const CORS_PROXY = 'https://corsproxy.io/?';
+    // Vercel 프록시를 항상 사용 (CORS 문제 완전 해결)
+    // 로컬 개발 시에는 /api/plantnet (Vite proxy), 배포 시에는 Vercel 절대 URL
+    const isLocalDev = typeof window !== 'undefined' && window.location.hostname === 'localhost';
+    const proxyUrl = isLocalDev ? LOCAL_PROXY : VERCEL_PROXY;
 
     let response: Response;
     try {
-      // 1차: Vercel/Vite 프록시
-      response = await fetch(PROXY_URL, { method: 'POST', body: formData });
-      if (!response.ok && (response.status === 404 || response.status === 405)) throw new Error('no proxy');
+      response = await fetch(proxyUrl, { method: 'POST', body: formData });
     } catch {
-      try {
-        // 2차: 직접 호출 (CORS 허용 시)
-        response = await fetch(directUrl, { method: 'POST', body: formData });
-      } catch {
-        // 3차: CORS 프록시 경유
-        response = await fetch(CORS_PROXY + encodeURIComponent(directUrl), { method: 'POST', body: formData });
-      }
+      // Vercel 프록시 실패 시 직접 호출 시도
+      const directUrl = `${DIRECT_API_URL}?include-related-images=true&no-reject=true&lang=en&api-key=${DIRECT_API_KEY}`;
+      response = await fetch(directUrl, { method: 'POST', body: formData });
     }
 
     if (!response.ok) {

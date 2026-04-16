@@ -150,7 +150,7 @@ export default function CropRecognition() {
       let aiConfidence = 0;
       let aiDescription = '';
       let aiDiseases: string[] = [];
-      let aiSource: 'plant-id' | 'color-fallback' = 'color-fallback';
+      let aiSource: 'plantnet' | 'color-fallback' = 'color-fallback';
 
       if (PLANT_ID_CONFIGURED && imageUrl) {
         try {
@@ -162,7 +162,7 @@ export default function CropRecognition() {
             aiConfidence = plantResult.probability;
             aiDescription = plantResult.description;
             aiDiseases = plantResult.diseases.map(d => `${d.name} (${(d.probability * 100).toFixed(0)}%)`);
-            aiSource = 'plant-id';
+            aiSource = 'plantnet';
           }
         } catch { /* API 실패 시 색상 분석 fallback */ }
       }
@@ -306,12 +306,12 @@ export default function CropRecognition() {
       setUploadProgress(100);
 
       // Plant.id AI 결과가 있으면 우선 사용, 없으면 색상 분석 결과
-      const finalCropName = aiSource === 'plant-id' ? aiName : cropName;
-      const finalScientific = aiSource === 'plant-id' ? aiScientific : scientificName;
-      const finalFamily = aiSource === 'plant-id' ? aiFamily : family;
-      const finalDiseases = aiSource === 'plant-id' && aiDiseases.length > 0 ? aiDiseases : diseases;
+      const finalCropName = aiSource === 'plantnet' ? aiName : cropName;
+      const finalScientific = aiSource === 'plantnet' ? aiScientific : scientificName;
+      const finalFamily = aiSource === 'plantnet' ? aiFamily : family;
+      const finalDiseases = aiSource === 'plantnet' && aiDiseases.length > 0 ? aiDiseases : diseases;
 
-      if (aiSource === 'plant-id') {
+      if (aiSource === 'plantnet') {
         recommendations.unshift(`🤖 Plant.id AI 식별: ${aiName} (신뢰도 ${(aiConfidence * 100).toFixed(0)}%)`);
         if (aiDescription) recommendations.push(`📋 ${aiDescription.slice(0, 100)}...`);
       } else {
@@ -324,8 +324,8 @@ export default function CropRecognition() {
         scientificName: finalScientific,
         family: finalFamily,
         growthStage: plantType === 'leaf' ? (greenR > 35 ? '활발한 생육기' : '초기~중기 생육') : (plantType === 'fruit' ? '결실기' : '판별 불가'),
-        growthStageDetail: `녹색 ${greenR}% · 갈변 ${brownR}% · 황화 ${yellowR}% · 적색 ${redR}%` + (aiSource === 'plant-id' ? ` · AI: ${aiName}` : ''),
-        health: aiSource === 'plant-id' ? (aiConfidence > 0.5 ? '식별 완료' : health) : health,
+        growthStageDetail: `녹색 ${greenR}% · 갈변 ${brownR}% · 황화 ${yellowR}% · 적색 ${redR}%` + (aiSource === 'plantnet' ? ` · AI: ${aiName}` : ''),
+        health: aiSource === 'plantnet' ? (aiConfidence > 0.5 ? '식별 완료' : health) : health,
         healthScore,
         diseases: finalDiseases,
         pests: [],

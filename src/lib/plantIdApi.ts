@@ -1,13 +1,14 @@
 /**
- * Perenual Plant Identification API 연동
+ * PlantNet API 연동 — 식물 AI 식별 (46만종)
  *
- * 식물 이미지 → 식물명·학명·관리법·성장단계·사진 반환
- * API Key: SK-P4DJ69E08CB328db716470
- * 문서: https://perenual.com/docs/identify/api
+ * 잎 형태·줄기·꽃·열매·수피 패턴 분석으로 식물 종 판별
+ * 무료: 500건/일 · https://my.plantnet.org/
+ *
+ * API Key: 2b10bCzINx9zSmdtXNE9XxUUVO
  */
 
-const API_KEY = 'SK-P4DJ69E08CB328db716470';
-const API_URL = 'https://perenual.com/api/v2/species-identify';
+const API_KEY = '2b10bCzINx9zSmdtXNE9XxUUVO';
+const API_URL = 'https://my-api.plantnet.org/v2/identify/all';
 
 export const PLANT_ID_CONFIGURED = true;
 
@@ -19,10 +20,9 @@ export interface PlantIdResult {
   probability: number;
   description: string;
   imageUrl: string;
-  careGuideUrl: string;
-  detailsUrl: string;
-  diseases: PlantDisease[];
-  source: 'perenual' | 'color-fallback';
+  commonNames: string[];
+  allResults: { name: string; score: number; family: string; commonNames: string[] }[];
+  source: 'plantnet' | 'color-fallback';
 }
 
 export interface PlantDisease {
@@ -32,11 +32,11 @@ export interface PlantDisease {
 }
 
 /**
- * 이미지를 Perenual API로 전송하여 식물 식별
+ * 이미지를 PlantNet API로 전송하여 식물 식별
  */
 export async function identifyPlant(imageBase64: string): Promise<PlantIdResult> {
   try {
-    // base64 → Blob → FormData
+    // base64 → Blob
     const base64Data = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
     const byteChars = atob(base64Data);
     const byteArray = new Uint8Array(byteChars.length);
@@ -46,66 +46,79 @@ export async function identifyPlant(imageBase64: string): Promise<PlantIdResult>
     const formData = new FormData();
     formData.append('images', blob, 'plant.jpg');
 
-    const response = await fetch(`${API_URL}?key=${API_KEY}`, {
+    const url = `${API_URL}?include-related-images=true&no-reject=true&lang=en&api-key=${API_KEY}`;
+
+    const response = await fetch(url, {
       method: 'POST',
       body: formData,
     });
 
     if (!response.ok) {
-      console.error('Perenual API error:', response.status);
-      return colorFallback();
+      console.error('PlantNet API error:', response.status);
+      return colorFallback('API 응답 오류: ' + response.status);
     }
 
     const data = await response.json();
-    const result = data.results?.[0];
+    const results = data.results || [];
+    const best = results[0];
 
-    if (!result || result.score < 0.1) {
+    if (!best || best.score < 0.005) {
       return {
         success: false,
         name: '식물을 식별할 수 없습니다',
-        scientificName: '더 가까이서 잎·꽃·줄기가 보이도록 촬영해 주세요',
+        scientificName: '잎·꽃·줄기가 선명하게 보이도록 더 가까이 촬영해 주세요',
         family: '—',
         probability: 0,
         description: '이미지가 불명확하거나 식물이 아닌 것으로 보입니다.',
         imageUrl: '',
-        careGuideUrl: '',
-        detailsUrl: '',
-        diseases: [],
-        source: 'perenual',
+        commonNames: [],
+        allResults: [],
+        source: 'plantnet',
       };
     }
 
+    const species = best.species;
+    const commonNames = species.commonNames || [];
+    const familyName = species.family?.scientificNameWithoutAuthor || '—';
+    const imageUrl = best.images?.[0]?.url?.s || '';
+
+    // 상위 5개 후보
+    const allResults = results.slice(0, 5).map((r: any) => ({
+      name: r.species?.scientificNameWithoutAuthor || '—',
+      score: r.score || 0,
+      family: r.species?.family?.scientificNameWithoutAuthor || '—',
+      commonNames: r.species?.commonNames || [],
+    }));
+
     return {
       success: true,
-      name: result.name || '미확인 식물',
-      scientificName: result.scientific_name || result.name || '—',
-      family: '—',
-      probability: result.score || 0,
-      description: `${result.name} 식물이 감지되었습니다. 신뢰도 ${(result.score * 100).toFixed(1)}%`,
-      imageUrl: result.default_image?.thumbnail || result.default_image?.small_url || '',
-      careGuideUrl: result.care_guides || result['care-guides'] || '',
-      detailsUrl: result.details || '',
-      diseases: [],
-      source: 'perenual',
+      name: commonNames[0] || species.scientificNameWithoutAuthor || '미확인 식물',
+      scientificName: species.scientificNameWithoutAuthor || '—',
+      family: familyName,
+      probability: best.score || 0,
+      description: `${species.scientificNameWithoutAuthor} (${familyName}과) · 신뢰도 ${(best.score * 100).toFixed(1)}%`,
+      imageUrl,
+      commonNames,
+      allResults,
+      source: 'plantnet',
     };
   } catch (err) {
-    console.error('Perenual API call failed:', err);
-    return colorFallback();
+    console.error('PlantNet API call failed:', err);
+    return colorFallback(err instanceof Error ? err.message : '네트워크 오류');
   }
 }
 
-function colorFallback(): PlantIdResult {
+function colorFallback(reason: string): PlantIdResult {
   return {
     success: false,
     name: 'API 연결 실패',
-    scientificName: '네트워크 오류 — 색상 기반 분석으로 대체합니다',
+    scientificName: reason,
     family: '—',
     probability: 0,
-    description: '인터넷 연결을 확인해 주세요.',
+    description: '네트워크를 확인해 주세요. 색상 기반 분석으로 대체합니다.',
     imageUrl: '',
-    careGuideUrl: '',
-    detailsUrl: '',
-    diseases: [],
+    commonNames: [],
+    allResults: [],
     source: 'color-fallback',
   };
 }

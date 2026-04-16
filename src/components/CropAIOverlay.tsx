@@ -24,6 +24,10 @@ export interface AIAnalysisResult {
   growthStage: string;
   issues: string[];
   prescriptions: string[];
+  /** 녹색 영역 바운딩 박스 (0~1 비율) */
+  bbox: { x: number; y: number; w: number; h: number };
+  /** 추정 크기 (cm) */
+  sizeCm: { width: string; height: string };
   timestamp: string;
 }
 
@@ -52,6 +56,28 @@ function analyzeFrame(canvas: HTMLCanvasElement): AIAnalysisResult {
   const yellowRatio = Math.round((yellowPixels / sampleCount) * 100);
   const brightness = Math.round(totalBrightness / sampleCount);
 
+  // 녹색 영역 바운딩 박스 계산
+  let minX = canvas.width, maxX = 0, minY = canvas.height, maxY = 0;
+  for (let y = 0; y < canvas.height; y += 4) {
+    for (let x = 0; x < canvas.width; x += 4) {
+      const idx = (y * canvas.width + x) * 4;
+      if (data[idx + 1] > data[idx] * 1.1 && data[idx + 1] > 50) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+  const bboxValid = maxX > minX && maxY > minY;
+  const bbox = bboxValid
+    ? { x: minX / canvas.width, y: minY / canvas.height, w: (maxX - minX) / canvas.width, h: (maxY - minY) / canvas.height }
+    : { x: 0, y: 0, w: 0, h: 0 };
+  const pxPerCm = canvas.width / 25;
+  const sizeCm = bboxValid
+    ? { width: ((maxX - minX) / pxPerCm).toFixed(1), height: ((maxY - minY) / pxPerCm).toFixed(1) }
+    : { width: '—', height: '—' };
+
   // 작물 감지 기준: 녹색 비율 8% 이상
   const detected = greenRatio >= 8;
 
@@ -63,6 +89,7 @@ function analyzeFrame(canvas: HTMLCanvasElement): AIAnalysisResult {
       growthStage: '작물 미감지',
       issues: ['화면에 작물이 감지되지 않았습니다'],
       prescriptions: ['카메라를 작물 가까이 가져가 주세요'],
+      bbox, sizeCm,
       timestamp: new Date().toISOString(),
     };
   }
@@ -102,7 +129,7 @@ function analyzeFrame(canvas: HTMLCanvasElement): AIAnalysisResult {
 
   return {
     detected, healthScore, greenRatio, brownRatio, yellowRatio, brightness,
-    growthStage, issues, prescriptions,
+    growthStage, issues, prescriptions, bbox, sizeCm,
     timestamp: new Date().toISOString(),
   };
 }
@@ -110,7 +137,9 @@ function analyzeFrame(canvas: HTMLCanvasElement): AIAnalysisResult {
 function emptyResult(): AIAnalysisResult {
   return {
     detected: false, healthScore: 0, greenRatio: 0, brownRatio: 0, yellowRatio: 0,
-    brightness: 0, growthStage: '대기 중', issues: [], prescriptions: [], timestamp: '',
+    brightness: 0, growthStage: '대기 중', issues: [], prescriptions: [],
+    bbox: { x: 0, y: 0, w: 0, h: 0 }, sizeCm: { width: '—', height: '—' },
+    timestamp: '',
   };
 }
 
@@ -168,6 +197,35 @@ export default function CropAIOverlay({ videoRef, active, onCapture }: CropAIOve
     <>
       <canvas ref={canvasRef} className="hidden" />
 
+      {/* 실시간 감지 프레임 (녹색 영역 바운딩 박스 + 크기 측정) */}
+      {analysis.detected && analysis.bbox.w > 0.05 && (
+        <div
+          className="absolute border-2 border-emerald-400 rounded-lg z-10 pointer-events-none transition-all duration-300"
+          style={{
+            left: `${analysis.bbox.x * 100}%`,
+            top: `${analysis.bbox.y * 100}%`,
+            width: `${analysis.bbox.w * 100}%`,
+            height: `${analysis.bbox.h * 100}%`,
+          }}
+        >
+          {/* 코너 강조 */}
+          <div className="absolute -top-0.5 -left-0.5 w-4 h-4 border-t-3 border-l-3 border-emerald-400 rounded-tl-md" />
+          <div className="absolute -top-0.5 -right-0.5 w-4 h-4 border-t-3 border-r-3 border-emerald-400 rounded-tr-md" />
+          <div className="absolute -bottom-0.5 -left-0.5 w-4 h-4 border-b-3 border-l-3 border-emerald-400 rounded-bl-md" />
+          <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 border-b-3 border-r-3 border-emerald-400 rounded-br-md" />
+
+          {/* 하단 크기 표시 */}
+          <div className="absolute -bottom-7 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-[9px] font-black px-2 py-0.5 rounded whitespace-nowrap" translate="no">
+            📏 {analysis.sizeCm.width}cm × {analysis.sizeCm.height}cm
+          </div>
+
+          {/* 상단 라벨 */}
+          <div className="absolute -top-6 left-0 bg-emerald-500 text-white text-[9px] font-black px-2 py-0.5 rounded whitespace-nowrap">
+            🌱 작물 감지
+          </div>
+        </div>
+      )}
+
       {/* 상단 상태 바 */}
       <div className="absolute top-3 left-3 right-3 z-20 flex items-center gap-2">
         <div className="flex-1 bg-black/60 backdrop-blur-xl rounded-2xl px-3 py-2 flex items-center gap-2">
@@ -211,6 +269,14 @@ export default function CropAIOverlay({ videoRef, active, onCapture }: CropAIOve
                 <span className="px-2 py-0.5 rounded bg-red-500/30 text-red-300 text-[9px] font-black">갈변 {analysis.brownRatio}%</span>
                 <span className="px-2 py-0.5 rounded bg-blue-500/30 text-blue-300 text-[9px] font-black">조도 {analysis.brightness}</span>
               </div>
+
+              {/* 크기 측정 */}
+              {analysis.sizeCm.width !== '—' && (
+                <div className="flex gap-2 mb-2">
+                  <span className="px-2 py-0.5 rounded bg-cyan-500/30 text-cyan-300 text-[9px] font-black" translate="no">📏 가로 {analysis.sizeCm.width}cm</span>
+                  <span className="px-2 py-0.5 rounded bg-cyan-500/30 text-cyan-300 text-[9px] font-black" translate="no">📐 세로 {analysis.sizeCm.height}cm</span>
+                </div>
+              )}
 
               {/* 생육 단계 */}
               <p className="text-emerald-300 text-[11px] font-black mb-2">📊 {analysis.growthStage}</p>

@@ -119,7 +119,13 @@ export default function CropRecognition() {
     e.target.value = '';
   };
 
-  const analyzeImage = (_imageUrl?: string) => {
+  /**
+   * 실제 이미지 픽셀 분석 기반 작물 식별 + 건강 분석
+   * - 색상 분포로 식물 유형 추정 (녹색 잎, 꽃, 흙, 줄기 등)
+   * - 건강도: 녹색 비율 + 갈변 비율 + 황화 비율 종합
+   * - 추후 TensorFlow.js 모델 연동 시 이 함수만 교체
+   */
+  const analyzeImage = (imageUrl?: string) => {
     setAnalyzing(true);
     setUploadProgress(0);
     setResult(null);
@@ -127,100 +133,241 @@ export default function CropRecognition() {
     if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     progressIntervalRef.current = setInterval(() => {
       setUploadProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(progressIntervalRef.current!);
-          return 100;
-        }
+        if (prev >= 100) { clearInterval(progressIntervalRef.current!); return 100; }
         return prev + 10;
       });
     }, 200);
 
-    if (analysisTimeoutRef.current) clearTimeout(analysisTimeoutRef.current);
-    analysisTimeoutRef.current = setTimeout(() => {
+    // 실제 이미지 로드 → Canvas 픽셀 분석
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const cvs = document.createElement('canvas');
+      const w = Math.min(img.width, 640); // 성능을 위해 640px로 다운스케일
+      const h = Math.round((img.height / img.width) * w);
+      cvs.width = w;
+      cvs.height = h;
+      const ctx = cvs.getContext('2d', { willReadFrequently: true });
+      if (!ctx) return;
+      ctx.drawImage(img, 0, 0, w, h);
+
+      const imageData = ctx.getImageData(0, 0, w, h);
+      const data = imageData.data;
+      const total = data.length / 4;
+
+      let greenPx = 0, brownPx = 0, yellowPx = 0, redPx = 0, brightPx = 0;
+      let rSum = 0, gSum = 0, bSum = 0;
+
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i], g = data[i + 1], bl = data[i + 2];
+        rSum += r; gSum += g; bSum += bl;
+        const brightness = (r + g + bl) / 3;
+        if (brightness > 200) brightPx++;
+        if (g > r * 1.15 && g > bl * 1.1 && g > 50) greenPx++;
+        if (r > g * 1.1 && r > bl * 1.3 && r > 80 && r < 200) brownPx++;
+        if (r > 140 && g > 120 && bl < 100) yellowPx++;
+        if (r > 150 && g < 80 && bl < 80) redPx++;
+      }
+
+      const greenR = Math.round((greenPx / total) * 100);
+      const brownR = Math.round((brownPx / total) * 100);
+      const yellowR = Math.round((yellowPx / total) * 100);
+      const redR = Math.round((redPx / total) * 100);
+      const avgR = Math.round(rSum / total);
+      const avgG = Math.round(gSum / total);
+      const avgB = Math.round(bSum / total);
+      const brightR = Math.round((brightPx / total) * 100);
+
+      // ── 식물 유형 추정 (색상 분포 기반) ──
+      let cropName = '미확인 식물';
+      let scientificName = 'Unknown species';
+      let family = '판별 불가';
+      let plantType: 'leaf' | 'flower' | 'fruit' | 'none' = 'none';
+
+      if (greenR >= 25) {
+        plantType = 'leaf';
+        if (greenR > 40 && avgG > avgR * 1.3) {
+          cropName = '엽채류 (쌈채소 계열)';
+          scientificName = 'Lactuca / Perilla 추정';
+          family = '국화과 또는 꿀풀과';
+        } else if (greenR > 25 && brownR > 8) {
+          cropName = '허브류 또는 근경 식물';
+          scientificName = 'Eutrema / Ocimum 추정';
+          family = '십자화과 또는 꿀풀과';
+        } else {
+          cropName = '녹색 엽채류';
+          scientificName = '상세 판별은 AI 모델 연동 필요';
+          family = '엽채류 추정';
+        }
+      } else if (redR > 10 || (avgR > 150 && avgG < 100)) {
+        plantType = 'fruit';
+        if (redR > 15) {
+          cropName = '과실류 (딸기·토마토 계열)';
+          scientificName = 'Fragaria / Solanum 추정';
+          family = '장미과 또는 가지과';
+        } else {
+          cropName = '붉은 열매 식물';
+          scientificName = '상세 판별은 AI 모델 연동 필요';
+          family = '과실류 추정';
+        }
+      } else if (yellowR > 10) {
+        plantType = 'flower';
+        cropName = '황색 꽃 또는 숙성 과실';
+        scientificName = '상세 판별은 AI 모델 연동 필요';
+        family = '판별 중';
+      } else if (greenR < 5 && brownR < 5) {
+        cropName = '식물이 감지되지 않았습니다';
+        scientificName = '작물이 아닌 객체로 판단됩니다';
+        family = '해당 없음';
+      } else {
+        cropName = '미확인 식물 (촬영 조건 확인)';
+        scientificName = '더 가까이서 재촬영 권장';
+        family = '판별 불가';
+      }
+
+      // ── 건강도 계산 ──
+      let healthScore = 0;
+      let health = '분석 불가';
+      if (plantType !== 'none') {
+        healthScore = Math.min(100, Math.max(0,
+          (greenR * 2) - (brownR * 3) - (yellowR * 1.5) + 45
+        ));
+        health = healthScore >= 85 ? '매우 건강' :
+                 healthScore >= 70 ? '건강' :
+                 healthScore >= 50 ? '주의 필요' :
+                 healthScore >= 30 ? '이상 징후' : '위험';
+      }
+
+      // ── 잎 크기 추정 (녹색 영역 바운딩 박스) ──
+      let leafMinX = w, leafMaxX = 0, leafMinY = h, leafMaxY = 0;
+      for (let y = 0; y < h; y += 3) {
+        for (let x = 0; x < w; x += 3) {
+          const idx = (y * w + x) * 4;
+          const gr = data[idx + 1];
+          if (gr > data[idx] * 1.1 && gr > 50) {
+            if (x < leafMinX) leafMinX = x;
+            if (x > leafMaxX) leafMaxX = x;
+            if (y < leafMinY) leafMinY = y;
+            if (y > leafMaxY) leafMaxY = y;
+          }
+        }
+      }
+      const leafWidthPx = Math.max(0, leafMaxX - leafMinX);
+      const leafHeightPx = Math.max(0, leafMaxY - leafMinY);
+      const pxPerCm = w / 25; // 카메라 25cm 시야각 추정
+      const leafWidthCm = (leafWidthPx / pxPerCm).toFixed(1);
+      const leafHeightCm = (leafHeightPx / pxPerCm).toFixed(1);
+
+      // ── 이상 징후 + 처방 ──
+      const diseases: string[] = [];
+      const warnings: string[] = [];
+      const recommendations: string[] = [];
+
+      if (plantType !== 'none') {
+        if (brownR > 10) { diseases.push('갈변 감지 — 잎 병반 또는 마름 증상'); warnings.push('⚠ 병반부 즉시 제거 · 살균제 살포 · 통풍 개선'); }
+        if (yellowR > 8) { diseases.push('황화 감지 — 영양 결핍 또는 과습'); warnings.push('⚠ 비료 투입 · 배수 점검 · EC 확인'); }
+        if (greenR > 30 && brownR < 5 && yellowR < 5) { recommendations.push('✓ 잎 색상 양호 — 현재 관리 방식 유지'); }
+        if (healthScore >= 80) { recommendations.push('✓ 전반적으로 건강한 상태입니다'); }
+        if (healthScore < 50) { warnings.push('⚠ 건강도가 낮습니다 — 환경 점검 필요'); }
+        recommendations.push(`✓ 감지된 식물 유형: ${cropName}`);
+        recommendations.push(`✓ 추정 잎 크기: ${leafWidthCm}cm × ${leafHeightCm}cm`);
+      } else {
+        recommendations.push('작물에 더 가까이 카메라를 가져가 주세요');
+        recommendations.push('밝은 곳에서 촬영하면 정확도가 올라갑니다');
+      }
+
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+      setUploadProgress(100);
       setResult({
-        cropName: '고추냉이 (와사비)',
-        scientificName: 'Wasabia japonica',
-        family: '십자화과 (Brassicaceae)',
-        growthStage: '생육 중기 (정식 후 12개월)',
-        growthStageDetail: '근경 비대기 - 상품성 있는 크기로 성장 중',
-        health: '매우 건강',
-        healthScore: 92,
-        diseases: [],
+        cropName,
+        scientificName,
+        family,
+        growthStage: plantType === 'leaf' ? (greenR > 35 ? '활발한 생육기' : '초기~중기 생육') : (plantType === 'fruit' ? '결실기' : '판별 불가'),
+        growthStageDetail: `녹색 ${greenR}% · 갈변 ${brownR}% · 황화 ${yellowR}% · 적색 ${redR}%`,
+        health,
+        healthScore,
+        diseases,
         pests: [],
         leafAnalysis: {
-          color: '진한 녹색 (정상)',
-          texture: '광택 있고 두꺼움 (양호)',
-          size: '평균 12-15cm (적정)',
-          condition: '병반 없음, 충해 흔적 없음'
+          color: `평균 RGB (${avgR}, ${avgG}, ${avgB})`,
+          texture: greenR > 30 ? '녹색 잎 밀도 높음' : '녹색 영역 부족',
+          size: plantType !== 'none' ? `약 ${leafWidthCm}cm × ${leafHeightCm}cm (추정)` : '측정 불가',
+          condition: brownR > 10 ? `갈변 ${brownR}% 감지 — 점검 필요` : brownR > 5 ? `경미한 갈변 ${brownR}%` : '이상 없음'
         },
         rootAnalysis: {
-          development: '양호한 근경 발달 확인',
-          estimatedSize: '약 80-100g (예상)',
-          quality: '상품성 우수'
+          development: plantType !== 'none' ? '촬영 이미지에서 근경 확인 불가 (지상부만 분석)' : '—',
+          estimatedSize: '—',
+          quality: '근경 분석은 별도 촬영 필요'
         },
         environmentalConditions: {
-          currentTemp: '16.5°C',
-          currentHumidity: '75%',
-          lightIntensity: '55% 차광',
-          soilMoisture: '적정 수준'
+          currentTemp: '촬영 환경 측정 불가 (IoT 센서 연동 필요)',
+          currentHumidity: '—',
+          lightIntensity: brightR > 40 ? `밝음 (밝은 픽셀 ${brightR}%)` : brightR > 15 ? '보통' : `어두움 (밝은 픽셀 ${brightR}%)`,
+          soilMoisture: '—'
         },
         cultivationGuide: {
-          temperature: '15-18°C (최적 생육 온도)',
-          temperatureDetail: '• 주간: 15-18°C 유지\n• 야간: 12-15°C 유지\n• 20°C 이상 시 생육 저하 및 품질 하락',
-          humidity: '70-80% (높은 습도 유지 필수)',
-          humidityDetail: '• 상대습도 70-80% 유지\n• 건조 시 잎 끝 마름 발생\n• 과습 시 무름병 주의',
-          light: '50-60% 차광 (직사광선 피함)',
-          lightDetail: '• 차광막 설치 필수\n• 직사광선 노출 시 잎 황화\n• 반그늘 환경 선호',
-          ec: '1.2-1.5 mS/cm',
-          ecDetail: '• 생육 초기: EC 1.0-1.2\n• 생육 중기: EC 1.2-1.5\n• 생육 후기: EC 1.3-1.5\n• 매일 측정 및 조정 필요',
-          ph: '6.0-6.5',
-          phDetail: '• 약산성 토양 선호\n• pH 5.5 이하: 생육 불량\n• pH 7.0 이상: 양분 흡수 저해',
-          watering: '토양이 항상 촉촉하게 유지',
-          wateringDetail: '• 깨끗한 유수 또는 정기적 관수\n• 토양 건조 절대 금지\n• 배수 불량 시 뿌리 썩음 주의',
-          fertilizer: '질소:인산:칼륨 = 2:1:2 비율',
-          fertilizerDetail: '• N-P-K = 2:1:2 비율 유지\n• 칼슘, 마그네슘 보충 필수\n• 미량 원소 균형 중요'
+          temperature: plantType === 'leaf' ? '15-25°C (엽채류 적정)' : '10-30°C (일반)',
+          temperatureDetail: '• AI 판별 기반 일반 가이드\n• 정확한 품종 확인 후 수정 필요',
+          humidity: '60-80% (일반 범위)',
+          humidityDetail: '• 품종별 차이 있음\n• IoT 센서 연동 시 실시간 제공',
+          light: greenR > 30 ? '현재 충분한 광량' : '광량 보충 권장',
+          lightDetail: `• 촬영 이미지 밝은 픽셀: ${brightR}%`,
+          ec: '1.0-2.0 mS/cm (일반)',
+          ecDetail: '• 품종 확인 후 정확한 범위 제공',
+          ph: '5.5-7.0 (일반)',
+          phDetail: '• 품종별 선호 pH 상이',
+          watering: '토양 표면 건조 시 관수',
+          wateringDetail: '• 과습 주의',
+          fertilizer: 'N-P-K 균형 시비',
+          fertilizerDetail: '• 생육 단계에 따라 조절'
         },
         nutritionStatus: {
-          nitrogen: '적정 (잎 색상 진한 녹색)',
-          phosphorus: '적정 (뿌리 발달 양호)',
-          potassium: '적정 (병 저항성 우수)',
-          calcium: '적정 (세포벽 강화)',
-          magnesium: '적정 (엽록소 합성 정상)',
-          micronutrients: '균형 잡힌 상태'
+          nitrogen: greenR > 30 ? '충분 (짙은 녹색)' : '부족 가능 (연한 녹색)',
+          phosphorus: '촬영만으로 판별 어려움',
+          potassium: '촬영만으로 판별 어려움',
+          calcium: '촬영만으로 판별 어려움',
+          magnesium: yellowR > 8 ? '부족 가능 (잎맥간 황화 감지)' : '정상 추정',
+          micronutrients: '정밀 분석은 엽분석 검사 필요'
         },
-        recommendations: [
-          '✓ 현재 생육 상태가 매우 양호합니다',
-          '✓ EC 농도 1.4 mS/cm 유지 중 - 생육 중기 최적 수준',
-          '✓ 온도 16.5°C - 최적 범위 내 유지 중',
-          '✓ 습도 75% - 적정 수준 유지 중',
-          '✓ 차광 55% - 직사광선 차단 양호',
-          '✓ 근경 비대 순조롭게 진행 중',
-          '✓ 병해충 징후 없음 - 예방 관리 지속',
-          '✓ 6-8개월 후 수확 가능 예상'
-        ],
-        warnings: [
-          '⚠ 온도가 20°C 이상 올라가지 않도록 환기 관리 철저',
-          '⚠ 직사광선 노출 시 잎 손상 가능 - 차광막 점검',
-          '⚠ 고온기 무름병 예방을 위한 통풍 관리 필수',
-          '⚠ 토양 과습 방지 - 배수 상태 정기 점검'
-        ],
+        recommendations,
+        warnings,
         diseasePreventionTips: [
-          '무름병 예방: 통풍 개선, 과습 방지, 이병주 즉시 제거',
+          brownR > 5 ? '갈변 예방: 통풍 개선, 과습 방지, 이병주 즉시 제거' : '현재 병반 미감지 — 예방 관리 지속',
           '잿빛곰팡이병 예방: 습도 관리, 환기, 예방적 살균제 살포',
           '진딧물 예방: 황색 끈끈이 트랩 설치, 천적 활용',
           '응애 예방: 습도 유지, 정기적 관찰, 초기 방제'
         ],
-        nextHarvest: '6-8개월 후 (정식 후 18-20개월차)',
-        harvestTiming: '근경 직경 3-4cm, 무게 80-120g 도달 시',
-        estimatedYield: '250-350g/주 (현재 생육 상태 기준)',
-        yieldQuality: '특등급 가능성 높음 (현재 건강 상태 우수)',
-        marketPrice: 'kg당 ₩100,000-150,000 (특등급 기준)',
-        marketDemand: '높음 - 일식당, 고급 레스토랑 수요 증가',
-        profitEstimate: '주당 ₩25,000-45,000 예상 (특등급 기준)'
+        nextHarvest: plantType !== 'none' ? '품종 확인 후 수확 시기 안내' : '—',
+        harvestTiming: plantType === 'leaf' ? '외엽 30cm 이상 시 수확 가능' : '품종별 상이',
+        estimatedYield: plantType !== 'none' ? '정밀 분석 시 수확량 예측 가능' : '—',
+        yieldQuality: health,
+        marketPrice: '품종 확인 후 시세 조회 가능 (KAMIS 연동)',
+        marketDemand: '—',
+        profitEstimate: '수익성 분석 페이지에서 시뮬레이션 가능'
       });
       setAnalyzing(false);
-    }, 2500);
+    };
+    img.onerror = () => {
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+      setUploadProgress(100);
+      setResult({
+        cropName: '이미지 분석 실패',
+        scientificName: '이미지를 불러올 수 없습니다',
+        family: '—',
+        growthStage: '—', growthStageDetail: '—',
+        health: '분석 불가', healthScore: 0,
+        diseases: [], pests: [],
+        leafAnalysis: { color: '—', texture: '—', size: '—', condition: '—' },
+        rootAnalysis: { development: '—', estimatedSize: '—', quality: '—' },
+        environmentalConditions: { currentTemp: '—', currentHumidity: '—', lightIntensity: '—', soilMoisture: '—' },
+        cultivationGuide: { temperature: '—', temperatureDetail: '', humidity: '—', humidityDetail: '', light: '—', lightDetail: '', ec: '—', ecDetail: '', ph: '—', phDetail: '', watering: '—', wateringDetail: '', fertilizer: '—', fertilizerDetail: '' },
+        nutritionStatus: { nitrogen: '—', phosphorus: '—', potassium: '—', calcium: '—', magnesium: '—', micronutrients: '—' },
+        recommendations: ['다시 촬영해 주세요'], warnings: [], diseasePreventionTips: [],
+        nextHarvest: '—', harvestTiming: '—', estimatedYield: '—', yieldQuality: '—', marketPrice: '—', marketDemand: '—', profitEstimate: '—',
+      });
+      setAnalyzing(false);
+    };
+    img.src = imageUrl || '';
   };
 
   const recentScans = [

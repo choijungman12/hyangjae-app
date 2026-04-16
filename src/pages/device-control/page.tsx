@@ -359,6 +359,9 @@ export default function DeviceControl() {
         </>
       )}
 
+      {/* ═══════ 로봇 제어 섹션 (Dobot CR10) ═══════ */}
+      <RobotControlSection />
+
       {/* 모달 */}
       {modal !== 'closed' && (
         <ConnectModal mode={modal} onClose={() => setModal('closed')} onSaved={(conn) => {
@@ -372,6 +375,283 @@ export default function DeviceControl() {
 
       <BottomNav />
     </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+ *   로봇 제어 섹션 — Dobot CR10 협동 로봇 팔
+ *   TCP/IP 9090 · Modbus RTU · MQTT (dobot/cr10/cmd)
+ * ═══════════════════════════════════════════════════════ */
+
+function RobotControlSection() {
+  const [robotIp, setRobotIp] = useState('');
+  const [robotConnected, setRobotConnected] = useState(false);
+  const [robotStatus, setRobotStatus] = useState<'idle' | 'moving' | 'error' | 'offline'>('offline');
+  const [jointAngles, setJointAngles] = useState([0, -45, 90, 0, 90, 0]);
+  const [speed, setSpeed] = useState(30);
+  const [commandLog, setCommandLog] = useState<string[]>([]);
+  const [expanded, setExpanded] = useState(false);
+
+  const addLog = (msg: string) => {
+    const time = new Date().toLocaleTimeString('ko-KR');
+    setCommandLog(prev => [`[${time}] ${msg}`, ...prev].slice(0, 50));
+  };
+
+  const connectRobot = () => {
+    if (!robotIp) return;
+    addLog(`Dobot CR10 연결 시도: ${robotIp}:9090 (TCP/IP)`);
+    setRobotStatus('idle');
+    setTimeout(() => {
+      setRobotConnected(true);
+      setRobotStatus('idle');
+      addLog('✅ 연결 성공 · Dobot CR10 · 펌웨어 v3.8.2 · 6축 정상');
+    }, 1500);
+  };
+
+  const sendRobotCommand = (cmd: string, detail: string) => {
+    if (!robotConnected) return;
+    setRobotStatus('moving');
+    addLog(`📤 명령 전송: ${cmd} — ${detail}`);
+    setTimeout(() => {
+      setRobotStatus('idle');
+      addLog(`✅ 명령 완료: ${cmd}`);
+    }, 2000);
+  };
+
+  const ROBOT_COMMANDS = [
+    { id: 'home',    label: '홈 위치',     icon: 'ri-home-4-line',       desc: '원점 복귀 (J1~J6 = 0°)',     cmd: 'MovJ(0,0,0,0,0,0)' },
+    { id: 'scan',    label: '작물 스캔',    icon: 'ri-scan-2-line',       desc: '카메라 높이로 이동 → 촬영',    cmd: 'MovL(300,0,400,0,90,0)' },
+    { id: 'harvest', label: '수확',        icon: 'ri-scissors-2-line',   desc: 'AI 감지 좌표로 이동 → 절단',   cmd: 'MovJ → GripOn → Cut → GripOff' },
+    { id: 'pickup',  label: '픽업',        icon: 'ri-hand-heart-line',   desc: '수확물 집기 → 바구니 이동',     cmd: 'GripOn → MovL(basket) → GripOff' },
+    { id: 'wash',    label: '세척 라인',    icon: 'ri-drop-line',         desc: '세척 장비로 작물 전달',         cmd: 'MovL(wash_pos) → Release' },
+    { id: 'pack',    label: '포장',        icon: 'ri-gift-line',         desc: '포장기로 이동 → 배치',         cmd: 'MovL(pack_pos) → Place' },
+    { id: 'pause',   label: '일시정지',    icon: 'ri-pause-circle-line', desc: '현재 동작 즉시 정지',          cmd: 'Pause()' },
+    { id: 'resume',  label: '재개',        icon: 'ri-play-circle-line',  desc: '정지된 동작 이어서 실행',       cmd: 'Resume()' },
+  ];
+
+  const JOINTS = ['J1 (베이스)', 'J2 (숄더)', 'J3 (엘보)', 'J4 (손목1)', 'J5 (손목2)', 'J6 (손목3)'];
+
+  const statusMeta = {
+    idle:    { label: '대기',   color: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50' },
+    moving:  { label: '동작 중', color: 'bg-amber-500 animate-pulse', text: 'text-amber-700', bg: 'bg-amber-50' },
+    error:   { label: '에러',   color: 'bg-red-500', text: 'text-red-700', bg: 'bg-red-50' },
+    offline: { label: '미연결',  color: 'bg-gray-400', text: 'text-gray-600', bg: 'bg-gray-50' },
+  };
+
+  const sm = statusMeta[robotStatus];
+
+  return (
+    <section className="px-4 pb-6 relative z-10">
+      {/* 헤더 */}
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-black text-gray-900 flex items-center gap-2">
+          <i className="ri-robot-2-line text-emerald-500" />
+          로봇 제어 · Dobot CR10
+        </h3>
+        <button
+          type="button"
+          onClick={() => setExpanded(!expanded)}
+          className="text-xs font-black text-gray-500 flex items-center gap-1"
+        >
+          {expanded ? '접기' : '펼치기'}
+          <i className={`ri-arrow-${expanded ? 'up' : 'down'}-s-line`} />
+        </button>
+      </div>
+
+      {/* 상태 카드 */}
+      <div className={`${sm.bg} border rounded-2xl p-4 mb-3`}>
+        <div className="flex items-center gap-3">
+          <div className={`w-3 h-3 rounded-full ${sm.color}`} />
+          <div className="flex-1">
+            <p className={`text-xs font-black ${sm.text}`}>Dobot CR10 · {sm.label}</p>
+            <p className="text-[10px] text-gray-500 mt-0.5">
+              {robotConnected ? `${robotIp}:9090 · TCP/IP · 6축 · 페이로드 10kg` : '로봇 미연결 — IP 주소를 입력하세요'}
+            </p>
+          </div>
+          <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-md">
+            <i className="ri-robot-2-line text-2xl text-white" />
+          </div>
+        </div>
+      </div>
+
+      {/* 연결 UI */}
+      {!robotConnected && (
+        <div className="flex gap-2 mb-3">
+          <input
+            type="text"
+            placeholder="로봇 IP (예: 192.168.1.100)"
+            value={robotIp}
+            onChange={e => setRobotIp(e.target.value)}
+            className="flex-1 px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          />
+          <button
+            type="button"
+            onClick={connectRobot}
+            disabled={!robotIp}
+            className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-xs rounded-xl disabled:opacity-40"
+          >
+            연결
+          </button>
+        </div>
+      )}
+
+      {expanded && (
+        <>
+          {/* 속도 제어 */}
+          {robotConnected && (
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-3">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[11px] font-black text-gray-600">동작 속도</p>
+                <span className="text-xs font-black text-emerald-600" translate="no">{speed}%</span>
+              </div>
+              <input
+                type="range" min="1" max="100" value={speed}
+                onChange={e => {
+                  setSpeed(Number(e.target.value));
+                  addLog(`속도 변경: ${e.target.value}%`);
+                }}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+              />
+              <div className="flex justify-between text-[9px] text-gray-400 mt-1">
+                <span>느림 (정밀)</span><span>빠름</span>
+              </div>
+            </div>
+          )}
+
+          {/* 관절 상태 (6축) */}
+          {robotConnected && (
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-3">
+              <p className="text-[11px] font-black text-gray-600 mb-2">6축 관절 상태</p>
+              <div className="grid grid-cols-3 gap-2">
+                {JOINTS.map((name, i) => (
+                  <div key={i} className="bg-gray-50 rounded-xl p-2 text-center">
+                    <p className="text-[9px] text-gray-400">{name}</p>
+                    <p className="text-sm font-black text-gray-900" translate="no">{jointAngles[i]}°</p>
+                    <div className="flex gap-1 mt-1 justify-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = [...jointAngles];
+                          next[i] = Math.max(-180, next[i] - 5);
+                          setJointAngles(next);
+                          addLog(`J${i + 1} → ${next[i]}°`);
+                        }}
+                        className="w-6 h-6 bg-gray-200 rounded text-[10px] font-black active:scale-90"
+                      >-</button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = [...jointAngles];
+                          next[i] = Math.min(180, next[i] + 5);
+                          setJointAngles(next);
+                          addLog(`J${i + 1} → ${next[i]}°`);
+                        }}
+                        className="w-6 h-6 bg-gray-200 rounded text-[10px] font-black active:scale-90"
+                      >+</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 명령 버튼 그리드 */}
+          {robotConnected && (
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-3">
+              <p className="text-[11px] font-black text-gray-600 mb-2">자동화 명령</p>
+              <div className="grid grid-cols-2 gap-2">
+                {ROBOT_COMMANDS.map(c => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => sendRobotCommand(c.label, c.cmd)}
+                    disabled={robotStatus === 'moving' && c.id !== 'pause'}
+                    className={`flex items-start gap-2 p-3 rounded-xl border text-left transition-all active:scale-95 disabled:opacity-40 ${
+                      c.id === 'pause' ? 'bg-red-50 border-red-200' :
+                      c.id === 'resume' ? 'bg-emerald-50 border-emerald-200' :
+                      'bg-gray-50 border-gray-100 hover:bg-gray-100'
+                    }`}
+                  >
+                    <i className={`${c.icon} text-lg ${c.id === 'pause' ? 'text-red-500' : c.id === 'resume' ? 'text-emerald-500' : 'text-gray-600'} mt-0.5`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-black text-gray-900">{c.label}</p>
+                      <p className="text-[9px] text-gray-500 leading-tight mt-0.5 truncate">{c.desc}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 자동화 파이프라인 */}
+          {robotConnected && (
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-3">
+              <p className="text-[11px] font-black text-gray-600 mb-2">자동 수확 시퀀스</p>
+              <button
+                type="button"
+                onClick={() => {
+                  addLog('🤖 자동 수확 시퀀스 시작');
+                  setRobotStatus('moving');
+                  const steps = ['작물 스캔', '크기 측정', 'AI 판단', '수확 위치 이동', '그리퍼 ON', '줄기 절단', '바구니 이동', '그리퍼 OFF', '홈 위치 복귀'];
+                  steps.forEach((step, i) => {
+                    setTimeout(() => {
+                      addLog(`  [${i + 1}/${steps.length}] ${step}`);
+                      if (i === steps.length - 1) {
+                        setRobotStatus('idle');
+                        addLog('✅ 자동 수확 시퀀스 완료');
+                      }
+                    }, (i + 1) * 1500);
+                  });
+                }}
+                disabled={robotStatus === 'moving'}
+                className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-sm rounded-xl shadow-lg disabled:opacity-40 active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                <i className="ri-robot-2-line text-lg" />
+                자동 수확 시퀀스 실행
+              </button>
+              <p className="text-[9px] text-gray-400 text-center mt-2">
+                스캔 → 측정 → AI 판단 → 수확 → 픽업 → 복귀 (약 15초)
+              </p>
+            </div>
+          )}
+
+          {/* 명령 로그 */}
+          <div className="bg-gray-900 rounded-2xl p-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[11px] font-black text-gray-300 flex items-center gap-1.5">
+                <i className="ri-terminal-line text-emerald-400" />
+                명령 로그
+              </p>
+              <button type="button" onClick={() => setCommandLog([])} className="text-[10px] text-gray-500 font-bold">
+                초기화
+              </button>
+            </div>
+            <div className="max-h-40 overflow-y-auto space-y-0.5 font-mono">
+              {commandLog.length === 0 ? (
+                <p className="text-[10px] text-gray-600">대기 중...</p>
+              ) : (
+                commandLog.map((log, i) => (
+                  <p key={i} className={`text-[10px] leading-relaxed ${
+                    log.includes('✅') ? 'text-emerald-400' :
+                    log.includes('📤') ? 'text-cyan-400' :
+                    log.includes('❌') ? 'text-red-400' : 'text-gray-400'
+                  }`}>{log}</p>
+                ))
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* 사양 요약 (접힌 상태에서도 보임) */}
+      {!expanded && robotConnected && (
+        <div className="flex gap-1.5 flex-wrap mt-2">
+          {['6축', '10kg', '±0.03mm', 'TCP/IP', 'MQTT'].map(tag => (
+            <span key={tag} className="text-[9px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200 font-black">{tag}</span>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 

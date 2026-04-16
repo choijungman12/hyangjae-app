@@ -49,15 +49,23 @@ export async function identifyPlant(imageBase64: string): Promise<PlantIdResult>
     const formData = new FormData();
     formData.append('images', blob, 'plant.jpg');
 
-    // 프록시 시도 → 실패 시 직접 호출 (CORS 허용 환경에서만)
+    const directUrl = `${DIRECT_API_URL}?include-related-images=true&no-reject=true&lang=en&api-key=${DIRECT_API_KEY}`;
+    // CORS 프록시 (GitHub Pages 등 서버리스 없는 환경 대응)
+    const CORS_PROXY = 'https://corsproxy.io/?';
+
     let response: Response;
     try {
+      // 1차: Vercel/Vite 프록시
       response = await fetch(PROXY_URL, { method: 'POST', body: formData });
-      if (!response.ok && response.status === 404) throw new Error('proxy not found');
+      if (!response.ok && (response.status === 404 || response.status === 405)) throw new Error('no proxy');
     } catch {
-      // 프록시 없으면 직접 호출 (로컬 개발 · Vite proxy 또는 CORS 허용 시)
-      const directUrl = `${DIRECT_API_URL}?include-related-images=true&no-reject=true&lang=en&api-key=${DIRECT_API_KEY}`;
-      response = await fetch(directUrl, { method: 'POST', body: formData });
+      try {
+        // 2차: 직접 호출 (CORS 허용 시)
+        response = await fetch(directUrl, { method: 'POST', body: formData });
+      } catch {
+        // 3차: CORS 프록시 경유
+        response = await fetch(CORS_PROXY + encodeURIComponent(directUrl), { method: 'POST', body: formData });
+      }
     }
 
     if (!response.ok) {

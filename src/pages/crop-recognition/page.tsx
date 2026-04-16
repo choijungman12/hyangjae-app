@@ -189,7 +189,10 @@ export default function CropRecognition() {
         rSum += r; gSum += g; bSum += bl;
         const brightness = (r + g + bl) / 3;
         if (brightness > 200) brightPx++;
-        if (g > r * 1.15 && g > bl * 1.1 && g > 50) greenPx++;
+        // 짙은 녹색(안스리움 등)도 감지: g가 r보다 크고 b보다 크면 녹색
+        if (g > r && g > bl && g > 40) greenPx++;
+        // 연한 녹색(상추 등)도 감지
+        else if (g > r * 0.9 && g > bl * 1.05 && g > 60) greenPx++;
         if (r > g * 1.1 && r > bl * 1.3 && r > 80 && r < 200) brownPx++;
         if (r > 140 && g > 120 && bl < 100) yellowPx++;
         if (r > 150 && g < 80 && bl < 80) redPx++;
@@ -210,13 +213,13 @@ export default function CropRecognition() {
       let family = '판별 불가';
       let plantType: 'leaf' | 'flower' | 'fruit' | 'none' = 'none';
 
-      if (greenR >= 25) {
+      if (greenR >= 12) {
         plantType = 'leaf';
-        if (greenR > 40 && avgG > avgR * 1.3) {
+        if (greenR > 30 && avgG > avgR * 1.2) {
           cropName = '엽채류 (쌈채소 계열)';
           scientificName = 'Lactuca / Perilla 추정';
           family = '국화과 또는 꿀풀과';
-        } else if (greenR > 25 && brownR > 8) {
+        } else if (greenR > 15 && brownR > 5) {
           cropName = '허브류 또는 근경 식물';
           scientificName = 'Eutrema / Ocimum 추정';
           family = '십자화과 또는 꿀풀과';
@@ -241,7 +244,7 @@ export default function CropRecognition() {
         cropName = '황색 꽃 또는 숙성 과실';
         scientificName = '상세 판별은 AI 모델 연동 필요';
         family = '판별 중';
-      } else if (greenR < 5 && brownR < 5) {
+      } else if (greenR < 3 && brownR < 3) {
         cropName = '식물이 감지되지 않았습니다';
         scientificName = '작물이 아닌 객체로 판단됩니다';
         family = '해당 없음';

@@ -45,7 +45,8 @@ function analyzeFrame(canvas: HTMLCanvasElement): AIAnalysisResult {
     const r = data[i], g = data[i + 1], b = data[i + 2];
     totalBrightness += (r + g + b) / 3;
 
-    if (g > r * 1.15 && g > b * 1.1 && g > 50) greenPixels++;
+    if (g > r && g > b && g > 40) greenPixels++;
+      else if (g > r * 0.9 && g > b * 1.05 && g > 60) greenPixels++;
     if (r > g * 1.1 && r > b * 1.3 && r > 80 && r < 200) brownPixels++;
     if (r > 140 && g > 120 && b < 100) yellowPixels++;
   }
@@ -79,7 +80,7 @@ function analyzeFrame(canvas: HTMLCanvasElement): AIAnalysisResult {
     : { width: '—', height: '—' };
 
   // 작물 감지 기준: 녹색 비율 8% 이상
-  const detected = greenRatio >= 8;
+  const detected = greenRatio >= 5;
 
   if (!detected) {
     return {

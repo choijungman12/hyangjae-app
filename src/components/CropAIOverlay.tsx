@@ -1,14 +1,10 @@
 /**
  * CropAIOverlay — 카메라 피드 위에 실시간 AI 분석 오버레이
  *
- * 기능:
- * 1. 실시간 작물 감지 바운딩 박스 (mock, 추후 TensorFlow.js 연동)
- * 2. 크기 측정 (참조 객체 기반 추정)
- * 3. 모션 감지 (프레임 간 변화 추적)
- * 4. 식생 건강도 실시간 스코어
- * 5. 병해충 위험도 표시
- *
- * PC: 웹캠 연결 · 모바일: 후면 카메라 자동 연결
+ * ✅ 실제 Canvas 픽셀 분석 기반 (Mock 랜덤 아님)
+ * - 녹색/갈색/황색 비율로 작물 유무 판단
+ * - 작물 미감지 시 "작물이 감지되지 않았습니다" 표시
+ * - 촬영 시 분석 데이터를 결과 화면에 전달
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 
@@ -19,229 +15,137 @@ interface CropAIOverlayProps {
 }
 
 export interface AIAnalysisResult {
-  detections: Detection[];
+  detected: boolean;
   healthScore: number;
-  motionLevel: number;
-  environmentRisk: EnvironmentRisk;
-  diseaseRisk: DiseaseRisk[];
-  sizeEstimate: SizeEstimate | null;
+  greenRatio: number;
+  brownRatio: number;
+  yellowRatio: number;
+  brightness: number;
+  growthStage: string;
+  issues: string[];
+  prescriptions: string[];
   timestamp: string;
 }
 
-interface Detection {
-  id: number;
-  label: string;
-  confidence: number;
-  bbox: { x: number; y: number; w: number; h: number };
-  color: string;
-}
+function analyzeFrame(canvas: HTMLCanvasElement): AIAnalysisResult {
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx) return emptyResult();
 
-interface EnvironmentRisk {
-  overall: 'good' | 'warning' | 'danger';
-  factors: { name: string; value: string; status: 'good' | 'warning' | 'danger' }[];
-}
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+  const totalPixels = data.length / 4;
 
-interface DiseaseRisk {
-  name: string;
-  probability: number;
-  severity: 'low' | 'medium' | 'high';
-  prescription: string;
-}
+  let greenPixels = 0, brownPixels = 0, yellowPixels = 0, totalBrightness = 0;
 
-interface SizeEstimate {
-  width: string;
-  height: string;
-  area: string;
-  growthRate: string;
-}
+  for (let i = 0; i < data.length; i += 8) { // 2px 간격 샘플링 (성능)
+    const r = data[i], g = data[i + 1], b = data[i + 2];
+    totalBrightness += (r + g + b) / 3;
 
-// Mock AI 감지 데이터 생성
-function generateMockDetections(): Detection[] {
-  const types = [
-    { label: '고추냉이 잎', color: '#10b981' },
-    { label: '고추냉이 근경', color: '#06b6d4' },
-    { label: '상추', color: '#22c55e' },
-    { label: '깻잎', color: '#84cc16' },
-    { label: '잡초 (제거 필요)', color: '#ef4444' },
-    { label: '딸기', color: '#f43f5e' },
-  ];
+    if (g > r * 1.15 && g > b * 1.1 && g > 50) greenPixels++;
+    if (r > g * 1.1 && r > b * 1.3 && r > 80 && r < 200) brownPixels++;
+    if (r > 140 && g > 120 && b < 100) yellowPixels++;
+  }
 
-  const count = 2 + Math.floor(Math.random() * 3);
-  return Array.from({ length: count }, (_, i) => {
-    const type = types[Math.floor(Math.random() * types.length)];
+  const sampleCount = totalPixels / 2;
+  const greenRatio = Math.round((greenPixels / sampleCount) * 100);
+  const brownRatio = Math.round((brownPixels / sampleCount) * 100);
+  const yellowRatio = Math.round((yellowPixels / sampleCount) * 100);
+  const brightness = Math.round(totalBrightness / sampleCount);
+
+  // 작물 감지 기준: 녹색 비율 8% 이상
+  const detected = greenRatio >= 8;
+
+  if (!detected) {
     return {
-      id: i,
-      label: type.label,
-      confidence: 0.75 + Math.random() * 0.24,
-      bbox: {
-        x: 0.1 + Math.random() * 0.5,
-        y: 0.1 + Math.random() * 0.4,
-        w: 0.15 + Math.random() * 0.25,
-        h: 0.15 + Math.random() * 0.25,
-      },
-      color: type.color,
+      detected: false,
+      healthScore: 0,
+      greenRatio, brownRatio, yellowRatio, brightness,
+      growthStage: '작물 미감지',
+      issues: ['화면에 작물이 감지되지 않았습니다'],
+      prescriptions: ['카메라를 작물 가까이 가져가 주세요'],
+      timestamp: new Date().toISOString(),
     };
-  });
-}
+  }
 
-function generateMockAnalysis(): AIAnalysisResult {
-  const diseases: DiseaseRisk[] = [
-    {
-      name: '무름병 (Soft Rot)',
-      probability: 0.12 + Math.random() * 0.15,
-      severity: 'low',
-      prescription: '통풍 개선 · 과습 방지 · 이병주 즉시 제거 · 구리제 예방 살포',
-    },
-    {
-      name: '잿빛곰팡이병 (Gray Mold)',
-      probability: 0.08 + Math.random() * 0.1,
-      severity: 'low',
-      prescription: '습도 60% 이하 유지 · 환기 횟수 증가 · 보트리티스 전용 살균제',
-    },
-    {
-      name: '진딧물 (Aphid)',
-      probability: 0.05 + Math.random() * 0.2,
-      severity: Math.random() > 0.7 ? 'medium' : 'low',
-      prescription: '천적(무당벌레) 투입 · 님오일 살포 · 황색 끈끈이 트랩 설치',
-    },
-  ];
+  let healthScore = Math.min(100, Math.max(0,
+    (greenRatio * 2.5) - (brownRatio * 3) - (yellowRatio * 2) + 40
+  ));
+
+  const issues: string[] = [];
+  const prescriptions: string[] = [];
+
+  if (brownRatio > 10) {
+    issues.push(`갈변 ${brownRatio}% — 잎 병반 또는 마름 증상`);
+    prescriptions.push('병반부 즉시 제거 · 살균제 살포 · 통풍 개선');
+    healthScore -= 10;
+  }
+  if (yellowRatio > 8) {
+    issues.push(`황화 ${yellowRatio}% — 영양 결핍 또는 과습 징후`);
+    prescriptions.push('비료 추가 투입 · 배수 점검 · EC 값 확인');
+    healthScore -= 8;
+  }
+  if (brightness < 50) {
+    issues.push('조도 부족 — 촬영 환경이 어둡습니다');
+    prescriptions.push('밝은 곳에서 재촬영 또는 보조광 사용');
+  }
+  if (greenRatio > 40 && brownRatio < 3 && yellowRatio < 3) {
+    issues.push('✅ 양호 — 뚜렷한 이상 징후 없음');
+    prescriptions.push('현재 관리 방식 유지 · 정기 모니터링 지속');
+  }
+
+  healthScore = Math.max(0, Math.min(100, Math.round(healthScore)));
+
+  const growthStage =
+    greenRatio > 35 ? '활발한 생육기 (잎 밀도 높음)' :
+    greenRatio > 20 ? '중기 생육 (성장 진행 중)' :
+    greenRatio > 8  ? '초기 생육 (정식 후 발아)' : '작물 미감지';
 
   return {
-    detections: generateMockDetections(),
-    healthScore: 72 + Math.floor(Math.random() * 26),
-    motionLevel: Math.floor(Math.random() * 100),
-    environmentRisk: {
-      overall: Math.random() > 0.7 ? 'warning' : 'good',
-      factors: [
-        { name: '온도', value: `${15 + Math.floor(Math.random() * 5)}°C`, status: 'good' },
-        { name: '습도', value: `${65 + Math.floor(Math.random() * 20)}%`, status: Math.random() > 0.6 ? 'good' : 'warning' },
-        { name: '조도', value: `${40 + Math.floor(Math.random() * 30)}%`, status: 'good' },
-        { name: 'EC', value: `${(1.0 + Math.random() * 0.5).toFixed(1)}`, status: Math.random() > 0.8 ? 'warning' : 'good' },
-        { name: 'pH', value: `${(6.0 + Math.random() * 0.5).toFixed(1)}`, status: 'good' },
-      ],
-    },
-    diseaseRisk: diseases,
-    sizeEstimate: {
-      width: `${10 + Math.floor(Math.random() * 8)}cm`,
-      height: `${12 + Math.floor(Math.random() * 10)}cm`,
-      area: `${80 + Math.floor(Math.random() * 60)}cm²`,
-      growthRate: `+${(0.2 + Math.random() * 0.5).toFixed(1)}cm/일`,
-    },
+    detected, healthScore, greenRatio, brownRatio, yellowRatio, brightness,
+    growthStage, issues, prescriptions,
     timestamp: new Date().toISOString(),
+  };
+}
+
+function emptyResult(): AIAnalysisResult {
+  return {
+    detected: false, healthScore: 0, greenRatio: 0, brownRatio: 0, yellowRatio: 0,
+    brightness: 0, growthStage: '대기 중', issues: [], prescriptions: [], timestamp: '',
   };
 }
 
 export default function CropAIOverlay({ videoRef, active, onCapture }: CropAIOverlayProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [analysis, setAnalysis] = useState<AIAnalysisResult | null>(null);
+  const [analysis, setAnalysis] = useState<AIAnalysisResult>(emptyResult());
   const [showPanel, setShowPanel] = useState(true);
-  const frameRef = useRef(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // 실시간 오버레이 그리기 (바운딩 박스 + 크기 라인)
-  const drawOverlay = useCallback(() => {
-    if (!active || !canvasRef.current || !videoRef.current) return;
-    const canvas = canvasRef.current;
-    const video = videoRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx || video.videoWidth === 0) return;
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    if (!analysis) return;
-
-    // 바운딩 박스 그리기
-    analysis.detections.forEach(det => {
-      const x = det.bbox.x * canvas.width;
-      const y = det.bbox.y * canvas.height;
-      const w = det.bbox.w * canvas.width;
-      const h = det.bbox.h * canvas.height;
-
-      // 박스
-      ctx.strokeStyle = det.color;
-      ctx.lineWidth = 2;
-      ctx.setLineDash([6, 3]);
-      ctx.strokeRect(x, y, w, h);
-      ctx.setLineDash([]);
-
-      // 코너 강조
-      const corner = 12;
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = det.color;
-      [[x, y, corner, 0, 0, corner], [x + w, y, -corner, 0, 0, corner],
-       [x, y + h, corner, 0, 0, -corner], [x + w, y + h, -corner, 0, 0, -corner]
-      ].forEach(([sx, sy, dx1, dy1, dx2, dy2]) => {
-        ctx.beginPath();
-        ctx.moveTo(sx as number + (dx1 as number), sy as number + (dy1 as number));
-        ctx.lineTo(sx as number, sy as number);
-        ctx.lineTo(sx as number + (dx2 as number), sy as number + (dy2 as number));
-        ctx.stroke();
-      });
-
-      // 라벨
-      const label = `${det.label} ${(det.confidence * 100).toFixed(0)}%`;
-      ctx.font = 'bold 11px sans-serif';
-      const metrics = ctx.measureText(label);
-      const pad = 4;
-      ctx.fillStyle = det.color;
-      ctx.fillRect(x, y - 18, metrics.width + pad * 2, 18);
-      ctx.fillStyle = '#fff';
-      ctx.fillText(label, x + pad, y - 5);
-
-      // 크기 측정 라인 (하단)
-      if (analysis.sizeEstimate) {
-        ctx.strokeStyle = '#ffffff80';
-        ctx.lineWidth = 1;
-        ctx.setLineDash([3, 3]);
-        // 가로 치수선
-        ctx.beginPath();
-        ctx.moveTo(x, y + h + 10);
-        ctx.lineTo(x + w, y + h + 10);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.fillStyle = '#ffffffcc';
-        ctx.font = '10px sans-serif';
-        ctx.fillText(analysis.sizeEstimate.width, x + w / 2 - 12, y + h + 22);
-      }
-    });
-
-    // 모션 인디케이터 (우측 상단)
-    if (analysis.motionLevel > 20) {
-      ctx.fillStyle = analysis.motionLevel > 60 ? '#ef4444' : '#f59e0b';
-      ctx.beginPath();
-      ctx.arc(canvas.width - 20, 20, 8, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 9px sans-serif';
-      ctx.fillText('MOTION', canvas.width - 52, 24);
+  // 1초마다 실시간 분석
+  useEffect(() => {
+    if (!active) {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      return;
     }
 
-    frameRef.current = requestAnimationFrame(drawOverlay);
-  }, [active, analysis, videoRef]);
+    intervalRef.current = setInterval(() => {
+      if (!videoRef.current || !canvasRef.current) return;
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      if (video.videoWidth === 0) return;
 
-  // 2초마다 Mock AI 분석 갱신
-  useEffect(() => {
-    if (!active) return;
-    const interval = setInterval(() => {
-      setAnalysis(generateMockAnalysis());
-    }, 2500);
-    setAnalysis(generateMockAnalysis());
-    return () => clearInterval(interval);
-  }, [active]);
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      if (!ctx) return;
+      ctx.drawImage(video, 0, 0);
+      setAnalysis(analyzeFrame(canvas));
+    }, 1000);
 
-  // 오버레이 루프
-  useEffect(() => {
-    if (active) {
-      frameRef.current = requestAnimationFrame(drawOverlay);
-    }
-    return () => {
-      if (frameRef.current) cancelAnimationFrame(frameRef.current);
-    };
-  }, [active, drawOverlay]);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [active, videoRef]);
 
   const handleCapture = () => {
-    if (!videoRef.current || !analysis) return;
+    if (!videoRef.current) return;
     const canvas = document.createElement('canvas');
     canvas.width = videoRef.current.videoWidth;
     canvas.height = videoRef.current.videoHeight;
@@ -249,38 +153,33 @@ export default function CropAIOverlay({ videoRef, active, onCapture }: CropAIOve
     if (!ctx) return;
     ctx.drawImage(videoRef.current, 0, 0);
     const imageData = canvas.toDataURL('image/jpeg', 0.9);
-    onCapture?.(imageData, analysis);
+    const finalAnalysis = analyzeFrame(canvas);
+    onCapture?.(imageData, finalAnalysis);
   };
 
   if (!active) return null;
 
-  const statusColor = !analysis ? 'bg-gray-400' :
-    analysis.healthScore >= 85 ? 'bg-emerald-500' :
-    analysis.healthScore >= 70 ? 'bg-amber-500' : 'bg-red-500';
+  const scoreColor =
+    !analysis.detected ? 'bg-gray-500' :
+    analysis.healthScore >= 80 ? 'bg-emerald-500' :
+    analysis.healthScore >= 50 ? 'bg-amber-500' : 'bg-red-500';
 
   return (
     <>
-      {/* 카메라 위 오버레이 캔버스 (바운딩 박스 + 크기 측정선) */}
-      <canvas
-        ref={canvasRef}
-        className="absolute inset-0 w-full h-full pointer-events-none z-10"
-        style={{ objectFit: 'cover' }}
-      />
+      <canvas ref={canvasRef} className="hidden" />
 
-      {/* 상단 실시간 상태 바 */}
+      {/* 상단 상태 바 */}
       <div className="absolute top-3 left-3 right-3 z-20 flex items-center gap-2">
         <div className="flex-1 bg-black/60 backdrop-blur-xl rounded-2xl px-3 py-2 flex items-center gap-2">
-          <span className={`w-2.5 h-2.5 rounded-full ${statusColor} animate-pulse`} />
-          <span className="text-[10px] font-black text-white">AI 분석 중</span>
-          {analysis && (
+          <span className={`w-2.5 h-2.5 rounded-full ${scoreColor} ${analysis.detected ? 'animate-pulse' : ''}`} />
+          <span className="text-[10px] font-black text-white">
+            {analysis.detected ? 'AI 작물 감지' : '작물 미감지'}
+          </span>
+          {analysis.detected && (
             <>
               <span className="text-[10px] text-white/60">·</span>
               <span className="text-[10px] font-black text-emerald-300" translate="no">
                 건강도 {analysis.healthScore}%
-              </span>
-              <span className="text-[10px] text-white/60">·</span>
-              <span className="text-[10px] text-white/80" translate="no">
-                감지 {analysis.detections.length}개
               </span>
             </>
           )}
@@ -294,71 +193,47 @@ export default function CropAIOverlay({ videoRef, active, onCapture }: CropAIOve
         </button>
       </div>
 
-      {/* 하단 분석 패널 (접이식) */}
-      {showPanel && analysis && (
-        <div className="absolute bottom-16 left-2 right-2 z-20 bg-black/70 backdrop-blur-xl rounded-2xl p-3 max-h-48 overflow-y-auto">
-          {/* 환경 지표 */}
-          <div className="flex gap-1.5 mb-2 overflow-x-auto">
-            {analysis.environmentRisk.factors.map(f => (
-              <div
-                key={f.name}
-                className={`flex-shrink-0 px-2 py-1 rounded-lg text-[9px] font-black ${
-                  f.status === 'good' ? 'bg-emerald-500/30 text-emerald-300' :
-                  f.status === 'warning' ? 'bg-amber-500/30 text-amber-300' :
-                  'bg-red-500/30 text-red-300'
-                }`}
-              >
-                {f.name} {f.value}
-              </div>
-            ))}
-          </div>
-
-          {/* 크기 측정 */}
-          {analysis.sizeEstimate && (
-            <div className="flex gap-2 mb-2">
-              <div className="flex-1 bg-white/10 rounded-lg px-2 py-1.5">
-                <p className="text-[8px] text-white/50">크기</p>
-                <p className="text-[10px] font-black text-cyan-300" translate="no">
-                  {analysis.sizeEstimate.width} × {analysis.sizeEstimate.height}
-                </p>
-              </div>
-              <div className="flex-1 bg-white/10 rounded-lg px-2 py-1.5">
-                <p className="text-[8px] text-white/50">면적</p>
-                <p className="text-[10px] font-black text-cyan-300" translate="no">{analysis.sizeEstimate.area}</p>
-              </div>
-              <div className="flex-1 bg-white/10 rounded-lg px-2 py-1.5">
-                <p className="text-[8px] text-white/50">성장속도</p>
-                <p className="text-[10px] font-black text-emerald-300" translate="no">{analysis.sizeEstimate.growthRate}</p>
-              </div>
-              <div className="flex-1 bg-white/10 rounded-lg px-2 py-1.5">
-                <p className="text-[8px] text-white/50">모션</p>
-                <p className={`text-[10px] font-black ${analysis.motionLevel > 60 ? 'text-red-300' : analysis.motionLevel > 20 ? 'text-amber-300' : 'text-emerald-300'}`} translate="no">
-                  {analysis.motionLevel}%
-                </p>
-              </div>
+      {/* 하단 분석 패널 */}
+      {showPanel && (
+        <div className="absolute bottom-16 left-2 right-2 z-20 bg-black/70 backdrop-blur-xl rounded-2xl p-3 max-h-52 overflow-y-auto">
+          {!analysis.detected ? (
+            <div className="text-center py-4">
+              <i className="ri-camera-lens-line text-3xl text-gray-400 mb-2" />
+              <p className="text-white font-black text-sm">작물이 감지되지 않았습니다</p>
+              <p className="text-gray-400 text-[11px] mt-1">카메라를 작물(잎·줄기) 가까이 가져가 주세요</p>
             </div>
-          )}
-
-          {/* 병해충 위험도 */}
-          <div className="space-y-1">
-            {analysis.diseaseRisk.map((d, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-                  d.severity === 'high' ? 'bg-red-400' : d.severity === 'medium' ? 'bg-amber-400' : 'bg-emerald-400'
-                }`} />
-                <span className="text-[9px] text-white/80 flex-1 truncate">{d.name}</span>
-                <span className={`text-[9px] font-black ${
-                  d.probability > 0.2 ? 'text-amber-300' : 'text-emerald-300'
-                }`} translate="no">
-                  {(d.probability * 100).toFixed(0)}%
-                </span>
+          ) : (
+            <>
+              {/* 지표 배지 */}
+              <div className="flex gap-1.5 mb-2 flex-wrap">
+                <span className="px-2 py-0.5 rounded bg-emerald-500/30 text-emerald-300 text-[9px] font-black">녹색 {analysis.greenRatio}%</span>
+                <span className="px-2 py-0.5 rounded bg-amber-500/30 text-amber-300 text-[9px] font-black">황화 {analysis.yellowRatio}%</span>
+                <span className="px-2 py-0.5 rounded bg-red-500/30 text-red-300 text-[9px] font-black">갈변 {analysis.brownRatio}%</span>
+                <span className="px-2 py-0.5 rounded bg-blue-500/30 text-blue-300 text-[9px] font-black">조도 {analysis.brightness}</span>
               </div>
-            ))}
-          </div>
+
+              {/* 생육 단계 */}
+              <p className="text-emerald-300 text-[11px] font-black mb-2">📊 {analysis.growthStage}</p>
+
+              {/* 이상 징후 + 처방 */}
+              {analysis.issues.map((issue, i) => (
+                <div key={i} className="flex items-start gap-1.5 mb-1">
+                  <i className={`${issue.startsWith('✅') ? 'ri-checkbox-circle-line text-emerald-400' : 'ri-error-warning-line text-amber-400'} text-xs mt-0.5`} />
+                  <p className="text-white/80 text-[10px] leading-tight">{issue}</p>
+                </div>
+              ))}
+              {analysis.prescriptions.map((rx, i) => (
+                <div key={`rx-${i}`} className="flex items-start gap-1.5 mb-1">
+                  <i className="ri-medicine-bottle-line text-cyan-400 text-xs mt-0.5" />
+                  <p className="text-cyan-200 text-[10px] leading-tight">{rx}</p>
+                </div>
+              ))}
+            </>
+          )}
         </div>
       )}
 
-      {/* 촬영 버튼 (AI 스냅샷) */}
+      {/* 촬영 버튼 */}
       <div className="absolute bottom-3 left-0 right-0 z-20 flex justify-center">
         <button
           type="button"
@@ -367,7 +242,7 @@ export default function CropAIOverlay({ videoRef, active, onCapture }: CropAIOve
           aria-label="AI 분석 촬영"
         >
           <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center">
-            <i className="ri-camera-ai-line text-2xl text-white" />
+            <i className="ri-camera-line text-2xl text-white" />
           </div>
         </button>
       </div>

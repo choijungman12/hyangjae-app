@@ -182,16 +182,38 @@ function measureSize(canvas: HTMLCanvasElement): SizeMeasurement {
   return { widthPx, heightPx, widthCm: wCm, heightCm: hCm, depthCm, areaCm, objectType };
 }
 
+// ── Dobot CR 시리즈 로봇 팔 사양 (중국 최대 협동로봇 제조사) ──
+const ROBOT_SPEC = {
+  manufacturer: 'Dobot (越疆科技)',
+  model: 'CR10',
+  origin: '중국 심천',
+  payload: '10kg',
+  reach: '1,300mm',
+  repeatability: '±0.03mm',
+  dof: '6축',
+  protocol: 'TCP/IP · Modbus · MQTT',
+  sdk: 'Dobot Studio Pro + DobotSCStudio',
+  features: [
+    '협동 로봇 (사람과 안전 공존)',
+    '비전 시스템 내장 (카메라 연동)',
+    '힘 센서 탑재 (섬세한 수확 가능)',
+    '방수 등급 IP54 (세척 환경 대응)',
+    '간편 티칭 (손잡이 드래그 학습)',
+  ],
+  website: 'https://www.dobot-robots.com',
+};
+
 // ── 로봇 자동화 파이프라인 ──
 const ROBOT_PIPELINE = [
-  { id: 'seed',    label: '파종',     icon: 'ri-seedling-line',       status: 'ready' as const, desc: 'AI 최적 파종 시기 판단 → 자동 파종기 작동' },
-  { id: 'grow',    label: '재배 관리', icon: 'ri-plant-line',          status: 'ready' as const, desc: '센서 기반 관수·양분·조명 자동 제어' },
-  { id: 'monitor', label: 'AI 모니터링', icon: 'ri-eye-line',          status: 'active' as const, desc: '24시간 카메라 촬영 → 생육 상태 실시간 분석' },
-  { id: 'harvest', label: '수확',     icon: 'ri-scissors-2-line',     status: 'ready' as const, desc: '크기·숙성도 AI 판단 → 로봇 팔 자동 수확' },
-  { id: 'sort',    label: '선별',     icon: 'ri-filter-3-line',       status: 'ready' as const, desc: '등급별 자동 분류 (상·중·하)' },
-  { id: 'wash',    label: '세척',     icon: 'ri-drop-line',           status: 'ready' as const, desc: '자동 세척 라인 → 이물질 제거' },
-  { id: 'pack',    label: '포장',     icon: 'ri-gift-line',           status: 'ready' as const, desc: '중량 자동 측정 → 진공/일반 포장' },
-  { id: 'ship',    label: '출하 대기', icon: 'ri-truck-line',          status: 'ready' as const, desc: '냉장 보관 → 배송 연계' },
+  { id: 'seed',    label: '파종',       icon: 'ri-seedling-line',   status: 'ready' as const, desc: 'AI 최적 파종 시기 판단 → Dobot CR10 자동 파종 (정밀 위치 제어 ±0.03mm)' },
+  { id: 'grow',    label: '재배 관리',   icon: 'ri-plant-line',      status: 'ready' as const, desc: 'IoT 센서 + Dobot 비전 → 관수·양분·조명 자동 제어' },
+  { id: 'monitor', label: 'AI 모니터링', icon: 'ri-eye-line',        status: 'active' as const, desc: '스마트 카메라 24시간 촬영 → 생육 상태 실시간 분석 → 이상 감지 시 로봇 명령' },
+  { id: 'gesture', label: '모션 학습',   icon: 'ri-hand-heart-line', status: 'ready' as const, desc: '작업자 손동작 캡처 → Dobot 티칭 → 동일 동작 자동 반복' },
+  { id: 'harvest', label: '수확',       icon: 'ri-scissors-2-line', status: 'ready' as const, desc: 'AI 크기·숙성도 판단 → Dobot CR10 힘 센서로 잎줄기 절단 (작물 손상 방지)' },
+  { id: 'sort',    label: '선별',       icon: 'ri-filter-3-line',   status: 'ready' as const, desc: '비전 카메라 등급 분류 (상·중·하) → 컨베이어 자동 분배' },
+  { id: 'wash',    label: '세척',       icon: 'ri-drop-line',       status: 'ready' as const, desc: '자동 세척 라인 (IP54 방수) → 이물질 제거 → 살균' },
+  { id: 'pack',    label: '포장',       icon: 'ri-gift-line',       status: 'ready' as const, desc: '중량 자동 측정 → 진공/일반 포장 → 라벨 자동 부착' },
+  { id: 'ship',    label: '출하 대기',   icon: 'ri-truck-line',      status: 'ready' as const, desc: '냉장 보관 → 배송 연계 → 실시간 재고 관리' },
 ];
 
 export default function SmartCameraPage() {
@@ -529,14 +551,49 @@ export default function SmartCameraPage() {
       {/* ═══ 로봇 자동화 파이프라인 (모드 5) ═══ */}
       {mode === 'robot' && (
         <section className="px-4 pt-5 space-y-4">
-          <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-3xl p-5 border border-gray-700">
-            <div className="flex items-center gap-3 mb-4">
+          {/* Dobot CR10 로봇 팔 사양 */}
+          <div className="bg-gradient-to-br from-emerald-900/50 to-teal-900/50 rounded-3xl p-5 border border-emerald-700/50 mb-4">
+            <div className="flex items-center gap-3 mb-3">
               <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-xl">
                 <i className="ri-robot-2-line text-3xl text-white" />
               </div>
+              <div className="flex-1">
+                <p className="text-emerald-300 text-[10px] font-bold">{ROBOT_SPEC.manufacturer}</p>
+                <h2 className="text-white font-black text-lg">{ROBOT_SPEC.model}</h2>
+                <p className="text-gray-400 text-[10px]">{ROBOT_SPEC.origin} · {ROBOT_SPEC.dof} · {ROBOT_SPEC.protocol}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2 mb-3">
+              <div className="bg-white/10 rounded-xl p-2 text-center">
+                <p className="text-[9px] text-gray-400">페이로드</p>
+                <p className="text-sm font-black text-white" translate="no">{ROBOT_SPEC.payload}</p>
+              </div>
+              <div className="bg-white/10 rounded-xl p-2 text-center">
+                <p className="text-[9px] text-gray-400">작업 반경</p>
+                <p className="text-sm font-black text-white" translate="no">{ROBOT_SPEC.reach}</p>
+              </div>
+              <div className="bg-white/10 rounded-xl p-2 text-center">
+                <p className="text-[9px] text-gray-400">반복 정밀도</p>
+                <p className="text-sm font-black text-white" translate="no">{ROBOT_SPEC.repeatability}</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {ROBOT_SPEC.features.map(f => (
+                <span key={f} className="text-[9px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                  {f}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-3xl p-5 border border-gray-700">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-11 h-11 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
+                <i className="ri-flow-chart text-xl text-white" />
+              </div>
               <div>
-                <h2 className="text-white font-black text-lg">로봇 자동화 파이프라인</h2>
-                <p className="text-gray-400 text-xs mt-0.5">재배 → 수확 → 세척 → 포장 → 출하</p>
+                <h2 className="text-white font-black text-base">자동화 파이프라인</h2>
+                <p className="text-gray-400 text-[11px] mt-0.5">Dobot CR10 기반 · 재배→출하 9단계</p>
               </div>
             </div>
 
@@ -572,17 +629,61 @@ export default function SmartCameraPage() {
             </div>
           </div>
 
+          {/* 로봇 연결 상태 + 연동 액션 */}
+          <div className="bg-gray-800 rounded-3xl border border-gray-700 p-5">
+            <h3 className="text-white font-black text-sm mb-3 flex items-center gap-2">
+              <i className="ri-wifi-line text-amber-400" />
+              Dobot CR10 연결 상태
+            </h3>
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 mb-3">
+              <div className="flex items-center gap-3">
+                <span className="w-3 h-3 rounded-full bg-amber-500 animate-pulse" />
+                <div className="flex-1">
+                  <p className="text-amber-200 text-xs font-black">연결 대기 중</p>
+                  <p className="text-amber-300/70 text-[10px]">로봇 IP 주소를 입력하거나 네트워크 스캔을 실행하세요</p>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="로봇 IP (예: 192.168.1.100)"
+                  className="flex-1 px-3 py-2.5 bg-gray-900 border border-gray-600 rounded-xl text-white text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => alert('Dobot CR10 연결을 시도합니다.\n\n실제 로봇 하드웨어가 네트워크에 연결되면\nTCP/IP 9090 포트로 통신합니다.\n\n현재: 시뮬레이션 모드')}
+                  className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-xs rounded-xl"
+                >
+                  연결
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => alert('네트워크에서 Dobot 로봇을 자동 탐색합니다.\n\nMDNS/Bonjour 프로토콜로 검색 중...\n\n현재: 시뮬레이션 모드')}
+                className="w-full py-2.5 bg-gray-700 text-gray-300 font-black text-xs rounded-xl hover:bg-gray-600 transition-all"
+              >
+                <i className="ri-search-line mr-1" />
+                네트워크 자동 스캔
+              </button>
+            </div>
+            <p className="text-[9px] text-gray-500 mt-3 leading-relaxed">
+              통신: TCP/IP 9090 · Modbus RTU · MQTT (dobot/cr10/cmd) · SDK: DobotSCStudio API
+            </p>
+          </div>
+
           <div className="bg-blue-900/30 border border-blue-700/50 rounded-2xl p-4">
             <div className="flex items-start gap-2">
               <i className="ri-information-line text-blue-400 mt-0.5" />
               <div>
-                <p className="text-blue-200 text-xs font-black mb-1">향후 로봇 연동 계획</p>
+                <p className="text-blue-200 text-xs font-black mb-1">Dobot CR10 연동 로드맵</p>
                 <ul className="text-blue-300/80 text-[10px] space-y-0.5 leading-relaxed">
-                  <li>• 모션 캡처 모드에서 학습한 손동작을 로봇 팔에 전송</li>
-                  <li>• AI 카메라가 작물 크기·숙성도 판단 → 로봇 자동 수확 명령</li>
-                  <li>• 컨베이어 벨트 연동 → 세척·선별·포장 자동화</li>
-                  <li>• 실시간 모니터링 대시보드에서 전 공정 원격 제어</li>
-                  <li>• MQTT/ROS2 프로토콜로 로봇 통신</li>
+                  <li>• <b>Phase 1</b>: TCP/IP 명령 송수신 (이동·정지·속도 제어)</li>
+                  <li>• <b>Phase 2</b>: AI 카메라 → 좌표 변환 → Dobot 자동 수확</li>
+                  <li>• <b>Phase 3</b>: 모션 캡처 → 티칭 데이터 → 자율 반복</li>
+                  <li>• <b>Phase 4</b>: 컨베이어·세척기·포장기 PLC 연동</li>
+                  <li>• <b>Phase 5</b>: 전 공정 무인 자동화 + 원격 모니터링</li>
                 </ul>
               </div>
             </div>

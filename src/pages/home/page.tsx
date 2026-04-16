@@ -457,12 +457,12 @@ export default function Home() {
       {/* 향재원 소개 배너 */}
       <section className="px-4 pb-6">
         <div className="relative rounded-3xl overflow-hidden shadow-xl">
-          <img src="/facility-images/facility-01.jpg" alt="향재원 Farm to Table" className="w-full h-36 object-cover" />
+          <img src={imgPath('A_street_view-style_3D_rendering_of_Hyangjaewons_-1760446648462.png')} alt="향재원 전체 조감도" className="w-full h-36 object-cover" />
           <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-black/20" />
           <div className="absolute inset-0 flex flex-col justify-center px-5">
             <p className="text-emerald-300 text-xs font-bold mb-1">서울 서초구 양재동 178-4</p>
-            <h3 className="text-white text-lg font-black">향재원 Farm to Table</h3>
-            <p className="text-white/80 text-xs mt-1">고추냉이 스마트팜 + 체험 데크 8개소</p>
+            <h3 className="text-white text-lg font-black">향재원 스마트팜 공간대여</h3>
+            <p className="text-white/80 text-xs mt-1">고추냉이 스마트팜 150평 + 체험 데크 8개소</p>
             <p className="text-yellow-300 text-xs font-semibold mt-1">2026년 9월 정식 오픈 예정</p>
           </div>
         </div>

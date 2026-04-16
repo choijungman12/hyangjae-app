@@ -14,15 +14,24 @@ import { CROP_MARKET_DETAILS } from '@/data/cropMarketInfo';
  *  🔒 /admin 로그인 필요. 일반 고객은 접근 불가.
  * ═══════════════════════════════════════════════════════════ */
 
-// ── 시설 KPI ──
-const FACILITY_KPI = [
-  { label: '메인 하우스 면적',    value: '150평',    sub: '고추냉이 IoT 스마트팜',    icon: 'ri-home-gear-line', grad: 'from-blue-500 to-indigo-600' },
-  { label: '전체 부지',           value: '536평',    sub: '양재동 178-4',            icon: 'ri-landscape-line', grad: 'from-sky-500 to-cyan-600' },
-  { label: '스마트팜 체험 데크',   value: '8개',      sub: '애견 가능 2개 포함',        icon: 'ri-tent-line',      grad: 'from-emerald-500 to-teal-600' },
-  { label: '고추냉이 정식 주수',   value: '3,000주',  sub: '18~24개월 성장 주기',      icon: 'ri-plant-line',     grad: 'from-green-500 to-emerald-600' },
-  { label: '연 매출 목표',        value: '₩4억',     sub: '공간+체험+제품 합산',       icon: 'ri-money-dollar-circle-line', grad: 'from-purple-500 to-pink-600' },
-  { label: 'ROI · BEP · 투자',   value: '22%',      sub: 'BEP 3개월 · 초기 15억',    icon: 'ri-line-chart-line', grad: 'from-orange-500 to-red-500' },
-];
+// ── 시설 투자 비용 기본값 (슬라이더로 변경 가능) ──
+const INVEST_DEFAULTS = {
+  area: 150,           // 평
+  plants: 10000,       // 주
+  seedlingCost: 3000,  // 원/주
+  structureCost: 430_815_000,  // 트러스와이어+토목
+  equipBaseCost: 225_555_000,  // 샘통설비 (150평 기준)
+  subsidy: 90_000_000,  // 무상 보조금
+  loan: 200_000_000,    // 융자 (이자 1%)
+  reserve: 20_000_000,  // 초기 운영자금
+  deckCount: 8,         // 체험 데크 수
+  deckWeekday: 139_000, // 평일 요금
+  deckWeekend: 159_000, // 주말 요금
+  leafPriceMonth: 2000, // 잎 B2B 원/주·월
+  rootPriceKg: 120_000, // 근경 원/kg
+  rootWeight: 45,       // g/주
+  rootRatio: 30,        // 근경 비율 %
+};
 
 // ── 작목반장 시세 (CROP_MARKET_DETAILS 활용) ──
 const TARGET_CROPS = ['wasabi', 'lettuce', 'strawberry', 'perilla', 'tomato'] as const;
@@ -147,6 +156,16 @@ export default function AdminBusiness() {
   const [authed, setAuthed] = useState(false);
   const [scenarioId, setScenarioId] = useState<Scenario['id']>('realistic');
 
+  // ── 통합 시뮬레이터 상태 ──
+  const [simArea, setSimArea] = useState(INVEST_DEFAULTS.area);
+  const [simPlants, setSimPlants] = useState(INVEST_DEFAULTS.plants);
+  const [simDecks, setSimDecks] = useState(INVEST_DEFAULTS.deckCount);
+  const [simHasDeck, setSimHasDeck] = useState(true);
+  const [simRootRatio, setSimRootRatio] = useState(INVEST_DEFAULTS.rootRatio);
+  const [simLeafPrice, setSimLeafPrice] = useState(INVEST_DEFAULTS.leafPriceMonth);
+  const [simRootPrice, setSimRootPrice] = useState(INVEST_DEFAULTS.rootPriceKg);
+  const [simRootWeight, setSimRootWeight] = useState(INVEST_DEFAULTS.rootWeight);
+
   // 🧪 테스트 모드: 인증 없이 접근 허용 (운영 시 아래 블록으로 교체)
   useEffect(() => { setAuthed(true); }, []);
   // useEffect(() => {
@@ -164,6 +183,53 @@ export default function AdminBusiness() {
   const annualProfit = monthlyProfit * 12;
   const bepMonths = monthlyProfit > 0 ? Math.ceil(INITIAL_INVESTMENT / monthlyProfit) : Infinity;
   const roiPercent = monthlyProfit > 0 ? ((annualProfit / INITIAL_INVESTMENT) * 100) : 0;
+
+  // ── 통합 시뮬레이션 계산 ──
+  const sim = useMemo(() => {
+    const areaRatio = simArea / 150;
+    const equipCost = Math.round(INVEST_DEFAULTS.equipBaseCost * areaRatio);
+    const seedlingCost = simPlants * INVEST_DEFAULTS.seedlingCost;
+    const deckInvest = simHasDeck ? simDecks * 15_000_000 : 0; // 데크당 약 1500만
+    const totalInvest = INVEST_DEFAULTS.structureCost + equipCost + seedlingCost + deckInvest + INVEST_DEFAULTS.reserve;
+    const selfFund = Math.max(0, totalInvest - INVEST_DEFAULTS.subsidy - INVEST_DEFAULTS.loan);
+
+    // 작물 매출 (2년차 기준)
+    const rootPlants = Math.round(simPlants * simRootRatio / 100);
+    const leafPlants = simPlants - rootPlants;
+    const leafRevYear = leafPlants * simLeafPrice * 12;
+    const rootPerPlant = (simRootWeight / 1000) * simRootPrice;
+    const rootRevYear = rootPlants * rootPerPlant;
+    const cropRevYear = leafRevYear + rootRevYear;
+
+    // 공간대여 매출 (연간)
+    const deckRevYear = simHasDeck
+      ? Math.round(simDecks * ((INVEST_DEFAULTS.deckWeekday * 2 * 260 / 365) + (INVEST_DEFAULTS.deckWeekend * 3 * 105 / 365)) * 0.65) // 65% 예약률
+      : 0;
+
+    // 제품 판매 매출 (추정)
+    const productRevYear = Math.round(cropRevYear * 0.15); // 작물의 15%를 가공 제품으로
+
+    const totalRevYear = cropRevYear + deckRevYear + productRevYear;
+
+    // 연간 운영비
+    const annualOpex = Math.round(
+      15_000_000 * Math.pow(areaRatio, 0.7) + 5_250_000 * areaRatio +
+      6_000_000 * Math.pow(areaRatio, 0.6) + 12_000_000 * Math.pow(areaRatio, 0.5) +
+      2_000_000 + 3_000_000 +
+      (simHasDeck ? simDecks * 2_000_000 : 0) // 데크 운영비
+    );
+
+    const annualNetProfit = totalRevYear - annualOpex;
+    const roi = annualOpex > 0 ? (annualNetProfit / totalInvest) * 100 : 0;
+    const recoverYears = annualNetProfit > 0 ? selfFund / annualNetProfit : Infinity;
+
+    return {
+      totalInvest, selfFund, equipCost, seedlingCost, deckInvest,
+      leafRevYear, rootRevYear, cropRevYear, deckRevYear, productRevYear, totalRevYear,
+      annualOpex, annualNetProfit, roi, recoverYears,
+      rootPlants, leafPlants,
+    };
+  }, [simArea, simPlants, simDecks, simHasDeck, simRootRatio, simLeafPrice, simRootPrice, simRootWeight]);
 
   if (!authed) return null;
 
@@ -189,26 +255,126 @@ export default function AdminBusiness() {
       </header>
 
       <div className="px-4 pt-5 space-y-5">
-        {/* ═══ 시설·수확 KPI ═══ */}
+        {/* ═══ 통합 시뮬레이터 — 시설 + 작물 + 공간대여 종합 ═══ */}
         <section>
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-black text-gray-900">시설·수확 핵심 지표</h2>
-            <span className="text-[10px] text-gray-400">2026년 9월 오픈 기준</span>
+            <h2 className="text-sm font-black text-gray-900 flex items-center gap-1.5">
+              <i className="ri-settings-3-line text-emerald-500" />
+              통합 시나리오 설정
+            </h2>
+            <span className="text-[10px] text-emerald-600 font-black">슬라이더 조절 → 실시간 반영</span>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            {FACILITY_KPI.map(kpi => (
-              <div key={kpi.label} className={`relative bg-gradient-to-br ${kpi.grad} rounded-2xl p-4 text-white shadow-lg overflow-hidden`}>
-                <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full blur-xl" />
-                <div className="relative z-10">
-                  <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center mb-2">
-                    <i className={`${kpi.icon} text-sm`} aria-hidden="true" />
-                  </div>
-                  <p className="text-lg font-black" translate="no">{kpi.value}</p>
-                  <p className="text-[10px] text-white/80 mt-0.5">{kpi.label}</p>
-                  <p className="text-[9px] text-white/60 mt-0.5 truncate">{kpi.sub}</p>
-                </div>
+
+          {/* 슬라이더 패널 */}
+          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-5 mb-4 space-y-4">
+            {/* 면적 */}
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="text-gray-600">재배 면적</span>
+                <span className="font-black text-emerald-600" translate="no">{simArea}평</span>
               </div>
-            ))}
+              <input type="range" min={50} max={500} step={10} value={simArea} onChange={e => setSimArea(Number(e.target.value))}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-500" />
+            </div>
+            {/* 주수 */}
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="text-gray-600">재식 주수</span>
+                <span className="font-black text-emerald-600" translate="no">{simPlants.toLocaleString()}주</span>
+              </div>
+              <input type="range" min={1000} max={30000} step={500} value={simPlants} onChange={e => setSimPlants(Number(e.target.value))}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-500" />
+            </div>
+            {/* 근경 비율 */}
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="text-gray-600">근경 비율</span>
+                <span className="font-black text-amber-600" translate="no">{simRootRatio}% ({Math.round(simPlants * simRootRatio / 100).toLocaleString()}주)</span>
+              </div>
+              <input type="range" min={0} max={70} step={5} value={simRootRatio} onChange={e => setSimRootRatio(Number(e.target.value))}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-amber-500" />
+            </div>
+            {/* 공간대여 데크 */}
+            <div className="flex items-center gap-3">
+              <button type="button" onClick={() => setSimHasDeck(!simHasDeck)}
+                className={`w-12 h-7 rounded-full transition-all ${simHasDeck ? 'bg-emerald-500' : 'bg-gray-300'}`}>
+                <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${simHasDeck ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+              <span className="text-xs text-gray-600">공간대여 데크</span>
+              {simHasDeck && (
+                <div className="flex items-center gap-2 ml-auto">
+                  <button type="button" onClick={() => setSimDecks(Math.max(0, simDecks - 1))} className="w-7 h-7 bg-gray-100 rounded-lg text-xs font-black">-</button>
+                  <span className="text-sm font-black text-gray-900" translate="no">{simDecks}개</span>
+                  <button type="button" onClick={() => setSimDecks(Math.min(20, simDecks + 1))} className="w-7 h-7 bg-gray-100 rounded-lg text-xs font-black">+</button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 최종 KPI 결과 */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="relative bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl p-4 text-white shadow-lg overflow-hidden">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full blur-xl" />
+              <div className="relative z-10">
+                <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center mb-2"><i className="ri-building-line text-sm" /></div>
+                <p className="text-lg font-black" translate="no">{fmtWon(sim.totalInvest)}</p>
+                <p className="text-[10px] text-white/80 mt-0.5">총 시설 투자비</p>
+                <p className="text-[9px] text-white/60">자부담 {fmtWon(sim.selfFund)}</p>
+              </div>
+            </div>
+            <div className="relative bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-4 text-white shadow-lg overflow-hidden">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full blur-xl" />
+              <div className="relative z-10">
+                <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center mb-2"><i className="ri-money-dollar-circle-line text-sm" /></div>
+                <p className="text-lg font-black" translate="no">{fmtWon(sim.totalRevYear)}</p>
+                <p className="text-[10px] text-white/80 mt-0.5">연간 총 매출</p>
+                <p className="text-[9px] text-white/60">작물 {fmtWon(sim.cropRevYear)} + 데크 {fmtWon(sim.deckRevYear)}</p>
+              </div>
+            </div>
+            <div className={`relative bg-gradient-to-br ${sim.annualNetProfit >= 0 ? 'from-green-500 to-emerald-600' : 'from-red-500 to-rose-600'} rounded-2xl p-4 text-white shadow-lg overflow-hidden`}>
+              <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full blur-xl" />
+              <div className="relative z-10">
+                <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center mb-2"><i className="ri-line-chart-line text-sm" /></div>
+                <p className="text-lg font-black" translate="no">{fmtWon(sim.annualNetProfit)}</p>
+                <p className="text-[10px] text-white/80 mt-0.5">연간 순이익</p>
+                <p className="text-[9px] text-white/60">ROI {sim.roi.toFixed(1)}%</p>
+              </div>
+            </div>
+            <div className={`relative bg-gradient-to-br ${sim.recoverYears <= 3 ? 'from-purple-500 to-pink-600' : sim.recoverYears <= 5 ? 'from-amber-500 to-orange-600' : 'from-gray-500 to-gray-700'} rounded-2xl p-4 text-white shadow-lg overflow-hidden`}>
+              <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full blur-xl" />
+              <div className="relative z-10">
+                <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center mb-2"><i className="ri-timer-line text-sm" /></div>
+                <p className="text-lg font-black" translate="no">{sim.recoverYears < 100 ? `${sim.recoverYears.toFixed(1)}년` : '—'}</p>
+                <p className="text-[10px] text-white/80 mt-0.5">투자 회수 기간</p>
+                <p className="text-[9px] text-white/60">자부담 {fmtWon(sim.selfFund)} 기준</p>
+              </div>
+            </div>
+          </div>
+
+          {/* 매출 분해 */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-4 mt-3">
+            <p className="text-[11px] font-black text-gray-600 mb-2">매출 구성 (연간)</p>
+            <div className="space-y-2">
+              {[
+                { label: `잎 매출 (${sim.leafPlants.toLocaleString()}주)`, value: sim.leafRevYear, color: 'bg-emerald-500' },
+                { label: `근경 매출 (${sim.rootPlants.toLocaleString()}주)`, value: sim.rootRevYear, color: 'bg-amber-500' },
+                { label: `공간대여 (${simHasDeck ? simDecks + '데크' : '없음'})`, value: sim.deckRevYear, color: 'bg-blue-500' },
+                { label: '가공 제품 (추정)', value: sim.productRevYear, color: 'bg-purple-500' },
+              ].map(item => (
+                <div key={item.label} className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${item.color}`} />
+                  <span className="flex-1 text-[11px] text-gray-600">{item.label}</span>
+                  <div className="w-20 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div className={`h-full ${item.color} rounded-full`} style={{ width: `${sim.totalRevYear > 0 ? (item.value / sim.totalRevYear * 100) : 0}%` }} />
+                  </div>
+                  <span className="text-[11px] font-mono font-black text-gray-800 w-16 text-right" translate="no">{fmtWon(item.value)}</span>
+                </div>
+              ))}
+              <div className="border-t border-gray-100 pt-2 flex justify-between text-xs">
+                <span className="font-black text-gray-700">합계</span>
+                <span className="font-mono font-black text-emerald-600" translate="no">{fmtWon(sim.totalRevYear)}</span>
+              </div>
+            </div>
           </div>
         </section>
 

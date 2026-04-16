@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import BottomNav from '@/components/BottomNav';
+import CropAIOverlay from '@/components/CropAIOverlay';
 import { useScrollY } from '@/hooks/useScrollY';
 import { CROP_VISUAL } from '@/data/crops';
 
@@ -13,6 +14,7 @@ export default function CropRecognition() {
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
+  const [aiOverlayActive, setAiOverlayActive] = useState(true);
   const scrollY = useScrollY();
   const analysisTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -394,14 +396,26 @@ export default function CropRecognition() {
             >
               <i className="ri-close-line text-white text-xl" />
             </button>
-            <p className="text-white text-sm font-black">작물 촬영</p>
-            <button
-              onClick={switchCamera}
-              className="w-10 h-10 flex items-center justify-center bg-black/50 backdrop-blur-md rounded-xl"
-              disabled={!!cameraError}
-            >
-              <i className="ri-camera-switch-line text-white text-xl" />
-            </button>
+            <p className="text-white text-sm font-black">AI 작물 분석</p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setAiOverlayActive(v => !v)}
+                className={`h-8 px-2.5 flex items-center gap-1 rounded-lg text-[10px] font-black transition-all ${
+                  aiOverlayActive ? 'bg-emerald-500 text-white' : 'bg-black/50 text-white/60'
+                }`}
+              >
+                <i className="ri-robot-2-line text-xs" />
+                AI {aiOverlayActive ? 'ON' : 'OFF'}
+              </button>
+              <button
+                onClick={switchCamera}
+                className="w-10 h-10 flex items-center justify-center bg-black/50 backdrop-blur-md rounded-xl"
+                disabled={!!cameraError}
+              >
+                <i className="ri-camera-switch-line text-white text-xl" />
+              </button>
+            </div>
           </div>
 
           {/* 비디오 영역 */}
@@ -435,19 +449,24 @@ export default function CropRecognition() {
                   muted
                   className="w-full h-full object-cover"
                 />
-                {/* 촬영 가이드 프레임 */}
-                <div className="absolute inset-6 pointer-events-none">
-                  <div className="absolute top-0 left-0 w-10 h-10 border-t-4 border-l-4 border-white/80 rounded-tl-2xl" />
-                  <div className="absolute top-0 right-0 w-10 h-10 border-t-4 border-r-4 border-white/80 rounded-tr-2xl" />
-                  <div className="absolute bottom-0 left-0 w-10 h-10 border-b-4 border-l-4 border-white/80 rounded-bl-2xl" />
-                  <div className="absolute bottom-0 right-0 w-10 h-10 border-b-4 border-r-4 border-white/80 rounded-br-2xl" />
-                </div>
-                <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20">
-                  <p className="text-[11px] text-white font-bold flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
-                    LIVE · 작물을 프레임 안에 배치하세요
-                  </p>
-                </div>
+                {/* AI 실시간 오버레이 (바운딩 박스 + 크기 측정 + 환경 분석 + 병해충 감지) */}
+                <CropAIOverlay
+                  videoRef={videoRef}
+                  active={aiOverlayActive && !cameraError}
+                  onCapture={(imageData, aiResult) => {
+                    setSelectedImage(imageData);
+                    closeCamera();
+                    // AI 결과를 기존 분석 결과로 변환
+                    setResult({
+                      ...result,
+                      cropName: aiResult.detections[0]?.label || '고추냉이',
+                      confidence: aiResult.detections[0]?.confidence || 0.95,
+                      healthScore: aiResult.healthScore,
+                      diseases: aiResult.diseaseRisk.filter(d => d.probability > 0.2).map(d => d.name),
+                      aiAnalysis: aiResult,
+                    });
+                  }}
+                />
               </>
             )}
           </div>

@@ -7,8 +7,11 @@
  * API Key: 2b10bCzINx9zSmdtXNE9XxUUVO
  */
 
-const API_KEY = '2b10bCzINx9zSmdtXNE9XxUUVO';
-const API_URL = 'https://my-api.plantnet.org/v2/identify/all';
+const DIRECT_API_KEY = '2b10bCzINx9zSmdtXNE9XxUUVO';
+const DIRECT_API_URL = 'https://my-api.plantnet.org/v2/identify/all';
+// Vercel 배포 시: /api/plantnet 프록시 사용 (CORS 우회)
+// 로컬 개발 시: Vite proxy로 /api/plantnet → PlantNet 직접 호출
+const PROXY_URL = '/api/plantnet';
 
 export const PLANT_ID_CONFIGURED = true;
 
@@ -46,12 +49,16 @@ export async function identifyPlant(imageBase64: string): Promise<PlantIdResult>
     const formData = new FormData();
     formData.append('images', blob, 'plant.jpg');
 
-    const url = `${API_URL}?include-related-images=true&no-reject=true&lang=en&api-key=${API_KEY}`;
-
-    const response = await fetch(url, {
-      method: 'POST',
-      body: formData,
-    });
+    // 프록시 시도 → 실패 시 직접 호출 (CORS 허용 환경에서만)
+    let response: Response;
+    try {
+      response = await fetch(PROXY_URL, { method: 'POST', body: formData });
+      if (!response.ok && response.status === 404) throw new Error('proxy not found');
+    } catch {
+      // 프록시 없으면 직접 호출 (로컬 개발 · Vite proxy 또는 CORS 허용 시)
+      const directUrl = `${DIRECT_API_URL}?include-related-images=true&no-reject=true&lang=en&api-key=${DIRECT_API_KEY}`;
+      response = await fetch(directUrl, { method: 'POST', body: formData });
+    }
 
     if (!response.ok) {
       console.error('PlantNet API error:', response.status);

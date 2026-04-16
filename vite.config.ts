@@ -79,5 +79,12 @@ export default defineConfig({
   server: {
     port: 3000,
     host: "0.0.0.0",
+    proxy: {
+      '/api/plantnet': {
+        target: 'https://my-api.plantnet.org',
+        changeOrigin: true,
+        rewrite: (path) => path.replace('/api/plantnet', '/v2/identify/all?include-related-images=true&no-reject=true&lang=en&api-key=2b10bCzINx9zSmdtXNE9XxUUVO'),
+      },
+    },
   },
 });

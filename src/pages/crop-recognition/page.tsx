@@ -312,11 +312,13 @@ export default function CropRecognition() {
       const finalDiseases = aiSource === 'plantnet' && aiDiseases.length > 0 ? aiDiseases : diseases;
 
       if (aiSource === 'plantnet') {
-        recommendations.unshift(`🤖 Plant.id AI 식별: ${aiName} (신뢰도 ${(aiConfidence * 100).toFixed(0)}%)`);
-        if (aiDescription) recommendations.push(`📋 ${aiDescription.slice(0, 100)}...`);
+        recommendations.unshift(`🤖 PlantNet AI 식별: ${aiName}`);
+        recommendations.unshift(`🔬 학명: ${aiScientific} · ${aiFamily}과`);
+        recommendations.unshift(`📊 신뢰도: ${(aiConfidence * 100).toFixed(1)}%`);
+        if (aiDescription) recommendations.push(`📋 ${aiDescription}`);
       } else {
-        recommendations.unshift('💡 Plant.id API 키 설정 시 46만종 정확한 식물 식별 가능');
-        recommendations.push('현재: 색상 분포 기반 분석 (형태·줄기·꽃 분석은 AI 모델 필요)');
+        recommendations.unshift('⚠ PlantNet API 연결 실패 — 색상 기반 분석만 제공');
+        recommendations.push('💡 네트워크 확인 후 재촬영 시 정확한 식물 식별 가능');
       }
 
       setResult({

@@ -4,6 +4,7 @@ import BottomNav from '@/components/BottomNav';
 import CropAIOverlay from '@/components/CropAIOverlay';
 import { useScrollY } from '@/hooks/useScrollY';
 import { CROP_VISUAL } from '@/data/crops';
+import { identifyPlant, PLANT_ID_CONFIGURED } from '@/lib/plantIdApi';
 
 export default function CropRecognition() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -138,10 +139,35 @@ export default function CropRecognition() {
       });
     }, 200);
 
-    // 실제 이미지 로드 → Canvas 픽셀 분석
+    // 실제 이미지 로드 → Canvas 픽셀 분석 + Plant.id API 식별
     const img = new Image();
     img.crossOrigin = 'anonymous';
-    img.onload = () => {
+    img.onload = async () => {
+      // ── Plant.id API로 정확한 식물 식별 시도 ──
+      let aiName = '';
+      let aiScientific = '';
+      let aiFamily = '';
+      let aiConfidence = 0;
+      let aiDescription = '';
+      let aiDiseases: string[] = [];
+      let aiSource: 'plant-id' | 'color-fallback' = 'color-fallback';
+
+      if (PLANT_ID_CONFIGURED && imageUrl) {
+        try {
+          const plantResult = await identifyPlant(imageUrl);
+          if (plantResult.success) {
+            aiName = plantResult.name;
+            aiScientific = plantResult.scientificName;
+            aiFamily = plantResult.family;
+            aiConfidence = plantResult.probability;
+            aiDescription = plantResult.description;
+            aiDiseases = plantResult.diseases.map(d => `${d.name} (${(d.probability * 100).toFixed(0)}%)`);
+            aiSource = 'plant-id';
+          }
+        } catch { /* API 실패 시 색상 분석 fallback */ }
+      }
+
+      // ── Canvas 픽셀 분석 (색상 기반 건강도 + 크기 측정) ──
       const cvs = document.createElement('canvas');
       const w = Math.min(img.width, 640); // 성능을 위해 640px로 다운스케일
       const h = Math.round((img.height / img.width) * w);
@@ -278,15 +304,30 @@ export default function CropRecognition() {
 
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
       setUploadProgress(100);
+
+      // Plant.id AI 결과가 있으면 우선 사용, 없으면 색상 분석 결과
+      const finalCropName = aiSource === 'plant-id' ? aiName : cropName;
+      const finalScientific = aiSource === 'plant-id' ? aiScientific : scientificName;
+      const finalFamily = aiSource === 'plant-id' ? aiFamily : family;
+      const finalDiseases = aiSource === 'plant-id' && aiDiseases.length > 0 ? aiDiseases : diseases;
+
+      if (aiSource === 'plant-id') {
+        recommendations.unshift(`🤖 Plant.id AI 식별: ${aiName} (신뢰도 ${(aiConfidence * 100).toFixed(0)}%)`);
+        if (aiDescription) recommendations.push(`📋 ${aiDescription.slice(0, 100)}...`);
+      } else {
+        recommendations.unshift('💡 Plant.id API 키 설정 시 46만종 정확한 식물 식별 가능');
+        recommendations.push('현재: 색상 분포 기반 분석 (형태·줄기·꽃 분석은 AI 모델 필요)');
+      }
+
       setResult({
-        cropName,
-        scientificName,
-        family,
+        cropName: finalCropName,
+        scientificName: finalScientific,
+        family: finalFamily,
         growthStage: plantType === 'leaf' ? (greenR > 35 ? '활발한 생육기' : '초기~중기 생육') : (plantType === 'fruit' ? '결실기' : '판별 불가'),
-        growthStageDetail: `녹색 ${greenR}% · 갈변 ${brownR}% · 황화 ${yellowR}% · 적색 ${redR}%`,
-        health,
+        growthStageDetail: `녹색 ${greenR}% · 갈변 ${brownR}% · 황화 ${yellowR}% · 적색 ${redR}%` + (aiSource === 'plant-id' ? ` · AI: ${aiName}` : ''),
+        health: aiSource === 'plant-id' ? (aiConfidence > 0.5 ? '식별 완료' : health) : health,
         healthScore,
-        diseases,
+        diseases: finalDiseases,
         pests: [],
         leafAnalysis: {
           color: `평균 RGB (${avgR}, ${avgG}, ${avgB})`,

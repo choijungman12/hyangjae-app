@@ -453,32 +453,20 @@ export default function CropRecognition() {
                 <CropAIOverlay
                   videoRef={videoRef}
                   active={aiOverlayActive && !cameraError}
-                  onCapture={(imageData, aiResult) => {
+                  onCapture={(imageData) => {
+                    // 촬영된 이미지를 설정하고 기존 분석 흐름(analyzeImage)으로 연결
                     setSelectedImage(imageData);
                     closeCamera();
-                    // AI 실제 픽셀 분석 결과를 기존 분석 결과로 변환
-                    setResult({
-                      ...result,
-                      cropName: aiResult.detected ? '감지된 작물' : '미감지',
-                      confidence: aiResult.detected ? aiResult.healthScore / 100 : 0,
-                      healthScore: aiResult.healthScore,
-                      greenRatio: aiResult.greenRatio,
-                      brownRatio: aiResult.brownRatio,
-                      yellowRatio: aiResult.yellowRatio,
-                      growthStage: aiResult.growthStage,
-                      issues: aiResult.issues,
-                      prescriptions: aiResult.prescriptions,
-                      diseases: aiResult.issues.filter(i => !i.startsWith('✅')),
-                      aiAnalysis: aiResult,
-                    });
+                    analyzeImage(imageData);
+                    window.scrollTo({ top: 400, behavior: 'smooth' });
                   }}
                 />
               </>
             )}
           </div>
 
-          {/* 촬영 컨트롤 */}
-          {!cameraError && (
+          {/* 촬영 컨트롤 — AI 오버레이가 OFF일 때만 기본 컨트롤 표시 (AI ON 시에는 오버레이 내부 버튼 사용) */}
+          {!cameraError && !aiOverlayActive && (
             <div className="pb-8 pt-4 bg-gradient-to-t from-black/90 to-transparent flex items-center justify-center gap-8">
               <label className="w-12 h-12 flex items-center justify-center bg-white/10 backdrop-blur-md rounded-2xl cursor-pointer border border-white/20">
                 <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />

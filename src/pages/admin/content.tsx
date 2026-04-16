@@ -9,7 +9,7 @@ const DEFAULT_CONTENT = {
   heroTitle: '향재원',
   heroSubtitle: '서초구 양재동 · 스마트팜 & 체험 공간',
   heroDesc: '고추냉이 스마트팜과 자연 속 힐링 체험을 경험하세요',
-  noticeText: '2027년 6월 정식 오픈 예정입니다. 사전 예약을 받고 있습니다.',
+  noticeText: '2026년 9월 정식 오픈 예정입니다. 사전 예약을 받고 있습니다.',
   ctaBooking: '지금 예약하기',
   ctaMap: '오시는 길',
   facilityDesc: '서울 서초구 양재동 178-4 · 약 536평 규모의 복합 스마트팜 공간',

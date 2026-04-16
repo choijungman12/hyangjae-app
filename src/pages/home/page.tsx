@@ -24,76 +24,81 @@ const FACILITIES: FacilityInfo[] = [
     key: 'smartfarm',
     label: '메인 하우스',
     subtitle: '고추냉이 스마트팜 150평',
-    thumbnail: BASE + '/facility-images/향재원 조감도 (2).png',
+    thumbnail: imgPath('향재원 조감도 (2).png'),
     images: [
-      BASE + '/facility-images/향재원 조감도 (2).png',
-      BASE + '/facility-images/향재원조감도 (1).jpg',
-      BASE + '/facility-images/향재원조감도 (2).jpg',
-      BASE + '/facility-images/향재원조감도 (3).jpg',
-      BASE + '/facility-images/향재원조감도 (4).jpg',
-      BASE + '/facility-images/향재원조감도 (7).png',
-      BASE + '/facility-images/향재원조감도 (8).png',
-      BASE + '/facility-images/향재원조감도 (9).png',
+      imgPath('향재원 조감도 (2).png'),
+      imgPath('향재원조감도 (1).jpg'),
+      imgPath('향재원조감도 (2).jpg'),
+      imgPath('향재원조감도 (3).jpg'),
+      imgPath('향재원조감도 (4).jpg'),
+      imgPath('향재원조감도 (7).png'),
+      imgPath('향재원조감도 (8).png'),
+      imgPath('향재원조감도 (9).png'),
     ],
   },
   {
     key: 'store',
     label: '향재원 매점',
     subtitle: 'Farm-to-Table 스토어',
-    thumbnail: BASE + '/facility-images/KakaoTalk_20251125_132835980_15.jpg',
+    thumbnail: imgPath('KakaoTalk_20251125_132835980_15.jpg'),
     images: [
-      BASE + '/facility-images/KakaoTalk_20251125_132835980_15.jpg',
-      BASE + '/facility-images/KakaoTalk_20251125_132835980_23.jpg',
-      BASE + '/facility-images/향재원  (6).png',
-      BASE + '/facility-images/향재원  (7).png',
-      BASE + '/facility-images/향재원  (16).png',
-      BASE + '/facility-images/향재원  (4).jpg',
-      BASE + '/facility-images/KakaoTalk_20260410_165225697.jpg',
-      BASE + '/facility-images/KakaoTalk_20260410_165225697_01.jpg',
-      BASE + '/facility-images/KakaoTalk_20260410_165225697_02.png',
-      BASE + '/facility-images/KakaoTalk_20260410_165225697_03.png',
+      imgPath('KakaoTalk_20251125_132835980_15.jpg'),
+      imgPath('KakaoTalk_20251125_132835980_23.jpg'),
+      imgPath('향재원  (6).png'),
+      imgPath('향재원  (7).png'),
+      imgPath('향재원  (16).png'),
+      imgPath('향재원  (4).jpg'),
+      imgPath('KakaoTalk_20260410_165225697.jpg'),
+      imgPath('KakaoTalk_20260410_165225697_01.jpg'),
+      imgPath('KakaoTalk_20260410_165225697_02.png'),
+      imgPath('KakaoTalk_20260410_165225697_03.png'),
     ],
   },
   {
     key: 'deck',
     label: '체험 데크',
     subtitle: '스마트팜 체험 데크 8개소',
-    thumbnail: BASE + '/facility-images/향재원 조감도 (3).png',
+    thumbnail: imgPath('향재원 조감도 (3).png'),
     images: [
-      BASE + '/facility-images/향재원 조감도 (3).png',
-      BASE + '/facility-images/향재원 조감도 (4).png',
-      BASE + '/facility-images/향재원 조감도 (5).png',
-      BASE + '/facility-images/향재원 조감도 (6).png',
-      BASE + '/facility-images/향재원 조감도 (7).png',
-      BASE + '/facility-images/향재원  (1).jpg',
-      BASE + '/facility-images/향재원  (4).png',
+      imgPath('향재원 조감도 (3).png'),
+      imgPath('향재원 조감도 (4).png'),
+      imgPath('향재원 조감도 (5).png'),
+      imgPath('향재원 조감도 (6).png'),
+      imgPath('향재원 조감도 (7).png'),
+      imgPath('향재원  (1).jpg'),
+      imgPath('향재원  (4).png'),
     ],
   },
   {
     key: 'site',
     label: '전체 부지',
     subtitle: '양재동 178-4 · 536평',
-    thumbnail: BASE + '/facility-images/A_detailed_3D_rendering_of_a_luxurious_glamping_si-1760445157424.png',
+    thumbnail: imgPath('A_detailed_3D_rendering_of_a_luxurious_glamping_si-1760445157424.png'),
     images: [
-      BASE + '/facility-images/A_detailed_3D_rendering_of_a_luxurious_glamping_si-1760445157424.png',
-      BASE + '/facility-images/A_street_view-style_3D_rendering_of_Hyangjaewons_-1760446648462.png',
-      BASE + '/facility-images/A_3D_rendering_of_a_landscape_in_the_evening_rese-1760446537669.png',
-      BASE + '/facility-images/facility-10.jpg',
-      BASE + '/facility-images/facility-12.jpg',
-      BASE + '/facility-images/facility-18.png',
-      BASE + '/facility-images/facility-19.png',
-      BASE + '/facility-images/facility-20.png',
+      imgPath('A_detailed_3D_rendering_of_a_luxurious_glamping_si-1760445157424.png'),
+      imgPath('A_street_view-style_3D_rendering_of_Hyangjaewons_-1760446648462.png'),
+      imgPath('A_3D_rendering_of_a_landscape_in_the_evening_rese-1760446537669.png'),
+      imgPath('facility-10.jpg'),
+      imgPath('facility-12.jpg'),
+      imgPath('facility-18.png'),
+      imgPath('facility-19.png'),
+      imgPath('facility-20.png'),
     ],
   },
 ];
 
 /* 히어로 캐러셀 이미지 — 관리자 페이지에서 업로드한 이미지가 있으면 그것을 사용, 없으면 fallback */
+/** 한글·공백 파일명 URL 인코딩 헬퍼 */
+function imgPath(filename: string): string {
+  return BASE + '/facility-images/' + encodeURIComponent(filename);
+}
+
 const HERO_SLIDES: { key: ImageKey; fallback: string; caption: string }[] = [
-  { key: 'hero-slide-1', fallback: BASE + '/facility-images/A_detailed_3D_rendering_of_a_luxurious_glamping_si-1760445157424.png', caption: '스마트팜 공간대여 · 체험 데크 8개소' },
-  { key: 'hero-slide-2', fallback: BASE + '/facility-images/향재원 조감도 (3).png',                                                   caption: '양재동 스마트팜 전경' },
-  { key: 'hero-slide-3', fallback: BASE + '/facility-images/향재원 조감도 (2).png',                                                   caption: '고추냉이 스마트팜 150평' },
-  { key: 'hero-slide-4', fallback: BASE + '/facility-images/A_3D_rendering_of_a_landscape_in_the_evening_rese-1760446537669.png',     caption: '데크별 전용 텃밭' },
-  { key: 'hero-slide-5', fallback: BASE + '/facility-images/향재원 조감도 (4).png',                                                   caption: '536평 전체 부지' },
+  { key: 'hero-slide-1', fallback: imgPath('A_detailed_3D_rendering_of_a_luxurious_glamping_si-1760445157424.png'), caption: '스마트팜 공간대여 · 체험 데크 8개소' },
+  { key: 'hero-slide-2', fallback: imgPath('향재원 조감도 (3).png'),  caption: '양재동 스마트팜 전경' },
+  { key: 'hero-slide-3', fallback: imgPath('향재원 조감도 (2).png'),  caption: '고추냉이 스마트팜 150평' },
+  { key: 'hero-slide-4', fallback: imgPath('A_3D_rendering_of_a_landscape_in_the_evening_rese-1760446537669.png'), caption: '데크별 전용 텃밭' },
+  { key: 'hero-slide-5', fallback: imgPath('향재원 조감도 (4).png'),  caption: '536평 전체 부지' },
 ];
 
 /** 히어로 슬라이드 개별 이미지 (커스텀 업로드 자동 반영) */
@@ -306,7 +311,7 @@ export default function Home() {
         <div className="mt-3 flex items-center justify-between px-2">
           <div className="flex items-center gap-2 text-xs text-gray-500">
             <i className="ri-time-line" aria-hidden="true" />
-            <span>2027년 6월 정식 오픈</span>
+            <span>2026년 9월 정식 오픈</span>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-emerald-600 font-black">
             <i className="ri-sparkling-fill animate-pulse" aria-hidden="true" />
@@ -458,7 +463,7 @@ export default function Home() {
             <p className="text-emerald-300 text-xs font-bold mb-1">서울 서초구 양재동 178-4</p>
             <h3 className="text-white text-lg font-black">향재원 Farm to Table</h3>
             <p className="text-white/80 text-xs mt-1">고추냉이 스마트팜 + 체험 데크 8개소</p>
-            <p className="text-yellow-300 text-xs font-semibold mt-1">2027년 6월 정식 오픈 예정</p>
+            <p className="text-yellow-300 text-xs font-semibold mt-1">2026년 9월 정식 오픈 예정</p>
           </div>
         </div>
       </section>

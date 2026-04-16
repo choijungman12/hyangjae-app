@@ -310,7 +310,7 @@ export default function ProfitAnalysis() {
             </div>
             <div>
               <p className="text-white font-black text-sm">향재원 매출 목표</p>
-              <p className="text-white/70 text-xs">서초구 양재동 · 2027년 6월 오픈</p>
+              <p className="text-white/70 text-xs">서초구 양재동 · 2026년 9월 오픈</p>
             </div>
           </div>
           <div className="p-4 grid grid-cols-2 gap-2.5">

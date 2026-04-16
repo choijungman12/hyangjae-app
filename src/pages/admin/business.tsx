@@ -193,7 +193,7 @@ export default function AdminBusiness() {
         <section>
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-black text-gray-900">시설·수확 핵심 지표</h2>
-            <span className="text-[10px] text-gray-400">2027년 6월 오픈 기준</span>
+            <span className="text-[10px] text-gray-400">2026년 9월 오픈 기준</span>
           </div>
           <div className="grid grid-cols-2 gap-3">
             {FACILITY_KPI.map(kpi => (

@@ -33,6 +33,7 @@ const AdminBookings = lazy(() => import('../pages/admin/bookings'));
 const AdminProducts = lazy(() => import('../pages/admin/products'));
 const AdminContent = lazy(() => import('../pages/admin/content'));
 const AdminBusiness = lazy(() => import('../pages/admin/business'));
+const SmartCamera = lazy(() => import('../pages/smart-camera/page'));
 
 const routes: RouteObject[] = [
   { path: '/', element: <Home /> },
@@ -68,6 +69,9 @@ const routes: RouteObject[] = [
   { path: '/admin/products', element: <AdminProducts /> },
   { path: '/admin/content',  element: <AdminContent /> },
   { path: '/admin/business', element: <AdminBusiness /> },
+
+  // AI 스마트 카메라
+  { path: '/smart-camera', element: <SmartCamera /> },
 
   { path: '*', element: <NotFound /> },
 ];

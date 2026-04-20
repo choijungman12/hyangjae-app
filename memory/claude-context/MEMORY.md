@@ -1,4 +1,5 @@
 - [Project: 향재원 overview](project_hyangjaewon.md) — 스마트팜 공간대여 앱, 4파트(독스/부킹/스마트팜/디자인) 단일 저장소 협업, 2027년 6월 오픈 예정
+- [Project: 플랫폼 종합 개요(4대 핵심기능)](project_platform_overview.md) — 수지분석·재배관리·IoT/로봇·시설비용산출 가치 제안, 시장 분석, 비전 — 사업/마케팅/투자 자료 작성 시 참조
 - [Project: Sprint 진행 상태](project_sprint_status.md) — Sprint-02(예약금/스탬프) + Sprint-03(텃밭수확/콜키지/파트너) 스펙 확정·작업 분담 발행됨
 - [Project: 핵심 사업 데이터](project_business_data.md) — 가격·타임·시설·재무 절대값 (불일치 = 버그)
 - [Feedback: 글램핑 표현 금지](feedback_no_glamping.md) — "글램핑" 표현 사용 금지, "스마트팜 공간대여"만 사용

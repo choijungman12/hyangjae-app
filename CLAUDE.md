@@ -6,14 +6,15 @@
 >
 > 1. `memory/claude-context/MEMORY.md` (인덱스)
 > 2. `memory/claude-context/project_hyangjaewon.md` (프로젝트 개요)
-> 3. `memory/claude-context/project_business_data.md` (사업 절대값)
-> 4. `memory/claude-context/project_sprint_status.md` (스프린트 진행)
-> 5. `memory/claude-context/feedback_no_glamping.md` (금기어)
-> 6. `memory/claude-context/feedback_origin_korean.md` (원산지 규칙)
-> 7. `memory/claude-context/feedback_role_boundaries.md` (4파트 역할 경계)
-> 8. `memory/claude-context/reference_project_docs.md` (문서 위치)
-> 9. `memory/specs/*.md` (확정 스펙)
-> 10. `memory/handoff/**/*.md` (작업 지시서)
+> 3. `memory/claude-context/project_platform_overview.md` (4대 핵심기능·시장·비전 — 사업 자료 작성 시 필수)
+> 4. `memory/claude-context/project_business_data.md` (사업 절대값)
+> 5. `memory/claude-context/project_sprint_status.md` (스프린트 진행)
+> 6. `memory/claude-context/feedback_no_glamping.md` (금기어)
+> 7. `memory/claude-context/feedback_origin_korean.md` (원산지 규칙)
+> 8. `memory/claude-context/feedback_role_boundaries.md` (4파트 역할 경계)
+> 9. `memory/claude-context/reference_project_docs.md` (문서 위치)
+> 10. `memory/specs/*.md` (확정 스펙)
+> 11. `memory/handoff/**/*.md` (작업 지시서)
 >
 > 이 부트스트랩 영역은 컴퓨터에 무관하게 git 으로 동기화되므로, 어떤 머신에서 clone 받아도 동일한 컨텍스트를 즉시 복원할 수 있다.
 

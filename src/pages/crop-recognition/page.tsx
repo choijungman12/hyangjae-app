@@ -141,11 +141,15 @@ export default function CropRecognition() {
 
     // ── PlantNet API 식물 식별 (이미지 로드와 병렬 진행) ──
     let aiName = '';
+    let aiKorean = '';
+    let aiEnglish = '';
     let aiScientific = '';
     let aiFamily = '';
+    let aiFamilyKorean = '';
     let aiConfidence = 0;
     let aiDescription = '';
     let aiDiseases: string[] = [];
+    let aiTopResults: { name: string; koreanName: string; score: number }[] = [];
     let aiSource: 'plantnet' | 'color-fallback' = 'color-fallback';
 
     let apiError = '';
@@ -153,10 +157,18 @@ export default function CropRecognition() {
       ? identifyPlant(imageUrl).then(result => {
           if (result.success) {
             aiName = result.name;
+            aiKorean = result.koreanName;
+            aiEnglish = result.commonNames[0] || result.scientificName;
             aiScientific = result.scientificName;
             aiFamily = result.family;
+            aiFamilyKorean = result.familyKorean;
             aiConfidence = result.probability;
             aiDescription = result.description;
+            aiTopResults = result.allResults.map(r => ({
+              name: r.name,
+              koreanName: r.koreanName,
+              score: r.score,
+            }));
             aiSource = 'plantnet';
           } else {
             apiError = result.scientificName || 'API 응답 없음';
@@ -326,13 +338,26 @@ export default function CropRecognition() {
       // Plant.id AI 결과가 있으면 우선 사용, 없으면 색상 분석 결과
       const finalCropName = aiSource === 'plantnet' ? aiName : cropName;
       const finalScientific = aiSource === 'plantnet' ? aiScientific : scientificName;
-      const finalFamily = aiSource === 'plantnet' ? aiFamily : family;
+      const finalFamily = aiSource === 'plantnet'
+        ? (aiFamilyKorean ? `${aiFamilyKorean} (${aiFamily})` : `${aiFamily}과`)
+        : family;
       const finalDiseases = aiSource === 'plantnet' && aiDiseases.length > 0 ? aiDiseases : diseases;
 
       if (aiSource === 'plantnet') {
-        recommendations.unshift(`🤖 PlantNet AI 식별: ${aiName}`);
-        recommendations.unshift(`🔬 학명: ${aiScientific} · ${aiFamily}과`);
+        const displayName = aiKorean ? `${aiKorean} / ${aiEnglish}` : aiEnglish;
+        const familyDisplay = aiFamilyKorean ? `${aiFamilyKorean} (${aiFamily})` : `${aiFamily}과`;
+        recommendations.unshift(`🤖 PlantNet AI 식별: ${displayName}`);
+        recommendations.unshift(`🔬 학명: ${aiScientific} · ${familyDisplay}`);
         recommendations.unshift(`📊 신뢰도: ${(aiConfidence * 100).toFixed(1)}%`);
+        if (aiTopResults.length > 1) {
+          const others = aiTopResults.slice(1, 4)
+            .map(r => {
+              const label = r.koreanName ? `${r.koreanName} (${r.name})` : r.name;
+              return `${label} ${(r.score * 100).toFixed(1)}%`;
+            })
+            .join(' · ');
+          if (others) recommendations.push(`🔍 유사 후보: ${others}`);
+        }
         if (aiDescription) recommendations.push(`📋 ${aiDescription}`);
       } else {
         // PlantNet 실패 시 HSV 색상 패턴으로 상세 추정

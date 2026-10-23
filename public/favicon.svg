@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f2fbf2"/>
+      <stop offset="100%" stop-color="#dff5de"/>
+    </linearGradient>
+    <linearGradient id="leaf" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#92d891"/>
+      <stop offset="55%" stop-color="#3aa03d"/>
+      <stop offset="100%" stop-color="#1f5023"/>
+    </linearGradient>
+    <linearGradient id="root" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#bfeabe"/>
+      <stop offset="100%" stop-color="#5dbe5f"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="64" height="64" rx="14" fill="url(#bg)"/>
+
+  <!-- 뿌리줄기(근경) -->
+  <path d="M32 36c4.6 0 7.4 3 7.4 7.6 0 5.6-3 11.4-7.4 14.4-4.4-3-7.4-8.8-7.4-14.4 0-4.6 2.8-7.6 7.4-7.6Z" fill="url(#root)"/>
+  <path d="M27.5 44.5h9M28.5 50h7" stroke="#2a802e" stroke-width="1.6" stroke-linecap="round" opacity=".55"/>
+
+  <!-- 고추냉이 잎 -->
+  <path d="M32 34c-7.8-1.2-13-6.4-13-13.2C19 14.6 24.4 10 32 10s13 4.6 13 10.8C45 27.6 39.8 32.8 32 34Z" fill="url(#leaf)"/>
+  <path d="M20.6 31.4c-4.8 2.4-9.6 1.4-12.2-2.2 3.2-3.6 8.4-4.4 12.8-1.8 1 .6 1.6 1.4 1.8 2.2-.6.8-1.4 1.4-2.4 1.8Z" fill="url(#leaf)" opacity=".88"/>
+  <path d="M43.4 31.4c4.8 2.4 9.6 1.4 12.2-2.2-3.2-3.6-8.4-4.4-12.8-1.8-1 .6-1.6 1.4-1.8 2.2.6.8 1.4 1.4 2.4 1.8Z" fill="url(#leaf)" opacity=".88"/>
+
+  <!-- 잎맥 -->
+  <path d="M32 12v22M32 20c-3.2-2-5.6-3-8.6-3.6M32 20c3.2-2 5.6-3 8.6-3.6M32 27c-3.4-1.8-6-2.6-9.4-3M32 27c3.4-1.8 6-2.6 9.4-3"
+        stroke="#f2fbf2" stroke-width="1.5" stroke-linecap="round" opacity=".7" fill="none"/>
+</svg>

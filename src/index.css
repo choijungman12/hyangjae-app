@@ -2,33 +2,55 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ══════════════════════════════════════════════════════════════
+ * 향재원 — Spatial Green Design System (2026)
+ *
+ * 설계 원칙
+ *  1) 깊이(Depth)    : 배경 메시 → 유리면 → 콘텐츠 3개 레이어로 Z축을 만든다.
+ *  2) 재질(Material) : 반투명 유리 + 미세 노이즈 + 상단 하이라이트.
+ *  3) 모션(Motion)   : 스프링 이징, 진입은 Z축에서 솟아오르게.
+ *  4) 접근성         : prefers-reduced-motion 존중, 대비 4.5:1 이상 유지.
+ * ══════════════════════════════════════════════════════════════ */
+
 @layer base {
   :root {
     --color-bg:            255 255 255;
     --color-bg-elevated:   255 255 255;
-    --color-bg-subtle:     249 250 251;
+    --color-bg-subtle:     248 250 248;
     --color-surface:       255 255 255;
     --color-border:        229 231 235;
     --color-text:          17 24 39;
     --color-text-muted:    107 114 128;
-    --color-brand:         16 185 129;
-    --color-brand-soft:    209 250 229;
+    --color-brand:         58 160 61;   /* wasabi-500 */
+    --color-brand-soft:    223 245 222; /* wasabi-100 */
+
+    /* 유리면 토큰 */
+    --glass-bg:     255 255 255;
+    --glass-alpha:  0.72;
+    --glass-stroke: 255 255 255;
+    --glass-stroke-alpha: 0.6;
   }
 
   .dark {
-    --color-bg:            10 15 25;
-    --color-bg-elevated:   17 24 39;
-    --color-bg-subtle:     31 41 55;
-    --color-surface:       17 24 39;
-    --color-border:        55 65 81;
-    --color-text:          243 244 246;
-    --color-text-muted:    156 163 175;
-    --color-brand:         52 211 153;
-    --color-brand-soft:    6 78 59;
+    --color-bg:            8 16 12;
+    --color-bg-elevated:   15 26 19;
+    --color-bg-subtle:     20 34 25;
+    --color-surface:       15 26 19;
+    --color-border:        44 66 51;
+    --color-text:          237 244 238;
+    --color-text-muted:    151 170 157;
+    --color-brand:         93 190 95;   /* wasabi-400 */
+    --color-brand-soft:    27 66 31;    /* wasabi-900 */
+
+    --glass-bg:     16 30 21;
+    --glass-alpha:  0.62;
+    --glass-stroke: 140 200 150;
+    --glass-stroke-alpha: 0.14;
   }
 
   html {
     color-scheme: light;
+    scroll-behavior: smooth;
   }
 
   html.dark {
@@ -39,6 +61,171 @@
     background-color: rgb(var(--color-bg));
     color: rgb(var(--color-text));
     transition: background-color 300ms ease, color 300ms ease;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* 모션 민감 사용자 — 모든 장식 애니메이션 정지 */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* ── 레이어 1 · 배경 : 오로라 메시 그라디언트 ───────────────── */
+  .mesh-bg {
+    position: relative;
+    background-color: rgb(var(--color-bg));
+    background-image:
+      radial-gradient(at 12% 8%,  rgba(58, 160, 61, 0.16)  0px, transparent 55%),
+      radial-gradient(at 88% 4%,  rgba(63, 168, 119, 0.14) 0px, transparent 50%),
+      radial-gradient(at 72% 72%, rgba(91, 150, 164, 0.13) 0px, transparent 55%),
+      radial-gradient(at 8% 92%,  rgba(166, 124, 82, 0.10) 0px, transparent 50%);
+    background-size: 180% 180%;
+    background-attachment: fixed;
+  }
+
+  .dark .mesh-bg {
+    background-image:
+      radial-gradient(at 12% 8%,  rgba(58, 160, 61, 0.22)  0px, transparent 55%),
+      radial-gradient(at 88% 4%,  rgba(39, 112, 79, 0.20)  0px, transparent 50%),
+      radial-gradient(at 72% 72%, rgba(58, 102, 117, 0.18) 0px, transparent 55%),
+      radial-gradient(at 8% 92%,  rgba(111, 79, 50, 0.14)  0px, transparent 50%);
+  }
+
+  /** 움직이는 메시 — 히어로 등 강조 영역에만 */
+  .mesh-bg-animated {
+    @apply mesh-bg animate-aurora;
+  }
+
+  /* ── 레이어 2 · 유리면 ─────────────────────────────────────── */
+  .glass {
+    background-color: rgb(var(--glass-bg) / var(--glass-alpha));
+    border: 1px solid rgb(var(--glass-stroke) / var(--glass-stroke-alpha));
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+  }
+
+  /** 떠 있는 유리 카드 — 상단 하이라이트 + 깊이 그림자 */
+  .glass-card {
+    @apply glass rounded-3xl shadow-glass-card;
+  }
+
+  /** 가장 앞 레이어 — 모달·시트 */
+  .glass-sheet {
+    background-color: rgb(var(--glass-bg) / 0.9);
+    border: 1px solid rgb(var(--glass-stroke) / var(--glass-stroke-alpha));
+    backdrop-filter: blur(32px) saturate(160%);
+    -webkit-backdrop-filter: blur(32px) saturate(160%);
+    @apply shadow-depth-4;
+  }
+
+  /* ── 레이어 3 · 3D 카드 상호작용 ───────────────────────────── */
+  /** 부모에 perspective, 자식이 Z축으로 기울어짐 */
+  .scene {
+    perspective: 1200px;
+    perspective-origin: 50% 50%;
+  }
+
+  .card-3d {
+    transform-style: preserve-3d;
+    transition: transform 500ms cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 500ms cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform;
+  }
+
+  @media (hover: hover) {
+    .card-3d:hover {
+      transform: translateY(-8px) rotateX(5deg) rotateY(-5deg) scale(1.02);
+    }
+  }
+
+  .card-3d:active {
+    transform: translateY(-2px) scale(0.985);
+  }
+
+  /** 카드 내부에서 한 단계 더 떠 보이는 요소 (아이콘 등) */
+  .layer-pop {
+    transform: translateZ(40px);
+  }
+
+  /* ── 질감 · 미세 노이즈 (밴딩 제거 + 필름 그레인) ──────────── */
+  .grain {
+    position: relative;
+  }
+
+  .grain::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.4;
+    mix-blend-mode: soft-light;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  }
+
+  /* ── 타이포그래피 ──────────────────────────────────────────── */
+  /** 브랜드 그라디언트 텍스트 (흐르는 색) */
+  .text-gradient {
+    background-image: linear-gradient(110deg, #2a802e 0%, #5dbe5f 30%, #3fa877 55%, #5b96a4 80%, #2a802e 100%);
+    background-size: 220% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    @apply animate-gradient-pan;
+  }
+
+  /** 섹션 상단 작은 라벨 (Eyebrow) */
+  .eyebrow {
+    @apply inline-flex items-center gap-1.5 text-[11px] font-black tracking-[0.14em] uppercase text-wasabi-600 dark:text-wasabi-300;
+  }
+
+  /* ── 칩 / 뱃지 ─────────────────────────────────────────────── */
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold
+           bg-wasabi-50 text-wasabi-700 border border-wasabi-100
+           dark:bg-wasabi-900/50 dark:text-wasabi-200 dark:border-wasabi-800;
+  }
+
+  .chip-warn {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold
+           bg-red-50 text-red-700 border border-red-100
+           dark:bg-red-950/60 dark:text-red-200 dark:border-red-900;
+  }
+
+  /* ── 버튼 ──────────────────────────────────────────────────── */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3
+           text-sm font-black text-white
+           bg-gradient-to-br from-wasabi-500 to-emeraldgreen-700
+           shadow-glow-wasabi transition-all duration-300 ease-spring
+           hover:-translate-y-0.5 hover:shadow-depth-3 active:translate-y-0 active:scale-[0.98];
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3
+           text-sm font-black text-wasabi-700 dark:text-wasabi-200
+           glass transition-all duration-300 ease-spring
+           hover:-translate-y-0.5 hover:shadow-depth-2 active:translate-y-0 active:scale-[0.98];
+  }
+
+  /* ── 벤토 그리드 (2026 레이아웃 트렌드) ────────────────────── */
+  .bento {
+    @apply grid grid-cols-2 gap-3 sm:gap-4;
+  }
+
+  .bento-wide { @apply col-span-2; }
+
+  /* ── 구분선 · 섹션 ─────────────────────────────────────────── */
+  .hairline {
+    @apply border-t border-gray-200/70 dark:border-gray-700/60;
   }
 }
 
@@ -47,4 +234,34 @@
     transition: background-color 300ms ease, color 300ms ease,
                 border-color 300ms ease, box-shadow 300ms ease;
   }
+
+  /** 배경 메시 오브 — 부모에 relative + overflow-hidden 필요 */
+  .orb {
+    @apply absolute rounded-full blur-3xl pointer-events-none animate-float-orb;
+  }
+
+  /** 스크롤 스냅 가로 캐러셀 */
+  .snap-row {
+    @apply flex gap-3 overflow-x-auto snap-x snap-mandatory;
+    scrollbar-width: none;
+  }
+  .snap-row::-webkit-scrollbar { display: none; }
+  .snap-item { @apply snap-center shrink-0; }
+
+  /** 안전 영역 */
+  .pb-safe { padding-bottom: calc(env(safe-area-inset-bottom) + 5rem); }
 }
+
+/* ──────────────────────────────────────────────────────────────
+ * 스태거 지연 — `delay-step-${i}` 처럼 런타임에 조립해 쓰기 때문에
+ * Tailwind 의 content 스캔이 잡아내지 못합니다. @layer 밖에 두어
+ * 퍼지 대상에서 제외합니다.
+ * ────────────────────────────────────────────────────────────── */
+.delay-step-1 { animation-delay: 60ms; }
+.delay-step-2 { animation-delay: 120ms; }
+.delay-step-3 { animation-delay: 180ms; }
+.delay-step-4 { animation-delay: 240ms; }
+.delay-step-5 { animation-delay: 300ms; }
+.delay-step-6 { animation-delay: 360ms; }
+.delay-step-7 { animation-delay: 420ms; }
+.delay-step-8 { animation-delay: 480ms; }

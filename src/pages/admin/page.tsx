@@ -15,7 +15,7 @@ export function useAdminAuth() {
 /* ── 더미 통계 (운영 현황) ── */
 const STATS = [
   { label: '총 회원', value: '127명', sub: '이번주 +8', icon: 'ri-group-line', grad: 'from-blue-500 to-indigo-600' },
-  { label: '이번달 예약', value: '43건', sub: '전월 대비 +12%', icon: 'ri-calendar-check-line', grad: 'from-emerald-500 to-teal-600' },
+  { label: '이번달 문의', value: '43건', sub: '전월 대비 +12%', icon: 'ri-chat-check-line', grad: 'from-wasabi-500 to-emeraldgreen-700' },
   { label: '이번달 매출', value: '214만원', sub: '목표 대비 79%', icon: 'ri-money-dollar-circle-line', grad: 'from-purple-500 to-pink-600' },
   { label: '미확인 문의', value: '5건', sub: '즉시 처리 필요', icon: 'ri-chat-3-line', grad: 'from-orange-500 to-red-500' },
 ];
@@ -23,18 +23,18 @@ const STATS = [
 /* ── 사업자 전용 · 시설·수확 지표 (과거에는 홈에 노출됨 → 사업자 페이지로 이동) ── */
 const FACILITY_METRICS = [
   {
-    label: '스마트팜 면적',
-    value: '150평',
-    sub: '메인 하우스 · 고추냉이 재배 전용',
+    label: '수경 온실 면적',
+    value: '560㎡',
+    sub: '고추냉이 전용 · 환경제어 수경 재배',
     icon: 'ri-home-gear-line',
     grad: 'from-blue-400 to-indigo-500',
     linkLabel: '사업자 대시보드',
     linkTo: '/admin/business',
   },
   {
-    label: '재배 작물',
-    value: '3,000주',
-    sub: '고추냉이 정식 기준 (18~24개월 성장)',
+    label: '고추냉이 1차 정식',
+    value: '10,000주',
+    sub: '2026. 11 정식 예정 · 근경 수확 정식 후 약 18개월',
     icon: 'ri-plant-line',
     grad: 'from-emerald-400 to-teal-500',
     linkLabel: '작목반장 시세',
@@ -51,25 +51,26 @@ const FACILITY_METRICS = [
   },
 ];
 
-const RECENT_BOOKINGS = [
-  { id: 'B2040', name: '김민준', type: '3번 데크 + 불멍',     date: '2026-04-12', status: 'confirmed', amount: 229000 },
-  { id: 'B2039', name: '박지영', type: '심화 투어',           date: '2026-04-11', status: 'pending',   amount: 30000  },
-  { id: 'B2038', name: '이서현', type: '7번 데크 + 숯불',     date: '2026-04-11', status: 'confirmed', amount: 259000 },
-  { id: 'B2037', name: '정도현', type: '1번 데크',            date: '2026-04-10', status: 'done',      amount: 139000 },
-  { id: 'B2036', name: '최수아', type: '심화 투어',           date: '2026-04-10', status: 'confirmed', amount: 45000  },
+/* ── 최근 문의 (납품 상담 · 견학 · 치유농업 협력) ── */
+const RECENT_INQUIRIES = [
+  { id: 'Q2040', name: '김민준', type: '에메랄드그린 1.5m 80주',   date: '2026-10-20', status: 'contacted', amount: 3200000 },
+  { id: 'Q2039', name: '박지영', type: '치유농업 협력 논의',        date: '2026-10-19', status: 'pending',   amount: 0 },
+  { id: 'Q2038', name: '이서현', type: '라디키오·루꼴라 정기 납품', date: '2026-10-18', status: 'done',      amount: 1800000 },
+  { id: 'Q2037', name: '정도현', type: '수경재배 설비 견학 12명',   date: '2026-10-17', status: 'contacted', amount: 0 },
+  { id: 'Q2036', name: '최수아', type: '생근경 소량 구매',          date: '2026-10-16', status: 'done',      amount: 120000 },
 ];
 
 const STATUS_META = {
-  confirmed: { label: '확정', color: 'bg-emerald-100 text-emerald-700' },
-  pending:   { label: '대기', color: 'bg-amber-100 text-amber-700' },
-  done:      { label: '완료', color: 'bg-gray-100 text-gray-600' },
-  cancelled: { label: '취소', color: 'bg-red-100 text-red-600' },
+  contacted: { label: '연락완료', color: 'bg-blue-100 text-blue-700' },
+  pending:   { label: '접수',   color: 'bg-amber-100 text-amber-700' },
+  done:      { label: '성사',   color: 'bg-wasabi-100 text-wasabi-700' },
+  closed:    { label: '종료',   color: 'bg-gray-100 text-gray-600' },
 };
 
 const QUICK_LINKS = [
   { label: '회원 관리', icon: 'ri-group-line', to: '/admin/members', color: 'from-blue-400 to-indigo-500' },
-  { label: '예약 관리', icon: 'ri-calendar-2-line', to: '/admin/bookings', color: 'from-emerald-400 to-teal-500' },
-  { label: '가격/메뉴', icon: 'ri-price-tag-3-line', to: '/admin/products', color: 'from-purple-400 to-pink-500' },
+  { label: '문의·납품 관리', icon: 'ri-chat-check-line', to: '/admin/inquiries', color: 'from-wasabi-400 to-emeraldgreen-600' },
+  { label: '출하 단가', icon: 'ri-price-tag-3-line', to: '/admin/products', color: 'from-purple-400 to-pink-500' },
   { label: '콘텐츠/이미지', icon: 'ri-image-edit-line', to: '/admin/content', color: 'from-orange-400 to-red-500' },
   { label: '사업자 대시보드', icon: 'ri-bar-chart-box-line', to: '/admin/business', color: 'from-emerald-500 to-teal-600' },
   { label: '수익성 분석', icon: 'ri-funds-line', to: '/profit-analysis', color: 'from-purple-500 to-pink-600' },
@@ -251,18 +252,18 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* 최근 예약 */}
+        {/* 최근 문의 */}
         <div className="bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden">
           <div className="px-4 py-3.5 border-b border-gray-100 flex items-center justify-between">
             <h3 className="text-sm font-black text-gray-900 flex items-center gap-2">
-              <i className="ri-calendar-line text-emerald-500" />최근 예약
+              <i className="ri-chat-check-line text-wasabi-500" aria-hidden="true" />최근 문의
             </h3>
-            <Link to="/admin/bookings" className="text-xs font-black text-emerald-600 flex items-center gap-0.5">
+            <Link to="/admin/inquiries" className="text-xs font-black text-wasabi-600 flex items-center gap-0.5">
               전체 <i className="ri-arrow-right-s-line" />
             </Link>
           </div>
           <div className="divide-y divide-gray-100">
-            {RECENT_BOOKINGS.map(b => {
+            {RECENT_INQUIRIES.map(b => {
               const s = STATUS_META[b.status as keyof typeof STATUS_META];
               return (
                 <div key={b.id} className="px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors">
@@ -274,7 +275,9 @@ export default function AdminDashboard() {
                     <p className="text-[10px] text-gray-400">{b.date}</p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="text-xs font-black text-gray-800">{b.amount.toLocaleString()}원</p>
+                    <p className="text-xs font-black text-gray-800" translate="no">
+                      {b.amount > 0 ? `${b.amount.toLocaleString()}원` : '—'}
+                    </p>
                     <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${s.color}`}>{s.label}</span>
                   </div>
                 </div>

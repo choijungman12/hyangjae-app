@@ -12,38 +12,44 @@ import {
   Reward,
 } from '@/lib/stampStore';
 
-type BookingStatus = 'confirmed' | 'done' | 'cancelled';
-type Booking = {
+type OrderStatus = 'paid' | 'done' | 'cancelled';
+type Order = {
   id: number;
+  /** 주문 상품 요약 */
   type: string;
   date: string;
-  time: string;
-  guests: number;
+  /** 총 수량 */
+  qty: number;
   price: number;
-  status: BookingStatus;
+  status: OrderStatus;
 };
 
-const INITIAL_BOOKING_HISTORY: Booking[] = [
-  { id: 1, type: '3번 스마트팜 체험 데크 · 6인 + 불멍', date: '2026-04-13', time: '18:30', guests: 6, price: 229000, status: 'confirmed' },
-  { id: 2, type: '메인 하우스 심화 투어', date: '2026-04-13', time: '15:00', guests: 2, price: 30000, status: 'confirmed' },
-  { id: 3, type: '5번 스마트팜 체험 데크 · 8인', date: '2026-03-20', time: '11:00', guests: 4, price: 139000, status: 'done' },
+/* 🟢 EDIT:ORDER_HISTORY ─ 실제 주문 연동 전까지 사용하는 샘플 */
+const INITIAL_ORDER_HISTORY: Order[] = [
+  { id: 1, type: '고추냉이 쌈장 200g 2개 · 와사비 소금 1개', date: '2026-10-18', qty: 3, price: 42000, status: 'paid' },
+  { id: 2, type: '고추냉이 생근경 100g', date: '2026-10-11', qty: 1, price: 38000, status: 'done' },
+  { id: 3, type: '고추냉이 선물세트 (대)', date: '2026-09-28', qty: 1, price: 69000, status: 'done' },
 ];
 
-// 환불 정책: 2일 전 100%, 1일 전 50%, 당일/이후 0%
-function calcRefund(bookingDate: string, price: number): { rate: number; amount: number; label: string } {
+/**
+ * 교환·반품 가능 여부.
+ * 단순 변심은 수령일로부터 7일 이내, 신선 농산물은 수령 당일에 한합니다.
+ */
+function calcReturnWindow(orderDate: string): { open: boolean; daysLeft: number; label: string } {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const target = new Date(bookingDate);
-  target.setHours(0, 0, 0, 0);
-  const diffDays = Math.floor((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  const ordered = new Date(orderDate);
+  ordered.setHours(0, 0, 0, 0);
+  const passed = Math.floor((today.getTime() - ordered.getTime()) / (1000 * 60 * 60 * 24));
+  const daysLeft = 7 - passed;
 
-  if (diffDays >= 2) return { rate: 100, amount: price, label: '무료 취소' };
-  if (diffDays === 1) return { rate: 50, amount: Math.floor(price / 2), label: '50% 환불' };
-  return { rate: 0, amount: 0, label: '환불 불가' };
+  if (daysLeft > 0) return { open: true, daysLeft, label: `교환·반품 가능 (D-${daysLeft})` };
+  return { open: false, daysLeft: 0, label: '교환·반품 기간 종료' };
 }
 
 const MENU_ITEMS = [
-  { icon: 'ri-calendar-check-line',  label: '예약 내역',       to: '/booking',             badge: null },
+  { icon: 'ri-shopping-bag-3-line',  label: '주문 내역',       to: '/shop',                badge: null },
+  { icon: 'ri-information-line',     label: '방문 안내',       to: '/visit',               badge: null },
   { icon: 'ri-heart-line',           label: '관심 작물',       to: '/cultivation-calendar', badge: null },
   { icon: 'ri-book-open-line',       label: '재배 가이드',     to: '/growing-guide?id=wasabi', badge: null },
   { icon: 'ri-calendar-line',        label: '재배 일지',       to: '/farm-calendar-memo',  badge: null },
@@ -59,22 +65,22 @@ export default function ProfilePage() {
   const navigate = useNavigate();
   const [user, setUser] = useState<UserInfo | null>(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKING_HISTORY);
-  const [cancelTarget, setCancelTarget] = useState<Booking | null>(null);
+  const [orders, setOrders] = useState<Order[]>(INITIAL_ORDER_HISTORY);
+  const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
   const [stampState, setStampState] = useState<StampState | null>(null);
   const [earnedReward, setEarnedReward] = useState<Reward | null>(null);
 
   const handleConfirmCancel = () => {
     if (!cancelTarget) return;
-    setBookings(prev => prev.map(b => (b.id === cancelTarget.id ? { ...b, status: 'cancelled' } : b)));
+    setOrders(prev => prev.map(o => (o.id === cancelTarget.id ? { ...o, status: 'cancelled' } : o)));
     setCancelTarget(null);
   };
 
-  /** 테스트용: 예약 상태를 'done'으로 변경하면 스탬프 자동 적립 */
-  const handleMarkAsDone = (booking: Booking) => {
+  /** 테스트용: 주문 상태를 'done'(수령 완료)으로 바꾸면 스탬프 자동 적립 */
+  const handleMarkAsDone = (order: Order) => {
     if (!user) return;
-    setBookings(prev => prev.map(b => (b.id === booking.id ? { ...b, status: 'done' } : b)));
-    const result = addStamp(user.email || user.name, booking.id);
+    setOrders(prev => prev.map(o => (o.id === order.id ? { ...o, status: 'done' } : o)));
+    const result = addStamp(user.email || user.name, order.id);
     setStampState(result.state);
     if (result.newReward) {
       setEarnedReward(result.newReward);
@@ -86,16 +92,16 @@ export default function ProfilePage() {
     if (raw) setUser(JSON.parse(raw));
   }, []);
 
-  // 로그인 후 기존 'done' 예약을 스탬프에 자동 반영 (중복 방지)
+  // 로그인 후 기존 'done' 주문을 스탬프에 자동 반영 (중복 방지)
   useEffect(() => {
     if (!user) return;
     const userId = user.email || user.name;
     let current = loadStamps(userId);
     let lastReward: Reward | null = null;
-    bookings
-      .filter(b => b.status === 'done')
-      .forEach(b => {
-        const result = addStamp(userId, b.id);
+    orders
+      .filter(o => o.status === 'done')
+      .forEach(o => {
+        const result = addStamp(userId, o.id);
         current = result.state;
         if (result.newReward) lastReward = result.newReward;
       });
@@ -122,7 +128,7 @@ export default function ProfilePage() {
             <i className="ri-user-line text-4xl text-gray-400" />
           </div>
           <h2 className="text-lg font-black text-gray-900 mb-2">로그인이 필요합니다</h2>
-          <p className="text-sm text-gray-500">예약 내역, 관심 작물 등 다양한 서비스를<br />이용하려면 로그인해 주세요.</p>
+          <p className="text-sm text-gray-500">주문 내역, 관심 작물 등 다양한 서비스를<br />이용하려면 로그인해 주세요.</p>
         </div>
         <Link
           to="/login"
@@ -147,8 +153,9 @@ export default function ProfilePage() {
             <i className="ri-arrow-left-line text-xl text-gray-700" />
           </Link>
           <h1 className="text-base font-black text-gray-900 flex-1">마이페이지</h1>
-          <Link to="/booking" className="w-10 h-10 flex items-center justify-center bg-emerald-50 rounded-xl hover:bg-emerald-100 transition-all">
-            <i className="ri-calendar-line text-emerald-600 text-xl" />
+          <Link to="/shop" className="w-10 h-10 flex items-center justify-center bg-wasabi-50 rounded-xl hover:bg-wasabi-100 transition-all"
+                aria-label="스토어">
+            <i className="ri-shopping-bag-3-line text-wasabi-600 text-xl" aria-hidden="true" />
           </Link>
         </div>
       </header>
@@ -192,7 +199,7 @@ export default function ProfilePage() {
           {/* 통계 */}
           <div className="relative z-10 grid grid-cols-3 gap-2 mt-5">
             {[
-              { label: '예약 횟수', value: `${bookings.length}건`, icon: 'ri-calendar-check-line' },
+              { label: '주문 횟수', value: `${orders.length}건`, icon: 'ri-shopping-bag-3-line' },
               { label: '스탬프', value: `${stampState?.total ?? 0}개`, icon: 'ri-seedling-line' },
               { label: '보유 쿠폰', value: `${availableRewards.length}장`, icon: 'ri-coupon-3-line' },
             ].map(stat => (
@@ -255,18 +262,18 @@ export default function ProfilePage() {
         </section>
       )}
 
-      {/* 예약 내역 */}
+      {/* 주문 내역 */}
       <section className="px-4 pb-5">
         <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-lg border border-gray-100 overflow-hidden">
           <div className="px-5 py-4 flex items-center justify-between border-b border-gray-100">
             <div className="flex items-center gap-2">
               <div className="w-9 h-9 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-xl flex items-center justify-center shadow-md">
-                <i className="ri-calendar-check-line text-white" />
+                <i className="ri-shopping-bag-3-line text-white" aria-hidden="true" />
               </div>
-              <h3 className="text-sm font-black text-gray-900">예약 내역</h3>
+              <h3 className="text-sm font-black text-gray-900">주문 내역</h3>
             </div>
-            <Link to="/booking" className="text-xs font-black text-emerald-600 flex items-center gap-1">
-              전체 보기 <i className="ri-arrow-right-s-line" />
+            <Link to="/shop" className="text-xs font-black text-wasabi-600 flex items-center gap-1">
+              스토어 <i className="ri-arrow-right-s-line" aria-hidden="true" />
             </Link>
           </div>
           {/* 환불 정책 안내 배너 */}
@@ -274,61 +281,61 @@ export default function ProfilePage() {
             <div className="flex items-start gap-2">
               <i className="ri-information-line text-amber-600 text-base mt-0.5" />
               <div className="flex-1">
-                <p className="text-[11px] font-black text-amber-900 mb-1">예약 취소 · 환불 정책</p>
+                <p className="text-[11px] font-black text-amber-900 mb-1">교환 · 반품 안내</p>
                 <ul className="text-[10px] text-amber-800 leading-relaxed space-y-0.5">
-                  <li>· 이용 2일 전까지: <span className="font-black">100% 무료 취소</span></li>
-                  <li>· 이용 1일 전: <span className="font-black">50% 환불</span></li>
-                  <li>· 당일 취소: <span className="font-black">환불 불가</span></li>
+                  <li>· 가공품 단순 변심: <span className="font-black">수령 후 7일 이내</span></li>
+                  <li>· 신선 농산물(생근경·채소): <span className="font-black">수령 당일 한정</span></li>
+                  <li>· 상품 하자·오배송: <span className="font-black">기간 무관 전액 환불</span></li>
                 </ul>
               </div>
             </div>
           </div>
           <div className="divide-y divide-gray-100 mt-3">
-            {bookings.map(b => {
-              const isConfirmed = b.status === 'confirmed';
+            {orders.map(o => {
+              const isPaid = o.status === 'paid';
               const statusStyle =
-                b.status === 'confirmed'
-                  ? 'bg-emerald-100 text-emerald-700'
-                  : b.status === 'cancelled'
+                o.status === 'paid'
+                  ? 'bg-wasabi-100 text-wasabi-700'
+                  : o.status === 'cancelled'
                   ? 'bg-red-100 text-red-600'
                   : 'bg-gray-100 text-gray-500';
               const statusLabel =
-                b.status === 'confirmed' ? '예약 확정' : b.status === 'cancelled' ? '취소됨' : '이용 완료';
+                o.status === 'paid' ? '결제 완료' : o.status === 'cancelled' ? '취소됨' : '수령 완료';
               return (
-                <div key={b.id} className="px-5 py-4">
+                <div key={o.id} className="px-5 py-4">
                   <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isConfirmed ? 'bg-emerald-50' : 'bg-gray-100'}`}>
-                      <i className={`ri-calendar-line ${isConfirmed ? 'text-emerald-600' : 'text-gray-400'}`} />
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isPaid ? 'bg-wasabi-50' : 'bg-gray-100'}`}>
+                      <i className={`ri-shopping-bag-3-line ${isPaid ? 'text-wasabi-600' : 'text-gray-400'}`} aria-hidden="true" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-black text-gray-900 truncate">{b.type}</p>
-                      <p className="text-[11px] text-gray-500">{b.date} {b.time} · {b.guests}명</p>
+                      <p className="text-xs font-black text-gray-900 truncate">{o.type}</p>
+                      <p className="text-[11px] text-gray-500" translate="no">{o.date} · {o.qty}개</p>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <p key={`price-${b.id}`} translate="no" className="text-xs font-black text-gray-900">
-                        {b.price.toLocaleString()}원
+                      <p key={`price-${o.id}`} translate="no" className="text-xs font-black text-gray-900">
+                        {o.price.toLocaleString()}원
                       </p>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statusStyle}`}>
                         {statusLabel}
                       </span>
                     </div>
                   </div>
-                  {isConfirmed && (
+                  {isPaid && (
                     <div className="mt-3 flex justify-end gap-2">
                       <button
                         type="button"
-                        onClick={() => handleMarkAsDone(b)}
-                        className="text-[11px] font-black px-3 py-1.5 rounded-lg border border-emerald-200 text-emerald-600 hover:bg-emerald-50 transition-all"
-                        title="테스트용: 이용 완료 처리하여 스탬프 적립"
+                        onClick={() => handleMarkAsDone(o)}
+                        className="text-[11px] font-black px-3 py-1.5 rounded-lg border border-wasabi-200 text-wasabi-600 hover:bg-wasabi-50 transition-all"
+                        title="테스트용: 수령 완료 처리하여 스탬프 적립"
                       >
-                        이용 완료 처리
+                        수령 완료 처리
                       </button>
                       <button
                         type="button"
-                        onClick={() => setCancelTarget(b)}
+                        onClick={() => setCancelTarget(o)}
                         className="text-[11px] font-black px-3 py-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition-all"
                       >
-                        예약 취소
+                        주문 취소
                       </button>
                     </div>
                   )}
@@ -391,10 +398,10 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* 예약 취소 확인 모달 */}
+      {/* 주문 취소 확인 모달 */}
       {cancelTarget && (() => {
-        const refund = calcRefund(cancelTarget.date, cancelTarget.price);
-        const refundable = refund.rate > 0;
+        const window_ = calcReturnWindow(cancelTarget.date);
+        const refundable = window_.open;
         return (
           <div
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center px-6"
@@ -405,18 +412,18 @@ export default function ProfilePage() {
                 <div className="w-14 h-14 mx-auto bg-red-50 rounded-2xl flex items-center justify-center mb-3">
                   <i className="ri-close-circle-line text-3xl text-red-500" />
                 </div>
-                <h3 className="text-base font-black text-gray-900 mb-1">예약을 취소하시겠습니까?</h3>
+                <h3 className="text-base font-black text-gray-900 mb-1">주문을 취소하시겠습니까?</h3>
                 <p className="text-xs text-gray-500">아래 환불 금액을 확인해 주세요.</p>
               </div>
 
               <div className="bg-gray-50 rounded-2xl p-4 mb-4 space-y-2">
                 <div className="flex justify-between items-start gap-2">
-                  <span className="text-[11px] text-gray-500 font-bold">예약</span>
+                  <span className="text-[11px] text-gray-500 font-bold">주문</span>
                   <span className="text-[11px] font-black text-gray-900 text-right flex-1">{cancelTarget.type}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[11px] text-gray-500 font-bold">이용일</span>
-                  <span className="text-[11px] font-black text-gray-900">{cancelTarget.date} {cancelTarget.time}</span>
+                  <span className="text-[11px] text-gray-500 font-bold">주문일</span>
+                  <span className="text-[11px] font-black text-gray-900" translate="no">{cancelTarget.date}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[11px] text-gray-500 font-bold">결제 금액</span>
@@ -425,20 +432,20 @@ export default function ProfilePage() {
                   </span>
                 </div>
                 <div className="border-t border-gray-200 pt-2 flex justify-between items-center">
-                  <span className="text-xs text-gray-700 font-black">환불 금액 ({refund.label})</span>
+                  <span className="text-xs text-gray-700 font-black">환불 금액 ({window_.label})</span>
                   <span
                     key={`refund-${cancelTarget.id}`}
                     translate="no"
-                    className={`text-sm font-black ${refundable ? 'text-emerald-600' : 'text-red-500'}`}
+                    className={`text-sm font-black ${refundable ? 'text-wasabi-600' : 'text-red-500'}`}
                   >
-                    {refund.amount.toLocaleString()}원
+                    {(refundable ? cancelTarget.price : 0).toLocaleString()}원
                   </span>
                 </div>
               </div>
 
               {!refundable && (
                 <p className="text-[11px] text-red-500 font-bold text-center mb-3">
-                  당일 취소는 환불이 불가합니다.
+                  교환·반품 가능 기간이 지나 환불이 불가합니다. 상품 하자라면 고객센터로 연락해 주세요.
                 </p>
               )}
 

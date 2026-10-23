@@ -1,120 +1,94 @@
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import BottomNav from '@/components/BottomNav';
-import FacilityGallery from '@/components/FacilityGallery';
+import NoFoodNotice from '@/components/NoFoodNotice';
+import WasabiMark from '@/components/WasabiMark';
+import Tilt3D from '@/components/Tilt3D';
+import CareProgramImage from '@/components/CareProgramImage';
+import HydroponicBedArt from '@/components/HydroponicBedArt';
+import UploadedHeroPhoto from '@/components/UploadedHeroPhoto';
 import { useScrollY } from '@/hooks/useScrollY';
 import { useCustomImage } from '@/hooks/useCustomImage';
-import type { ImageKey } from '@/lib/imageStore';
 import { AUTH_KEY } from '@/pages/login/page';
+import {
+  FARM_PROFILE,
+  FARM_STATS,
+  FARM_STORY,
+  WASABI,
+  CROP_HOUSES,
+  CROP_HOUSE_POLICY,
+  FIELD_CROPS,
+  FLOWER_DISTRICT,
+  CARE_PROGRAMS,
+  CARE_CERT_ROADMAP,
+  MASCOT,
+  STORY_ROUTES,
+} from '@/data/farmStory';
 
-const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
+/**
+ * ❗ 시설 사진을 직접 참조하지 않습니다.
+ *   기존 조감도·렌더링에는 텐트·화로·휴게 공간이 섞여 있어 농장의 실제 운영과 다르게 읽힙니다.
+ *   대신 설비 구조를 그린 벡터 도해를 쓰고, 검수된 실사진은 관리자 화면에서 업로드해 교체합니다.
+ */
 
-type FacilityKey = 'smartfarm' | 'store' | 'deck' | 'site';
-
-interface FacilityInfo {
-  key: FacilityKey;
-  label: string;
-  subtitle: string;
-  thumbnail: string;
-  images: string[];
-}
-
-const FACILITIES: FacilityInfo[] = [
-  {
-    key: 'smartfarm',
-    label: '메인 하우스',
-    subtitle: '고추냉이 스마트팜 150평',
-    thumbnail: imgPath('향재원 조감도 (2).png'),
-    images: [
-      imgPath('향재원 조감도 (2).png'),
-      imgPath('향재원조감도 (1).jpg'),
-      imgPath('향재원조감도 (2).jpg'),
-      imgPath('향재원조감도 (3).jpg'),
-      imgPath('향재원조감도 (4).jpg'),
-      imgPath('향재원조감도 (7).png'),
-      imgPath('향재원조감도 (8).png'),
-      imgPath('향재원조감도 (9).png'),
-    ],
-  },
-  {
-    key: 'store',
-    label: '향재원 매점',
-    subtitle: 'Farm-to-Table 스토어',
-    thumbnail: imgPath('KakaoTalk_20251125_132835980_15.jpg'),
-    images: [
-      imgPath('KakaoTalk_20251125_132835980_15.jpg'),
-      imgPath('KakaoTalk_20251125_132835980_23.jpg'),
-      imgPath('향재원  (6).png'),
-      imgPath('향재원  (7).png'),
-      imgPath('향재원  (16).png'),
-      imgPath('향재원  (4).jpg'),
-      imgPath('KakaoTalk_20260410_165225697.jpg'),
-      imgPath('KakaoTalk_20260410_165225697_01.jpg'),
-      imgPath('KakaoTalk_20260410_165225697_02.png'),
-      imgPath('KakaoTalk_20260410_165225697_03.png'),
-    ],
-  },
-  {
-    key: 'deck',
-    label: '체험 데크',
-    subtitle: '스마트팜 체험 데크 8개소',
-    thumbnail: imgPath('향재원 조감도 (3).png'),
-    images: [
-      imgPath('향재원 조감도 (3).png'),
-      imgPath('향재원 조감도 (4).png'),
-      imgPath('향재원 조감도 (5).png'),
-      imgPath('향재원 조감도 (6).png'),
-      imgPath('향재원 조감도 (7).png'),
-      imgPath('향재원  (1).jpg'),
-      imgPath('향재원  (4).png'),
-    ],
-  },
-  {
-    key: 'site',
-    label: '전체 부지',
-    subtitle: '양재동 178-4 · 536평',
-    thumbnail: imgPath('A_detailed_3D_rendering_of_a_luxurious_glamping_si-1760445157424.png'),
-    images: [
-      imgPath('A_detailed_3D_rendering_of_a_luxurious_glamping_si-1760445157424.png'),
-      imgPath('A_street_view-style_3D_rendering_of_Hyangjaewons_-1760446648462.png'),
-      imgPath('A_3D_rendering_of_a_landscape_in_the_evening_rese-1760446537669.png'),
-      imgPath('facility-10.jpg'),
-      imgPath('facility-12.jpg'),
-      imgPath('facility-18.png'),
-      imgPath('facility-19.png'),
-      imgPath('facility-20.png'),
-    ],
-  },
+/* ── 스마트팜 운영 도구 — 농장 운영자·방문자가 바로 쓰는 기능 ── */
+const FARM_TOOLS = [
+  { icon: 'ri-camera-lens-line',    title: 'AI 작물 인식',  desc: '사진 한 장으로 작물·상태 판별', to: '/crop-recognition', gradient: 'from-wasabi-400 to-emeraldgreen-700' },
+  { icon: 'ri-dashboard-3-line',    title: '실시간 환경',    desc: '온·습도 · CO₂ · 양액 모니터링',  to: '/smart-farm-data',  gradient: 'from-blueangel-300 to-blueangel-700' },
+  { icon: 'ri-calendar-check-line', title: '재배 캘린더',    desc: '파종 · 정식 · 수확 일정 관리',   to: '/cultivation-calendar', gradient: 'from-amber-400 to-orange-600' },
+  { icon: 'ri-line-chart-line',     title: '시세 동향',      desc: '가락시장 · KAMIS 연동 시세',     to: '/price-trends',     gradient: 'from-cyan-400 to-blue-700' },
+  { icon: 'ri-robot-2-line',        title: 'AI 재배 상담',   desc: '24시간 영농 컨설팅',             to: '/ai-consultant',    gradient: 'from-violet-400 to-indigo-700' },
+  { icon: 'ri-remote-control-line', title: '장비 제어',      desc: 'QR · IP 로 IoT 설비 연결',       to: '/device-control',   gradient: 'from-slate-400 to-gray-700' },
 ];
 
-/* 히어로 캐러셀 이미지 — 관리자 페이지에서 업로드한 이미지가 있으면 그것을 사용, 없으면 fallback */
-/** 한글·공백 파일명 URL 인코딩 헬퍼 */
-function imgPath(filename: string): string {
-  return BASE + '/facility-images/' + encodeURIComponent(filename);
-}
+/**
+ * 숫자 카운트업 — 진입 시 한 번만.
+ * 원본 값의 소수 자리수를 유지합니다 (634.5 를 635 로 반올림하지 않도록).
+ */
+function CountUp({ value, duration = 1200 }: { value: number; duration?: number }) {
+  const decimals = (String(value).split('.')[1] ?? '').length;
+  const [n, setN] = useState(0);
 
-const HERO_SLIDES: { key: ImageKey; fallback: string; caption: string }[] = [
-  { key: 'hero-slide-1', fallback: imgPath('A_detailed_3D_rendering_of_a_luxurious_glamping_si-1760445157424.png'), caption: '스마트팜 공간대여 · 체험 데크 8개소' },
-  { key: 'hero-slide-2', fallback: imgPath('향재원 조감도 (3).png'),  caption: '양재동 스마트팜 전경' },
-  { key: 'hero-slide-3', fallback: imgPath('향재원 조감도 (2).png'),  caption: '고추냉이 스마트팜 150평' },
-  { key: 'hero-slide-4', fallback: imgPath('A_3D_rendering_of_a_landscape_in_the_evening_rese-1760446537669.png'), caption: '데크별 전용 텃밭' },
-  { key: 'hero-slide-5', fallback: imgPath('향재원 조감도 (4).png'),  caption: '536평 전체 부지' },
-];
+  useEffect(() => {
+    let raf = 0;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - start) / duration);
+      // easeOutCubic
+      const eased = value * (1 - Math.pow(1 - p, 3));
+      setN(Number(eased.toFixed(decimals)));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [value, duration, decimals]);
 
-/** 히어로 슬라이드 개별 이미지 (커스텀 업로드 자동 반영) */
-function HeroSlideImage({ slide, active, eager }: { slide: { key: ImageKey; fallback: string; caption: string }; active: boolean; eager: boolean }) {
-  const src = useCustomImage(slide.key, slide.fallback);
   return (
-    <div
-      className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${active ? 'opacity-100' : 'opacity-0'}`}
-      aria-hidden={!active}
-    >
-      <img
-        src={src}
-        alt={slide.caption}
-        className={`w-full h-full object-cover ${active ? 'animate-ken-burns' : ''}`}
-        loading={eager ? 'eager' : 'lazy'}
-      />
+    <span translate="no">
+      {n.toLocaleString('ko-KR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}
+    </span>
+  );
+}
+
+/** 섹션 제목 — eyebrow + 큰 제목 + 보조 설명 */
+function SectionHead({ eyebrow, title, desc, to, toLabel }: {
+  eyebrow: string; title: React.ReactNode; desc?: string; to?: string; toLabel?: string;
+}) {
+  return (
+    <div className="mb-5">
+      <span className="eyebrow">
+        <i className="ri-circle-fill text-[6px]" aria-hidden="true" />
+        {eyebrow}
+      </span>
+      <div className="mt-1.5 flex items-end justify-between gap-3">
+        <h2 className="text-[22px] leading-tight font-black text-gray-900 dark:text-gray-50">{title}</h2>
+        {to && (
+          <Link to={to} className="shrink-0 text-xs font-black text-wasabi-600 dark:text-wasabi-300 flex items-center gap-0.5 hover:gap-1.5 transition-all">
+            {toLabel ?? '더 보기'} <i className="ri-arrow-right-s-line" aria-hidden="true" />
+          </Link>
+        )}
+      </div>
+      {desc && <p className="mt-2 text-[13px] leading-relaxed text-gray-600 dark:text-gray-400 font-medium">{desc}</p>}
     </div>
   );
 }
@@ -122,435 +96,588 @@ function HeroSlideImage({ slide, active, eager }: { slide: { key: ImageKey; fall
 export default function Home() {
   const scrollY = useScrollY();
   const [userName, setUserName] = useState<string | null>(null);
-  const [galleryKey, setGalleryKey] = useState<FacilityKey | null>(null);
-  const [heroIndex, setHeroIndex] = useState(0);
-  const activeFacility = FACILITIES.find(f => f.key === galleryKey) ?? null;
+  const [activeHouse, setActiveHouse] = useState(0);
+  const mascotImg = useCustomImage('mascot-maru', '');
 
   useEffect(() => {
     const raw = localStorage.getItem(AUTH_KEY);
     if (raw) { try { setUserName(JSON.parse(raw).name); } catch { /* noop */ } }
   }, []);
 
-  // 히어로 캐러셀 자동 전환 (6초 간격)
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setHeroIndex(prev => (prev + 1) % HERO_SLIDES.length);
-    }, 6000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const features = [
-    {
-      icon: 'ri-camera-lens-line',
-      title: 'AI 작물 인식',
-      desc: '사진 촬영으로 작물 자동 식별',
-      link: '/crop-recognition',
-      gradient: 'from-emerald-400 via-emerald-500 to-teal-600',
-      bgGradient: 'from-emerald-50 to-teal-50'
-    },
-    {
-      icon: 'ri-building-line',
-      title: '시설 설비 설계',
-      desc: '스마트팜 시설 시뮬레이터',
-      link: '/facility-design',
-      gradient: 'from-blue-400 via-blue-500 to-indigo-600',
-      bgGradient: 'from-blue-50 to-indigo-50'
-    },
-    {
-      icon: 'ri-bar-chart-box-line',
-      title: '수익성 분석',
-      desc: '실시간 시세 기반 자동 계산',
-      link: '/profit-analysis',
-      gradient: 'from-purple-400 via-purple-500 to-pink-600',
-      bgGradient: 'from-purple-50 to-pink-50'
-    },
-    {
-      icon: 'ri-line-chart-line',
-      title: '가격 동향',
-      desc: '가락시장 시세 그래프',
-      link: '/price-trends',
-      gradient: 'from-cyan-400 via-sky-500 to-blue-600',
-      bgGradient: 'from-cyan-50 to-blue-50'
-    },
-    {
-      icon: 'ri-calendar-check-line',
-      title: '체험 예약',
-      desc: '공간 대여 및 체험 관리',
-      link: '/booking',
-      gradient: 'from-orange-400 via-orange-500 to-red-600',
-      bgGradient: 'from-orange-50 to-red-50'
-    },
-    {
-      icon: 'ri-remote-control-line',
-      title: '장비 제어',
-      desc: 'QR · IP 로 IoT 연결',
-      link: '/device-control',
-      gradient: 'from-slate-400 via-slate-500 to-gray-600',
-      bgGradient: 'from-slate-50 to-gray-50'
-    }
-  ];
-
+  const house = CROP_HOUSES[activeHouse];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-emerald-50 pb-20 overflow-hidden">
-      {/* Floating Background Elements */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div 
-          className="absolute top-20 right-10 w-64 h-64 bg-emerald-200/30 rounded-full blur-3xl"
-          style={{ transform: `translateY(${scrollY * 0.3}px)` }}
-        ></div>
-        <div 
-          className="absolute bottom-40 left-10 w-80 h-80 bg-purple-200/30 rounded-full blur-3xl"
-          style={{ transform: `translateY(${-scrollY * 0.2}px)` }}
-        ></div>
+    <div className="min-h-screen mesh-bg pb-safe overflow-x-hidden">
+      {/* ══ 배경 오브 — 스크롤 패럴랙스 ══ */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+        <div className="orb top-[-6rem] right-[-4rem] w-80 h-80 bg-wasabi-400/25"
+             style={{ transform: `translateY(${scrollY * 0.12}px)` }} />
+        <div className="orb top-[40vh] left-[-6rem] w-72 h-72 bg-blueangel-300/25"
+             style={{ transform: `translateY(${-scrollY * 0.08}px)` }} />
+        <div className="orb bottom-[-8rem] right-[-2rem] w-96 h-96 bg-emeraldgreen-300/20"
+             style={{ transform: `translateY(${-scrollY * 0.05}px)` }} />
       </div>
 
-      {/* Header with Glass Effect */}
-      <header className="bg-white/70 backdrop-blur-xl shadow-sm sticky top-0 z-50 border-b border-gray-100">
-        <div className="px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+      {/* ══ 헤더 ══ */}
+      <header className="glass sticky top-0 z-50 border-x-0 border-t-0">
+        <div className="px-4 py-3 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2.5 group">
             <div className="relative">
-              <div className="absolute inset-0 bg-emerald-400 rounded-2xl blur-lg opacity-50 animate-pulse"></div>
-              <div className="w-12 h-12 flex items-center justify-center bg-gradient-to-br from-emerald-400 to-teal-500 rounded-2xl relative z-10 shadow-lg">
-                <i className="ri-plant-line text-2xl text-white"></i>
+              <div className="absolute inset-0 bg-wasabi-400/50 rounded-2xl blur-lg animate-glow-breathe" />
+              <div className="relative w-11 h-11 rounded-2xl bg-gradient-to-br from-white to-wasabi-50
+                              dark:from-wasabi-900 dark:to-gray-900 shadow-depth-2 flex items-center justify-center">
+                <WasabiMark className="w-7 h-7" animated />
               </div>
             </div>
-            <div>
-              <h1 className="text-lg font-black text-gray-900 tracking-tight">향재원</h1>
-              <p className="text-xs text-emerald-600 font-semibold">Smart Farm AI</p>
+            <div className="leading-none">
+              <p className="text-[17px] font-black text-gray-900 dark:text-gray-50 tracking-tight">{FARM_PROFILE.nameKo}</p>
+              <p className="mt-1 text-[10px] font-black tracking-[0.12em] text-wasabi-600 dark:text-wasabi-300" translate="no">
+                WASABI SMART FARM
+              </p>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
+          </Link>
+
+          <div className="flex items-center gap-1.5">
+            <Link to="/visit" className="btn-ghost !px-3 !py-2 !text-[11px]">
+              <i className="ri-information-line" aria-hidden="true" />
+              방문 안내
+            </Link>
             <Link
               to={userName ? '/profile' : '/login'}
-              className="flex items-center gap-2 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 px-3 h-10"
+              className="w-10 h-10 rounded-xl glass flex items-center justify-center hover:shadow-depth-2 transition-all"
+              aria-label={userName ? '내 정보' : '로그인'}
             >
-              <i className="ri-user-line text-base text-white"></i>
-              {userName && <span className="text-xs font-black text-white max-w-[60px] truncate">{userName}</span>}
-            </Link>
-            <Link
-              to="/admin"
-              className="w-10 h-10 flex items-center justify-center bg-gray-900 border border-gray-700 rounded-xl shadow-sm hover:shadow-md transition-all"
-              aria-label="관리자"
-            >
-              <i className="ri-shield-keyhole-line text-lg text-white"></i>
-            </Link>
-            <Link
-              to="/map"
-              className="w-10 h-10 flex items-center justify-center bg-white/80 border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all"
-            >
-              <i className="ri-map-pin-2-line text-lg text-emerald-600"></i>
+              <i className="ri-user-3-line text-lg text-wasabi-600 dark:text-wasabi-300" aria-hidden="true" />
             </Link>
           </div>
         </div>
       </header>
 
-      {/* Hero Section — 애니메이션 캐러셀 + Ken Burns 효과 */}
-      <section className="px-4 pt-6 pb-4 relative">
-        <div className="relative h-72 rounded-3xl overflow-hidden shadow-2xl border border-white/20">
-          {/* 배경 이미지 레이어 (크로스페이드 + Ken Burns) */}
-          {HERO_SLIDES.map((slide, i) => (
-            <HeroSlideImage
-              key={slide.key}
-              slide={slide}
-              active={i === heroIndex}
-              eager={i === 0}
-            />
-          ))}
-
-          {/* 그라데이션 오버레이 (어두운 하단 + 상단 살짝) */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/30 pointer-events-none" />
-
-          {/* 반짝이는 라이트 스윕 효과 */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute -inset-y-4 w-1/3 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 animate-shimmer" />
+      {/* ══ 히어로 — 3D 레이어드 씬 ══ */}
+      <section className="relative px-4 pt-6 pb-4 scene">
+        <div className="relative rounded-5xl overflow-hidden shadow-depth-4 grain
+                        bg-gradient-to-br from-wasabi-900 via-emeraldgreen-700 to-wasabi-950">
+          {/* 업로드된 실사진이 있으면 배경으로 깔립니다 (검수 후 /admin/content 에서 교체) */}
+          <UploadedHeroPhoto
+            imageKey="hero-slide-1"
+            alt="향재원 고추냉이 스마트팜 전경"
+            className="absolute inset-0 w-full h-full"
+            overlayClassName="bg-gradient-to-br from-wasabi-950/90 via-emeraldgreen-900/80 to-wasabi-950/90"
+          />
+          {/* 안쪽 오로라 */}
+          <div className="absolute inset-0 opacity-70 mix-blend-screen" aria-hidden="true">
+            <div className="orb -top-16 -left-10 w-72 h-72 bg-wasabi-400/60" />
+            <div className="orb top-24 -right-12 w-64 h-64 bg-blueangel-300/50" />
+            <div className="orb -bottom-20 left-16 w-72 h-72 bg-emeraldgreen-300/40" />
           </div>
 
-          {/* 상단 우측 · 라이브 배지 (펄스 링) */}
-          <div className="absolute top-4 right-4 flex items-center gap-1.5 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20">
-            <span className="relative flex items-center justify-center w-2 h-2">
-              <span className="absolute inline-flex w-full h-full rounded-full bg-emerald-400 animate-pulse-ring" />
-              <span className="relative inline-flex rounded-full w-2 h-2 bg-emerald-500" />
-            </span>
-            <span className="text-[10px] font-black text-white tracking-wide" translate="no">LIVE</span>
+          {/* 스캔 라인 — 스마트팜의 계측 감각 */}
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-wasabi-200/80 to-transparent animate-scan-line" aria-hidden="true" />
+
+          <div className="relative z-10 px-6 pt-8 pb-7">
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-white/15 border border-white/25
+                            backdrop-blur-xl px-3 py-1.5 mb-4">
+              <i className="ri-map-pin-2-fill text-[11px] text-wasabi-200" aria-hidden="true" />
+              <span className="text-[11px] font-black text-white/95" translate="no">{FARM_PROFILE.address}</span>
+            </div>
+
+            <h1 className="text-[34px] leading-[1.1] font-black text-white tracking-tight">
+              서울 최초<br />
+              <span className="inline-flex items-center gap-2">
+                <span className="bg-gradient-to-r from-wasabi-200 via-white to-emeraldgreen-300 bg-clip-text text-transparent">
+                  고추냉이
+                </span>
+                <WasabiMark className="w-9 h-9 drop-shadow-lg" animated />
+              </span><br />
+              스마트팜
+            </h1>
+
+            <p className="mt-4 text-[13px] leading-relaxed text-white/80 font-medium max-w-[22rem]">
+              {FARM_PROFILE.summary}
+            </p>
+
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Link to="/wasabi" className="btn-primary !bg-white !text-wasabi-800 !shadow-depth-3">
+                <i className="ri-plant-fill" aria-hidden="true" />
+                고추냉이 이야기
+              </Link>
+              <Link to="/visit" className="btn-ghost !bg-white/10 !text-white !border-white/30">
+                <i className="ri-information-line" aria-hidden="true" />
+                방문 전 꼭 확인
+              </Link>
+            </div>
           </div>
 
-          {/* 텍스트 컨텐츠 (슬라이드 인) */}
-          <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-            <div
-              key={`hero-${heroIndex}`}
-              className="animate-slide-in-left"
-            >
-              <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-xl px-3 py-1.5 rounded-full mb-3 border border-white/25">
-                <i className="ri-map-pin-2-fill text-xs text-emerald-300" aria-hidden="true" />
-                <span className="text-[11px] font-bold" translate="no">서울 서초구 양재동 178-4</span>
+          {/* 히어로 하단 — 통계 스트립 */}
+          <div className="relative z-10 grid grid-cols-4 border-t border-white/15 bg-black/20 backdrop-blur-md">
+            {FARM_STATS.map((s, i) => (
+              <div key={s.label}
+                   className={`px-2 py-3.5 text-center animate-count-in delay-step-${i + 1} ${i < 3 ? 'border-r border-white/10' : ''}`}>
+                <p className="text-[17px] font-black text-white leading-none">
+                  <CountUp value={s.value} />
+                  <span className="text-[10px] font-bold text-white/70 ml-0.5">{s.unit}</span>
+                </p>
+                <p className="mt-1.5 text-[9.5px] font-bold text-white/60 leading-tight">{s.label}</p>
               </div>
-              <h2 className="text-2xl font-black mb-1 drop-shadow-lg tracking-tight">향재원</h2>
-              <p className="text-xs text-emerald-200 font-semibold mb-1">HYANGJAEWON · Farm-to-Table</p>
-              <p className="text-sm text-white/90 font-medium">{HERO_SLIDES[heroIndex].caption}</p>
-            </div>
-
-            {/* 인디케이터 도트 */}
-            <div className="flex gap-1.5 mt-4">
-              {HERO_SLIDES.map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => setHeroIndex(i)}
-                  aria-label={`슬라이드 ${i + 1}로 이동`}
-                  className={`h-1 rounded-full transition-all duration-500 ${
-                    i === heroIndex ? 'w-8 bg-white' : 'w-1.5 bg-white/40 hover:bg-white/70'
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* 히어로 밑 · 재생 중인 슬라이드 정보 카드 */}
-        <div className="mt-3 flex items-center justify-between px-2">
-          <div className="flex items-center gap-2 text-xs text-gray-500">
-            <i className="ri-time-line" aria-hidden="true" />
-            <span>2026년 9월 정식 오픈</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs text-emerald-600 font-black">
-            <i className="ri-sparkling-fill animate-pulse" aria-hidden="true" />
-            <span translate="no">{heroIndex + 1} / {HERO_SLIDES.length}</span>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Facility Photo Strip — 클릭 시 갤러리 오픈 */}
+      {/* ══ 취식 불가 공지 — 가장 오해가 잦은 지점이라 최상단 고정 ══ */}
       <section className="px-4 pb-6">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-black text-gray-900">시설 둘러보기</h3>
-          <span className="text-[10px] text-gray-400 font-bold">탭하여 사진 더 보기</span>
+        <NoFoodNotice variant="banner" />
+      </section>
+
+      {/* ══ 스토리 내비게이션 — 벤토 그리드 ══ */}
+      <section className="px-4 pb-8 scene">
+        <SectionHead
+          eyebrow="WHAT WE GROW"
+          title={<>향재원은 <span className="text-gradient">기르는 곳</span>입니다</>}
+          desc="부지 전체가 생산 구역입니다. 온실에서는 고추냉이를, 8개 재배동에서는 유러피안 특수작물을, 노지에서는 조경수와 화훼를 기릅니다."
+        />
+        <div className="bento">
+          {STORY_ROUTES.map((r, i) => (
+            <Tilt3D key={r.to} className={`rounded-4xl animate-rise-3d delay-step-${i + 1}`}>
+              <Link
+                to={r.to}
+                className="block relative h-40 rounded-4xl overflow-hidden shadow-depth-3 grain
+                           bg-gradient-to-br text-white p-4 group"
+              >
+                <span className={`absolute inset-0 bg-gradient-to-br ${r.gradient}`} aria-hidden="true" />
+                <span className="absolute -right-6 -bottom-6 w-28 h-28 rounded-full bg-white/15 blur-2xl" aria-hidden="true" />
+                <span className="relative z-10 flex flex-col h-full justify-between">
+                  <span className="w-11 h-11 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center
+                                   shadow-depth-1 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6">
+                    <i className={`${r.icon} text-xl`} aria-hidden="true" />
+                  </span>
+                  <span className="block">
+                    <span className="block text-[15px] font-black leading-tight">{r.label}</span>
+                    <span className="block mt-1 text-[11px] font-medium text-white/80 leading-snug">{r.sub}</span>
+                  </span>
+                </span>
+              </Link>
+            </Tilt3D>
+          ))}
         </div>
-        <div className="grid grid-cols-2 gap-2.5">
-          {FACILITIES.map(f => (
+      </section>
+
+      {/* ══ 고추냉이 ══ */}
+      <section className="px-4 pb-8">
+        <SectionHead
+          eyebrow="THE MAIN CROP"
+          title={<>왜 <span className="text-gradient">고추냉이</span>인가</>}
+          desc={WASABI.whyHard}
+          to="/wasabi"
+          toLabel="자세히"
+        />
+
+        <Tilt3D className="rounded-4xl" max={6}>
+          <div className="rounded-4xl overflow-hidden shadow-depth-3 border border-white/60 dark:border-gray-700/60">
+            <HydroponicBedArt
+              className="w-full h-48 bg-wasabi-50 dark:bg-wasabi-950"
+              title="고추냉이 3단 다단 수경 베드 단면도"
+            />
+            <div className="px-4 py-3 bg-white/80 dark:bg-gray-900/70">
+              <p className="chip">
+                <i className="ri-flask-line" aria-hidden="true" />
+                3단 다단 베드 · 총 연장 634.5m
+              </p>
+              <p className="mt-2 text-[13px] font-bold text-gray-900 dark:text-gray-50 leading-snug">
+                흙 없이, 농약 없이 — 수온 13℃를 지키는 순환 양액
+              </p>
+            </div>
+          </div>
+        </Tilt3D>
+
+        <p className="mt-4 text-[13px] leading-relaxed text-gray-600 dark:text-gray-400 font-medium">
+          {WASABI.whySmartFarm}
+        </p>
+
+        {/* 환경 제어 기준값 */}
+        <div className="mt-4 grid grid-cols-3 gap-2.5">
+          {WASABI.environment.map((e, i) => (
+            <div key={e.key} className={`glass-card p-3 text-center animate-rise-3d delay-step-${(i % 6) + 1}`}>
+              <i className={`${e.icon} text-lg text-wasabi-500 dark:text-wasabi-300`} aria-hidden="true" />
+              <p className="mt-1.5 text-[13px] font-black text-gray-900 dark:text-gray-50 leading-none" translate="no">
+                {e.value}<span className="text-[9px] font-bold text-gray-400 ml-0.5">{e.unit}</span>
+              </p>
+              <p className="mt-1 text-[9.5px] font-bold text-gray-500 dark:text-gray-400">{e.label}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ══ 재배동 8동 ══ */}
+      <section className="px-4 pb-8">
+        <SectionHead
+          eyebrow="8 CROP HOUSES"
+          title={<>8개 동, <span className="text-gradient">8가지 유러피안 채소</span></>}
+          desc={CROP_HOUSE_POLICY.body}
+          to="/houses"
+          toLabel="재배동 보기"
+        />
+
+        {/* 동 선택 칩 */}
+        <div className="snap-row pb-2 -mx-1 px-1">
+          {CROP_HOUSES.map((h, i) => (
             <button
-              key={f.key}
+              key={h.no}
               type="button"
-              onClick={() => setGalleryKey(f.key)}
-              className="relative rounded-2xl overflow-hidden shadow-md hover:shadow-xl active:scale-[0.98] transition-all duration-300 text-left group"
-              aria-label={`${f.label} 사진 더 보기`}
+              onClick={() => setActiveHouse(i)}
+              className={`snap-item rounded-2xl px-3.5 py-2 text-[11px] font-black transition-all duration-300 ease-spring
+                ${i === activeHouse
+                  ? 'bg-gradient-to-br from-wasabi-500 to-emeraldgreen-700 text-white shadow-glow-wasabi scale-105'
+                  : 'glass text-gray-600 dark:text-gray-300 hover:shadow-depth-1'}`}
+              aria-pressed={i === activeHouse}
             >
-              <img
-                src={f.thumbnail}
-                alt={f.label}
-                className="w-full h-24 object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-xl flex items-center justify-center border border-white/40">
-                  <i className="ri-gallery-line text-white text-lg" aria-hidden="true" />
-                </div>
-              </div>
-              <div className="absolute bottom-2 left-3 right-3 text-white">
-                <p className="text-xs font-black leading-tight">{f.label}</p>
-                <p className="text-[10px] text-white/80 leading-tight" translate="no">
-                  {f.images.length}장
-                </p>
-              </div>
+              <span translate="no">{h.no}동</span> · {h.name}
             </button>
           ))}
         </div>
-      </section>
 
-      {/* Main Features with 3D Cards */}
-      <section className="px-4 pb-8">
-        <div className="mb-5">
-          <h3 className="text-lg font-black text-gray-900">주요 기능</h3>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          {features.map((feature, index) => (
-            <Link 
-              key={index}
-              to={feature.link}
-              className="relative group"
-              style={{ animationDelay: `${index * 0.15}s` }}
-            >
-              <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} rounded-3xl blur-xl opacity-0 group-hover:opacity-60 transition-all duration-500`}></div>
-              <div className={`relative bg-gradient-to-br ${feature.bgGradient} rounded-3xl p-5 shadow-lg hover:shadow-2xl transform hover:-translate-y-3 hover:scale-105 transition-all duration-500 border border-white overflow-hidden`}>
-                <div className="absolute top-0 right-0 w-24 h-24 bg-white/40 rounded-full blur-2xl"></div>
-                <div className={`w-14 h-14 flex items-center justify-center bg-gradient-to-br ${feature.gradient} rounded-2xl mb-4 shadow-xl transform group-hover:rotate-12 group-hover:scale-110 transition-all duration-500`}>
-                  <i className={`${feature.icon} text-2xl text-white`}></i>
+        {/* 선택된 동 상세 — 3D 카드 */}
+        <Tilt3D className="mt-3 rounded-4xl" max={7}>
+          <article className="relative rounded-4xl overflow-hidden shadow-depth-3 grain text-white p-5 min-h-[11rem]">
+            <span className={`absolute inset-0 bg-gradient-to-br ${house.gradient}`} aria-hidden="true" />
+            <span className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-white/15 blur-3xl" aria-hidden="true" />
+
+            <div className="relative z-10">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-black tracking-[0.16em] text-white/70" translate="no">
+                    HOUSE {String(house.no).padStart(2, '0')}
+                  </p>
+                  <h3 className="mt-1 text-2xl font-black leading-tight">{house.name}</h3>
+                  <p className="text-[11px] font-bold text-white/75" translate="no">{house.nameEn}</p>
                 </div>
-                <h4 className="text-sm font-black text-gray-900 mb-2">{feature.title}</h4>
-                <p className="text-xs text-gray-600 leading-relaxed font-medium">{feature.desc}</p>
-                <div className="absolute bottom-3 right-3 w-8 h-8 flex items-center justify-center bg-white/50 backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 transition-all duration-500">
-                  <i className="ri-arrow-right-line text-sm text-gray-700"></i>
+                <span className="text-4xl drop-shadow-lg" aria-hidden="true">{house.emoji}</span>
+              </div>
+
+              <p className="mt-3 text-[12.5px] leading-relaxed text-white/90 font-medium">{house.trait}</p>
+
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <div className="rounded-2xl bg-white/15 backdrop-blur-md p-2.5 border border-white/20">
+                  <p className="text-[9.5px] font-black text-white/70">파종 → 첫 수확</p>
+                  <p className="mt-1 text-[11px] font-bold leading-snug" translate="no">{house.toHarvest}</p>
+                  <p className="mt-1.5 text-[10px] font-medium text-white/75 leading-snug">{house.harvestWay}</p>
+                </div>
+                <div className="rounded-2xl bg-white/15 backdrop-blur-md p-2.5 border border-white/20">
+                  <p className="text-[9.5px] font-black text-white/70">치유 · 교육 활용</p>
+                  <p className="mt-1 text-[11px] font-bold leading-snug">{house.careUse}</p>
                 </div>
               </div>
-            </Link>
+            </div>
+          </article>
+        </Tilt3D>
+
+        {/* 재배동 운영 원칙 — 공간대여 아님 명시 */}
+        <div className="mt-3 glass-card p-4">
+          <p className="flex items-center gap-1.5 text-[13px] font-black text-gray-900 dark:text-gray-50">
+            <i className="ri-checkbox-circle-fill text-wasabi-500" aria-hidden="true" />
+            {CROP_HOUSE_POLICY.headline}
+          </p>
+          <ul className="mt-2.5 space-y-1.5">
+            {CROP_HOUSE_POLICY.bullets.map(b => (
+              <li key={b} className="flex items-start gap-1.5 text-[11.5px] font-medium text-gray-600 dark:text-gray-400">
+                <i className="ri-arrow-right-s-line text-wasabi-500 mt-px shrink-0" aria-hidden="true" />
+                <span>{b}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      {/* ══ 노지 — 조경수 · 화훼 ══ */}
+      <section className="px-4 pb-8 scene">
+        <SectionHead
+          eyebrow="OPEN FIELD"
+          title={<>노지에는 <span className="text-gradient">블루베리 · 조경수 · 화훼</span></>}
+          desc={FLOWER_DISTRICT.body}
+          to="/field"
+          toLabel="노지 보기"
+        />
+
+        <div className="grid grid-cols-2 gap-3">
+          {FIELD_CROPS.slice(0, 2).map((c, i) => (
+            <Tilt3D key={c.id} className={`rounded-4xl animate-rise-3d delay-step-${i + 1}`}>
+              <div className="relative h-44 rounded-4xl overflow-hidden shadow-depth-3 grain p-4 text-white">
+                <span className={`absolute inset-0 bg-gradient-to-br ${c.gradient}`} aria-hidden="true" />
+                <span className="absolute -bottom-8 -right-6 w-28 h-28 rounded-full bg-white/15 blur-2xl" aria-hidden="true" />
+                <div className="relative z-10 flex h-full flex-col justify-between">
+                  <span className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center">
+                    <i className={`${c.icon} text-lg`} aria-hidden="true" />
+                  </span>
+                  <div>
+                    <p className="text-[15px] font-black leading-tight">{c.name}</p>
+                    <p className="text-[10px] font-bold text-white/70" translate="no">{c.species}</p>
+                    <p className="mt-1.5 text-[10.5px] font-medium text-white/85 leading-snug">{c.spec}</p>
+                  </div>
+                </div>
+              </div>
+            </Tilt3D>
           ))}
         </div>
-      </section>
 
-      {/* Quick Actions with 3D Effect */}
-      <section className="px-4 pb-8">
-        <h3 className="text-lg font-black text-gray-900 mb-5">빠른 실행</h3>
-        <div className="space-y-4">
-          <Link 
-            to="/crop-recognition"
-            className="relative group block"
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-teal-600 rounded-3xl blur-xl opacity-50 group-hover:opacity-70 transition-opacity duration-500"></div>
-            <div className="relative flex items-center gap-4 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-3xl p-5 shadow-xl hover:shadow-2xl transform hover:-translate-y-2 transition-all duration-500 overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
-              <div className="w-14 h-14 flex items-center justify-center bg-white/20 backdrop-blur-sm rounded-2xl shadow-lg transform group-hover:rotate-12 group-hover:scale-110 transition-all duration-500">
-                <i className="ri-camera-line text-2xl text-white"></i>
-              </div>
-              <div className="flex-1 relative z-10">
-                <h4 className="text-base font-black text-white mb-1">AI 작물 인식하기</h4>
-                <p className="text-xs text-white/90 font-medium">AI가 자동으로 분석합니다</p>
-              </div>
-              <div className="w-10 h-10 flex items-center justify-center bg-white/30 rounded-xl">
-                <i className="ri-camera-line text-xl text-white"></i>
-              </div>
-            </div>
-          </Link>
-
-          <Link
-            to="/ai-consultant"
-            className="relative group block"
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-200 to-pink-200 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-            <div className="relative flex items-center gap-4 bg-white rounded-3xl p-5 shadow-lg hover:shadow-2xl border-2 border-gray-100 transform hover:-translate-y-2 transition-all duration-500 overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-purple-100/50 rounded-full blur-2xl"></div>
-              <div className="w-14 h-14 flex items-center justify-center bg-gradient-to-br from-purple-400 to-pink-500 rounded-2xl shadow-lg transform group-hover:rotate-12 group-hover:scale-110 transition-all duration-500">
-                <i className="ri-robot-line text-2xl text-white"></i>
-              </div>
-              <div className="flex-1 relative z-10">
-                <h4 className="text-base font-black text-gray-900 mb-1">AI 컨설턴트</h4>
-                <p className="text-xs text-gray-600 font-medium">24시간 재배 상담 서비스</p>
-              </div>
-              <div className="w-10 h-10 flex items-center justify-center bg-purple-100 rounded-xl">
-                <i className="ri-robot-line text-xl text-purple-600"></i>
-              </div>
-            </div>
-          </Link>
-
-          <Link
-            to="/guide"
-            className="relative group block"
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-emerald-100 to-teal-100 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-            <div className="relative flex items-center gap-4 bg-white rounded-3xl p-5 shadow-lg hover:shadow-2xl border-2 border-gray-100 transform hover:-translate-y-2 transition-all duration-500 overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-100/50 rounded-full blur-2xl"></div>
-              <div className="w-14 h-14 flex items-center justify-center bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl shadow-lg transform group-hover:rotate-12 group-hover:scale-110 transition-all duration-500">
-                <i className="ri-book-open-line text-2xl text-white"></i>
-              </div>
-              <div className="flex-1 relative z-10">
-                <div className="flex items-center gap-2 mb-1">
-                  <h4 className="text-base font-black text-gray-900">재배 가이드 웹툰</h4>
-                  <span className="text-xs font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">55화</span>
+        {/* 화훼단지 근접성 — 마퀴 */}
+        <div className="mt-3 glass-card overflow-hidden">
+          <div className="p-4 pb-3">
+            <p className="flex items-center gap-1.5 text-[13px] font-black text-gray-900 dark:text-gray-50">
+              <i className="ri-truck-fill text-blueangel-500" aria-hidden="true" />
+              {FLOWER_DISTRICT.headline}
+            </p>
+          </div>
+          <div className="relative overflow-hidden border-t border-gray-200/60 dark:border-gray-700/60 py-3">
+            <div className="flex w-max animate-marquee gap-3 px-3">
+              {[...FLOWER_DISTRICT.advantages, ...FLOWER_DISTRICT.advantages].map((a, i) => (
+                <div key={`${a.title}-${i}`} className="shrink-0 w-44 rounded-2xl bg-gradient-to-br from-blueangel-100 to-white
+                                                        dark:from-blueangel-700/30 dark:to-gray-900 p-3 border border-blueangel-100 dark:border-blueangel-700/40">
+                  <i className={`${a.icon} text-base text-blueangel-700 dark:text-blueangel-300`} aria-hidden="true" />
+                  <p className="mt-1 text-[11.5px] font-black text-gray-900 dark:text-gray-50">{a.title}</p>
+                  <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 leading-snug">{a.desc}</p>
                 </div>
-                <p className="text-xs text-gray-600 font-medium">고추냉이 스마트팜 완전 가이드</p>
-              </div>
-              <i className="ri-arrow-right-s-line text-xl text-gray-300 group-hover:text-emerald-500 transform group-hover:translate-x-1 transition-all duration-300"></i>
-            </div>
-          </Link>
-        </div>
-      </section>
-
-      {/* 향재원 소개 배너 */}
-      <section className="px-4 pb-6">
-        <div className="relative rounded-3xl overflow-hidden shadow-xl">
-          <img src={imgPath('A_street_view-style_3D_rendering_of_Hyangjaewons_-1760446648462.png')} alt="향재원 전체 조감도" className="w-full h-36 object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-black/20" />
-          <div className="absolute inset-0 flex flex-col justify-center px-5">
-            <p className="text-emerald-300 text-xs font-bold mb-1">서울 서초구 양재동 178-4</p>
-            <h3 className="text-white text-lg font-black">향재원 스마트팜 공간대여</h3>
-            <p className="text-white/80 text-xs mt-1">고추냉이 스마트팜 150평 + 체험 데크 8개소</p>
-            <p className="text-yellow-300 text-xs font-semibold mt-1">2026년 9월 정식 오픈 예정</p>
-          </div>
-        </div>
-      </section>
-
-      {/* 제품 라인업 */}
-      <section className="px-4 pb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-black text-gray-900">향재원 제품 라인업</h3>
-          <Link to="/shop" className="text-xs text-emerald-600 font-black flex items-center gap-0.5 hover:gap-1 transition-all">
-            전체 보기 <i className="ri-arrow-right-s-line" />
-          </Link>
-        </div>
-        <Link
-          to="/shop"
-          className="block relative rounded-3xl overflow-hidden shadow-lg bg-white hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 group"
-        >
-          <div className="relative h-40 bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-600 flex items-center justify-center overflow-hidden">
-            <div className="absolute inset-0 flex items-center justify-center gap-4 opacity-80">
-              <span className="text-6xl drop-shadow-xl transform group-hover:scale-110 transition-transform duration-500">🌿</span>
-              <span className="text-5xl drop-shadow-xl transform group-hover:scale-110 transition-transform duration-500" style={{ transitionDelay: '50ms' }}>🧂</span>
-              <span className="text-5xl drop-shadow-xl transform group-hover:scale-110 transition-transform duration-500" style={{ transitionDelay: '100ms' }}>🍵</span>
-              <span className="text-5xl drop-shadow-xl transform group-hover:scale-110 transition-transform duration-500" style={{ transitionDelay: '150ms' }}>🎁</span>
-            </div>
-            <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full shadow">
-              <span className="text-[10px] font-black text-emerald-700">SHOP NOW</span>
-            </div>
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent h-14" />
-            <div className="absolute bottom-2 left-3 text-white">
-              <p className="text-[10px] font-black opacity-90">Farm-to-Table 공식 스토어</p>
-            </div>
-          </div>
-          <div className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-black text-gray-900">고추냉이 가공식품 라인</p>
-              <span className="text-[10px] bg-red-500 text-white px-2 py-0.5 rounded-full font-black">8종</span>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {['쌈장', '소금', '가루', '절임', '어묵', '원액차', '생근경', '선물세트'].map(item => (
-                <span key={item} className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-bold border border-emerald-100">{item}</span>
               ))}
             </div>
-            <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
-              <p className="text-[11px] text-gray-500 font-medium">5만원 이상 무료배송</p>
-              <span className="text-[11px] text-emerald-600 font-black group-hover:translate-x-1 transition-transform">스토어 방문 →</span>
-            </div>
           </div>
-        </Link>
+        </div>
       </section>
 
-      {/* Recent Activity with Timeline */}
+      {/* ══ 치유농업 ══ */}
       <section className="px-4 pb-8">
-        <h3 className="text-lg font-black text-gray-900 mb-5">최근 활동</h3>
-        <div className="bg-white rounded-3xl shadow-xl divide-y divide-gray-100 border border-gray-100 overflow-hidden">
-          {[
-            { icon: 'ri-seedling-line', text: '스마트팜 실시간 데이터', time: '2시간 전', color: 'green', gradient: 'from-green-400 to-emerald-500', link: '/smart-farm-data' },
-            { icon: 'ri-calendar-check-line', text: '스마트팜 스케줄러', time: '5시간 전', color: 'blue', gradient: 'from-blue-400 to-indigo-500', link: '/cultivation-calendar' },
-            { icon: 'ri-line-chart-line', text: '작물 데이터 분석', time: '1일 전', color: 'orange', gradient: 'from-orange-400 to-red-500', link: '/smart-farm-data?tab=history' }
-          ].map((activity, index) => (
+        <SectionHead
+          eyebrow="CARE FARMING"
+          title={<>대상마다 다른 <span className="text-gradient">치유의 속도</span></>}
+          desc="직장인 · 시니어 · 어린이 · 가족 · 복지기관까지, 대상별로 다른 5개 프로그램을 설계하고 있습니다. 효과는 농촌진흥청 실증 결과를 근거로 삼았습니다."
+          to="/care-farming"
+          toLabel="프로그램 보기"
+        />
+
+        <div className="snap-row pb-2 -mx-1 px-1">
+          {CARE_PROGRAMS.map((p, i) => (
             <Link
-              key={index}
-              to={activity.link}
-              className="p-4 flex items-center gap-4 hover:bg-gray-50 transition-all duration-300 group cursor-pointer"
+              key={p.id}
+              to={`/care-farming/${p.id}`}
+              className={`snap-item w-[15.5rem] rounded-4xl overflow-hidden shadow-depth-2
+                          bg-white/80 dark:bg-gray-900/70 border border-white/60 dark:border-gray-700/60
+                          animate-rise-3d delay-step-${(i % 6) + 1} group`}
             >
-              <div className="relative">
-                <div className={`absolute inset-0 bg-gradient-to-br ${activity.gradient} rounded-xl blur-md opacity-0 group-hover:opacity-50 transition-opacity duration-500`}></div>
-                <div className={`relative w-12 h-12 flex items-center justify-center bg-gradient-to-br ${activity.gradient} rounded-xl shadow-lg transform group-hover:rotate-12 group-hover:scale-110 transition-all duration-500`}>
-                  <i className={`${activity.icon} text-xl text-white`}></i>
+              <span className="relative block h-24 overflow-hidden">
+                <CareProgramImage program={p} className="w-full h-full" />
+                <span className={`absolute inset-0 bg-gradient-to-br ${p.gradient} opacity-55 mix-blend-multiply`} />
+                <span className="absolute bottom-2 left-3 inline-flex items-center gap-1 rounded-full
+                                 bg-white/25 backdrop-blur-md border border-white/30 px-2 py-0.5
+                                 text-[9.5px] font-black text-white">
+                  <i className={p.icon} aria-hidden="true" />{p.target}
+                </span>
+              </span>
+              <span className="block p-3.5">
+                <span className="block text-[15px] font-black leading-snug text-gray-900 dark:text-gray-50">{p.name}</span>
+                <span className="mt-1.5 block text-[11px] font-medium leading-relaxed text-gray-600 dark:text-gray-400">
+                  {p.summary}
+                </span>
+                <span className="mt-2 inline-flex items-center gap-0.5 text-[10.5px] font-black
+                                 text-wasabi-600 dark:text-wasabi-300 group-hover:gap-1.5 transition-all">
+                  상세 보기 <i className="ri-arrow-right-line" aria-hidden="true" />
+                </span>
+              </span>
+            </Link>
+          ))}
+        </div>
+
+        {/* 인증 추진 단계 */}
+        <div className="mt-3 glass-card p-4">
+          <p className="text-[12px] font-black text-gray-900 dark:text-gray-50 mb-3">치유농업 인증 추진 단계</p>
+          <ol className="space-y-2.5">
+            {CARE_CERT_ROADMAP.map(s => (
+              <li key={s.step} className="flex items-start gap-2.5">
+                <span className={`mt-0.5 w-5 h-5 shrink-0 rounded-full flex items-center justify-center text-[9px] font-black
+                  ${s.status === 'done'  ? 'bg-wasabi-500 text-white'
+                  : s.status === 'doing' ? 'bg-amber-400 text-amber-950 animate-harvest-glow'
+                  :                        'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}`}>
+                  {s.status === 'done' ? <i className="ri-check-line" aria-hidden="true" /> : s.step}
+                </span>
+                <div className="min-w-0">
+                  <p className="text-[12px] font-black text-gray-900 dark:text-gray-50">
+                    {s.label}
+                    {s.status === 'doing' && <span className="ml-1.5 chip !py-0 !text-[9px]">진행 중</span>}
+                  </p>
+                  <p className="text-[10.5px] font-medium text-gray-500 dark:text-gray-400 leading-snug">{s.desc}</p>
                 </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      {/* ══ 마스코트 마루 ══ */}
+      <section className="px-4 pb-8">
+        <Tilt3D className="rounded-4xl" max={6}>
+          <div className="relative rounded-4xl overflow-hidden shadow-depth-3 grain
+                          bg-gradient-to-br from-wasabi-50 via-white to-emeraldgreen-100
+                          dark:from-wasabi-900 dark:via-gray-900 dark:to-emeraldgreen-700/30 p-5">
+            <span className="orb -top-10 -right-8 w-40 h-40 bg-wasabi-300/40" aria-hidden="true" />
+            <div className="relative z-10 flex items-start gap-4">
+              <div className="shrink-0">
+                {mascotImg ? (
+                  <img src={mascotImg} alt={`향재원 마스코트 ${MASCOT.name}`}
+                       className="w-20 h-20 object-contain drop-shadow-xl animate-leaf-sway" />
+                ) : (
+                  <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-wasabi-300 to-emeraldgreen-600
+                                  shadow-depth-3 flex items-center justify-center">
+                    <WasabiMark className="w-12 h-12" animated />
+                  </div>
+                )}
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-bold text-gray-900 mb-0.5">{activity.text}</p>
-                <p className="text-xs text-gray-500 font-medium">{activity.time}</p>
+              <div className="min-w-0">
+                <span className="eyebrow">MASCOT</span>
+                <p className="mt-1 text-xl font-black text-gray-900 dark:text-gray-50 leading-none">
+                  {MASCOT.name}
+                  <span className="ml-2 text-[11px] font-bold text-gray-400" translate="no">{MASCOT.nameEn}</span>
+                </p>
+                <p className="mt-0.5 text-[11px] font-bold text-wasabi-600 dark:text-wasabi-300">{MASCOT.role}</p>
+                <p className="mt-2 text-[12px] leading-relaxed text-gray-600 dark:text-gray-400 font-medium">
+                  {MASCOT.story}
+                </p>
               </div>
-              <i className="ri-arrow-right-s-line text-xl text-gray-300 group-hover:text-gray-600 transform group-hover:translate-x-1 transition-all duration-300"></i>
+            </div>
+            <div className="relative z-10 mt-3 flex flex-wrap gap-1.5">
+              {MASCOT.poses.map(p => (
+                <span key={p.id} className="chip">{p.label}</span>
+              ))}
+            </div>
+          </div>
+        </Tilt3D>
+      </section>
+
+      {/* ══ 농장 이야기 타임라인 ══ */}
+      <section className="px-4 pb-8">
+        <SectionHead
+          eyebrow="OUR STORY"
+          title={<>매립장이던 땅이 <span className="text-gradient">농장</span>이 되기까지</>}
+        />
+        <ol className="relative pl-7">
+          <span className="absolute left-[11px] top-2 bottom-2 w-px bg-gradient-to-b from-gray-300 via-wasabi-400 to-emeraldgreen-500 dark:from-gray-700" aria-hidden="true" />
+          {FARM_STORY.map((c, i) => (
+            <li key={c.id} className={`relative pb-5 animate-rise-3d delay-step-${i + 1}`}>
+              <span className={`absolute -left-7 top-0.5 w-6 h-6 rounded-full flex items-center justify-center shadow-depth-1
+                ${c.tone === 'past'  ? 'bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                : c.tone === 'work'  ? 'bg-soil-300 text-soil-700'
+                : c.tone === 'now'   ? 'bg-gradient-to-br from-wasabi-400 to-emeraldgreen-600 text-white animate-harvest-glow'
+                :                      'bg-rose-200 dark:bg-rose-900 text-rose-600 dark:text-rose-200'}`}>
+                <i className={`${c.icon} text-[11px]`} aria-hidden="true" />
+              </span>
+              <p className="text-[10px] font-black tracking-wider text-gray-400" translate="no">{c.period}</p>
+              <p className="text-[14px] font-black text-gray-900 dark:text-gray-50 leading-tight">{c.title}</p>
+              <p className="mt-1 text-[11.5px] font-medium leading-relaxed text-gray-600 dark:text-gray-400">{c.body}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* ══ 스마트팜 운영 도구 ══ */}
+      <section className="px-4 pb-8 scene">
+        <SectionHead
+          eyebrow="FARM TOOLS"
+          title={<>농장을 움직이는 <span className="text-gradient">기술</span></>}
+          desc="향재원의 모든 재배 구역은 센서와 데이터로 관리됩니다. 치유농업 프로그램도 이 데이터 위에서 설계됩니다."
+        />
+        <div className="grid grid-cols-2 gap-3">
+          {FARM_TOOLS.map((t, i) => (
+            <Link key={t.to} to={t.to} className={`group animate-rise-3d delay-step-${(i % 6) + 1}`}>
+              <div className="glass-card card-3d h-full p-4">
+                <div className={`w-11 h-11 rounded-2xl bg-gradient-to-br ${t.gradient} shadow-depth-2
+                                 flex items-center justify-center transition-transform duration-500
+                                 group-hover:scale-110 group-hover:rotate-6`}>
+                  <i className={`${t.icon} text-xl text-white`} aria-hidden="true" />
+                </div>
+                <p className="mt-3 text-[13px] font-black text-gray-900 dark:text-gray-50">{t.title}</p>
+                <p className="mt-1 text-[10.5px] font-medium text-gray-500 dark:text-gray-400 leading-snug">{t.desc}</p>
+              </div>
             </Link>
           ))}
         </div>
       </section>
 
-      {/* 시설 이미지 갤러리 모달 */}
-      <FacilityGallery
-        open={activeFacility !== null}
-        title={activeFacility?.label ?? ''}
-        subtitle={activeFacility?.subtitle}
-        images={activeFacility?.images ?? []}
-        onClose={() => setGalleryKey(null)}
-      />
+      {/* ══ 제품 ══ */}
+      <section className="px-4 pb-8">
+        <SectionHead
+          eyebrow="FARM PRODUCTS"
+          title={<>서울에서 기른 <span className="text-gradient">국산 고추냉이 가공품</span></>}
+          to="/shop"
+          toLabel="전체 보기"
+        />
+        <Tilt3D className="rounded-4xl" max={6}>
+          <Link to="/shop"
+                className="block relative rounded-4xl overflow-hidden shadow-depth-3 grain
+                           bg-gradient-to-br from-wasabi-700 via-emeraldgreen-700 to-wasabi-900 p-5">
+            <UploadedHeroPhoto
+              imageKey="store-products"
+              alt="향재원 고추냉이 가공품"
+              className="absolute inset-0 w-full h-full"
+              overlayClassName="bg-gradient-to-br from-wasabi-900/90 via-emeraldgreen-800/80 to-wasabi-950/90"
+            />
+            <span className="orb -top-10 -right-8 w-40 h-40 bg-wasabi-300/35" aria-hidden="true" />
+            <div className="relative z-10">
+              <div className="flex items-center gap-2.5">
+                <WasabiMark className="w-9 h-9" />
+                <div className="leading-none">
+                  <p className="text-[14px] font-black text-white">고추냉이 가공품</p>
+                  <p className="mt-1 text-[10.5px] font-bold text-wasabi-200">양재동 재배 · 국내산 100%</p>
+                </div>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {['와사비 소금', '줄기 장아찌', '펌프형 농축액', '잎 절임', '가루', '생근경'].map(t => (
+                  <span key={t} className="rounded-full bg-white/18 backdrop-blur-md border border-white/25
+                                           px-2.5 py-1 text-[10.5px] font-bold text-white">{t}</span>
+                ))}
+              </div>
+              <p className="mt-3 inline-flex items-center gap-0.5 text-[11.5px] font-black text-white">
+                온라인 직판 보기 <i className="ri-arrow-right-line" aria-hidden="true" />
+              </p>
+            </div>
+          </Link>
+        </Tilt3D>
+      </section>
+
+      {/* ══ 푸터 ══ */}
+      <footer className="px-4 pb-10">
+        <div className="glass-card p-5">
+          <div className="flex items-center gap-2.5">
+            <WasabiMark className="w-7 h-7" />
+            <div className="leading-none">
+              <p className="text-[15px] font-black text-gray-900 dark:text-gray-50">{FARM_PROFILE.nameKo}</p>
+              <p className="mt-1 text-[10px] font-bold text-wasabi-600 dark:text-wasabi-300" translate="no">
+                {FARM_PROFILE.taglineEn}
+              </p>
+            </div>
+          </div>
+
+          <dl className="mt-4 space-y-2 text-[11.5px]">
+            {[
+              { k: '소재지', v: FARM_PROFILE.address },
+              { k: '운영',   v: `${FARM_PROFILE.operator} (대표 ${FARM_PROFILE.ceo})` },
+              { k: '문의',   v: FARM_PROFILE.phone },
+              { k: '용도',   v: '농산물 생산 시설 · 공간대여/숙박 운영 없음' },
+            ].map(r => (
+              <div key={r.k} className="flex gap-3">
+                <dt className="w-12 shrink-0 font-black text-gray-400">{r.k}</dt>
+                <dd className="font-bold text-gray-700 dark:text-gray-300">{r.v}</dd>
+              </div>
+            ))}
+          </dl>
+
+          <div className="mt-4 pt-4 hairline flex flex-wrap gap-2">
+            <Link to="/visit" className="chip"><i className="ri-information-line" aria-hidden="true" />방문 안내</Link>
+            <Link to="/map" className="chip"><i className="ri-map-pin-line" aria-hidden="true" />찾아오시는 길</Link>
+            <Link to="/guide" className="chip"><i className="ri-book-open-line" aria-hidden="true" />재배 가이드</Link>
+          </div>
+
+          <p className="mt-4 text-[10px] font-medium text-gray-400 leading-relaxed">
+            © 2026 {FARM_PROFILE.operator}. 본 사이트에 표기된 모든 시설은 농산물 생산을 위한 농업시설이며,
+            숙박·야영·공간대여 서비스를 제공하지 않습니다. 치유농업 프로그램은 등록·인증 절차 진행 중으로 아직 운영 전입니다.
+          </p>
+        </div>
+      </footer>
 
       <BottomNav />
     </div>

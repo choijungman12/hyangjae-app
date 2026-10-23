@@ -3,6 +3,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import BottomNav from '@/components/BottomNav';
 import PageHeader from '@/components/PageHeader';
 import { isBusinessAuth } from '@/lib/businessAuth';
+import {
+  GreenhousePlan,
+  GreenhousePerspective,
+  deriveDims,
+  type GreenhouseType,
+} from '@/components/GreenhousePlanArt';
 
 // ─────────────────────────────────────────────
 // 실제 시장 단가 데이터 (2026년 기준)
@@ -145,6 +151,8 @@ export default function FacilityDesign() {
   const [subsidyType, setSubsidyType] = useState<SubsidyId>('none');
   const [showResult, setShowResult] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
+  /** 도면 보기 모드 — 평면도 / 투시도 */
+  const [drawingView, setDrawingView] = useState<'plan' | 'perspective'>('plan');
 
   // 면적 계산
   const rawArea = parseFloat(areaInput) || 150;
@@ -238,7 +246,7 @@ export default function FacilityDesign() {
           </div>
           <p className="text-xs text-gray-400 mt-1.5">
             = 약 {areaUnit === 'pyeong' ? `${Math.round(areaSqm)}㎡` : `${Math.round(areaPyeong)}평`}
-            　·　향재원 기준: 150평 (495㎡)
+            　·　향재원 수경 온실 기준: 560㎡ (약 169평)
           </p>
         </div>
       </section>
@@ -295,6 +303,86 @@ export default function FacilityDesign() {
               )}
             </button>
           ))}
+        </div>
+      </section>
+
+      {/* ═══ 예시 도면 — 평면도 · 투시도 ═══ */}
+      <section className="px-4 pb-4">
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="px-4 py-3.5 flex items-center justify-between border-b border-gray-100">
+            <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+              <i className="ri-draft-line text-blue-500" aria-hidden="true" />
+              예시 도면
+            </h3>
+            <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+              {([
+                { id: 'plan'        as const, label: '평면도', icon: 'ri-layout-grid-line' },
+                { id: 'perspective' as const, label: '투시도', icon: 'ri-box-3-line' },
+              ]).map(v => (
+                <button
+                  key={v.id}
+                  type="button"
+                  onClick={() => setDrawingView(v.id)}
+                  aria-pressed={drawingView === v.id}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-black transition-all ${
+                    drawingView === v.id ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'
+                  }`}
+                >
+                  <i className={v.icon} aria-hidden="true" />{v.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 도면 */}
+          <div className="bg-gray-50">
+            {drawingView === 'plan' ? (
+              <GreenhousePlan type={facilityType as GreenhouseType} areaSqm={areaSqm} className="w-full" />
+            ) : (
+              <GreenhousePerspective type={facilityType as GreenhouseType} areaSqm={areaSqm} className="w-full" />
+            )}
+          </div>
+
+          {/* 산출 제원 */}
+          {(() => {
+            const dims = deriveDims(facilityType as GreenhouseType, areaSqm);
+            const rows = [
+              { k: '연동 수',   v: `${dims.bays}동`,                    icon: 'ri-layout-column-line' },
+              { k: '전체 폭',   v: `${dims.width}m`,                   icon: 'ri-arrow-left-right-line' },
+              { k: '전체 길이', v: `${dims.length.toFixed(1)}m`,        icon: 'ri-arrow-up-down-line' },
+              { k: '동당 폭',   v: `${dims.bayWidth}m`,                icon: 'ri-ruler-2-line' },
+              { k: '처마 높이', v: `${dims.eaveH}m`,                   icon: 'ri-building-line' },
+              { k: '용마루',   v: `${dims.ridgeH}m`,                  icon: 'ri-triangle-line' },
+              { k: '베드 열수', v: `${dims.bedRows}열`,                icon: 'ri-stack-line' },
+              { k: '건축 면적', v: `${Math.round(areaSqm)}㎡`,          icon: 'ri-shape-line' },
+            ];
+            return (
+              <div className="grid grid-cols-4 divide-x divide-gray-100 border-t border-gray-100">
+                {rows.slice(0, 4).map(r => (
+                  <div key={r.k} className="p-2.5 text-center">
+                    <i className={`${r.icon} text-sm text-gray-400`} aria-hidden="true" />
+                    <p className="mt-1 text-[11px] font-black text-gray-900" translate="no">{r.v}</p>
+                    <p className="text-[9px] text-gray-400 font-bold">{r.k}</p>
+                  </div>
+                ))}
+                {rows.slice(4).map(r => (
+                  <div key={r.k} className="p-2.5 text-center border-t border-gray-100">
+                    <i className={`${r.icon} text-sm text-gray-400`} aria-hidden="true" />
+                    <p className="mt-1 text-[11px] font-black text-gray-900" translate="no">{r.v}</p>
+                    <p className="text-[9px] text-gray-400 font-bold">{r.k}</p>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+
+          <div className="px-4 py-3 bg-amber-50 border-t border-amber-100 flex items-start gap-2">
+            <i className="ri-information-line text-amber-500 text-sm flex-shrink-0 mt-0.5" aria-hidden="true" />
+            <p className="text-[10.5px] text-amber-800 leading-relaxed">
+              입력한 면적에서 동 수·폭·길이를 역산해 그린 <b>규모 확인용 예시 도면</b>입니다.
+              실제 시공에는 지반·적설·풍하중을 반영한 구조 계산서와 인허가 도서가 따로 필요합니다.
+            </p>
+          </div>
         </div>
       </section>
 

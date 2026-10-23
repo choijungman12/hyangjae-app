@@ -16,44 +16,51 @@ interface CropInfo {
   yieldPerPlant: number; // g/주/수확
   rotationsPerYear: number;
   seedlingCost: number; // 원/주
-  category: 'leafy' | 'fruit' | 'root' | 'herb';
+  /** wasabi = 고추냉이, euro = 유러피안 채소(재배동 1~8), compare = 작목 선택 검토용 비교군 */
+  category: 'wasabi' | 'euro' | 'compare';
   tag?: string;
 }
 
-/* 2026년 기준 수정된 데이터
- * - 고추냉이: 2만원 → 85,000원 (희귀작물 고가 반영)
- * - 바질: 1만원 → 38,000원 (수입 대비 국내산 프리미엄)
- * - 민트: 9천원 → 32,000원
- * - 딸기: 1.5만원 → 18,500원 (시세 반영)
- * - 깻잎: 8천원 → 13,000원
- * - 수율은 농진청 스마트팜 표준 매뉴얼 기준으로 재계산
+/* ───────── 향재원 실제 재배 품목 수지 기준값 ─────────
+ *
+ * 수율(yieldPerPlant)은 1주·1회전당 수확 중량(g), 회전수는 연간 작기 수입니다.
+ * 단가는 특수채소 B2B(레스토랑·호텔) 납품 기준이며, 가락시장 일반 경락가보다 높습니다.
+ *
+ *  · 고추냉이 근경 — 정식 후 18~24개월 작기라 연 환산 0.6회전
+ *  · 고추냉이 잎·줄기 — 정식 4개월 차부터 월 1회 수확 (연 12회전)
+ *  · 유러피안 채소 8품목 — 재배동 1~8번 배정 작물과 동일
+ *
+ * ❗ 노지 조경수·화훼는 kg 단위가 아니라 "주" 단위로 거래되므로
+ *   이 계산기가 아니라 사업자 대시보드(/admin/business)에서 다룹니다.
  */
 const CROP_DB_INITIAL: CropInfo[] = [
-  // 엽채류
-  { id: 'lettuce',       name: '상추',     pricePerKg: 9500,  yieldPerPlant: 250, rotationsPerYear: 8,  seedlingCost: 500,  category: 'leafy' },
-  { id: 'kale',          name: '케일',     pricePerKg: 12000, yieldPerPlant: 280, rotationsPerYear: 6,  seedlingCost: 600,  category: 'leafy' },
-  { id: 'spinach',       name: '시금치',   pricePerKg: 6500,  yieldPerPlant: 180, rotationsPerYear: 8,  seedlingCost: 400,  category: 'leafy' },
-  { id: 'perilla',       name: '깻잎',     pricePerKg: 13000, yieldPerPlant: 220, rotationsPerYear: 6,  seedlingCost: 500,  category: 'leafy' },
-  // 과채류
-  { id: 'tomato',        name: '토마토',   pricePerKg: 4800,  yieldPerPlant: 5500, rotationsPerYear: 2, seedlingCost: 1000, category: 'fruit' },
-  { id: 'strawberry',    name: '딸기',     pricePerKg: 18500, yieldPerPlant: 1800, rotationsPerYear: 1, seedlingCost: 1500, category: 'fruit', tag: '고수익' },
-  { id: 'pepper',        name: '파프리카', pricePerKg: 7800,  yieldPerPlant: 3500, rotationsPerYear: 2, seedlingCost: 1200, category: 'fruit' },
-  { id: 'cucumber',      name: '오이',     pricePerKg: 3900,  yieldPerPlant: 4500, rotationsPerYear: 3, seedlingCost: 800,  category: 'fruit' },
-  { id: 'cherry-tomato', name: '방울토마토',pricePerKg: 9200,  yieldPerPlant: 3200, rotationsPerYear: 2, seedlingCost: 1000, category: 'fruit' },
-  // 근채류
-  { id: 'radish',        name: '무',       pricePerKg: 2800,  yieldPerPlant: 2500, rotationsPerYear: 4, seedlingCost: 300,  category: 'root' },
-  { id: 'carrot',        name: '당근',     pricePerKg: 4200,  yieldPerPlant: 1800, rotationsPerYear: 3, seedlingCost: 350,  category: 'root' },
-  // 허브류
-  { id: 'wasabi',        name: '고추냉이', pricePerKg: 120000, yieldPerPlant: 45,  rotationsPerYear: 1, seedlingCost: 3000, category: 'herb', tag: '향재원 주력' },
-  { id: 'basil',         name: '바질',     pricePerKg: 38000, yieldPerPlant: 180,  rotationsPerYear: 8, seedlingCost: 600,  category: 'herb' },
-  { id: 'mint',          name: '민트',     pricePerKg: 32000, yieldPerPlant: 200,  rotationsPerYear: 7, seedlingCost: 600,  category: 'herb' },
+  // ── 고추냉이 (수경 온실) ──
+  { id: 'wasabi',        name: '고추냉이 근경',   pricePerKg: 120000, yieldPerPlant: 45,  rotationsPerYear: 0.6, seedlingCost: 3000, category: 'wasabi', tag: '주력' },
+  { id: 'wasabi-leaf',   name: '고추냉이 잎·줄기', pricePerKg: 20000, yieldPerPlant: 100, rotationsPerYear: 12,  seedlingCost: 0,    category: 'wasabi', tag: '월 수확' },
+
+  // ── 유러피안 채소 (재배동 1~8번) ──
+  { id: 'rucola',        name: '루꼴라',          pricePerKg: 16000, yieldPerPlant: 100, rotationsPerYear: 7,   seedlingCost: 250, category: 'euro', tag: '1번동' },
+  { id: 'basil',         name: '바질 (제노베제)', pricePerKg: 38000, yieldPerPlant: 180, rotationsPerYear: 6,   seedlingCost: 600, category: 'euro', tag: '2번동' },
+  { id: 'butterhead',    name: '버터헤드·로메인', pricePerKg: 7500,  yieldPerPlant: 280, rotationsPerYear: 6,   seedlingCost: 400, category: 'euro', tag: '3번동' },
+  { id: 'radicchio',     name: '라디키오',        pricePerKg: 22000, yieldPerPlant: 300, rotationsPerYear: 3,   seedlingCost: 700, category: 'euro', tag: '4번동' },
+  { id: 'cavolo-nero',   name: '카볼로 네로',     pricePerKg: 18000, yieldPerPlant: 420, rotationsPerYear: 1,   seedlingCost: 600, category: 'euro', tag: '5번동 · 장기수확' },
+  { id: 'chard',         name: '스위스 차드',     pricePerKg: 12000, yieldPerPlant: 250, rotationsPerYear: 6,   seedlingCost: 450, category: 'euro', tag: '6번동' },
+  { id: 'fennel',        name: '펜넬',            pricePerKg: 14000, yieldPerPlant: 450, rotationsPerYear: 3,   seedlingCost: 500, category: 'euro', tag: '7번동' },
+  { id: 'beet',          name: '비트',            pricePerKg: 6500,  yieldPerPlant: 350, rotationsPerYear: 4,   seedlingCost: 300, category: 'euro', tag: '8번동' },
+
+  // ── 비교군 (일반 시설재배 — 작목 선택 검토용) ──
+  { id: 'lettuce',       name: '상추',     pricePerKg: 9500,  yieldPerPlant: 250, rotationsPerYear: 8, seedlingCost: 500, category: 'compare' },
+  { id: 'kale',          name: '케일',     pricePerKg: 12000, yieldPerPlant: 280, rotationsPerYear: 6, seedlingCost: 600, category: 'compare' },
+  { id: 'spinach',       name: '시금치',   pricePerKg: 6500,  yieldPerPlant: 180, rotationsPerYear: 8, seedlingCost: 400, category: 'compare' },
+  { id: 'perilla',       name: '깻잎',     pricePerKg: 13000, yieldPerPlant: 220, rotationsPerYear: 6, seedlingCost: 500, category: 'compare' },
+  { id: 'strawberry',    name: '딸기',     pricePerKg: 18500, yieldPerPlant: 1800, rotationsPerYear: 1, seedlingCost: 1500, category: 'compare' },
+  { id: 'tomato',        name: '토마토',   pricePerKg: 4800,  yieldPerPlant: 5500, rotationsPerYear: 2, seedlingCost: 1000, category: 'compare' },
 ];
 
 const CATEGORY_META = [
-  { id: 'leafy', name: '엽채류', icon: 'ri-leaf-line', gradient: 'from-green-400 to-emerald-600' },
-  { id: 'fruit', name: '과채류', icon: 'ri-apple-line', gradient: 'from-red-400 to-pink-600' },
-  { id: 'root',  name: '근채류', icon: 'ri-plant-line', gradient: 'from-orange-400 to-amber-600' },
-  { id: 'herb',  name: '허브류', icon: 'ri-seedling-line', gradient: 'from-purple-400 to-indigo-600' },
+  { id: 'wasabi',  name: '고추냉이',   icon: 'ri-plant-line',    gradient: 'from-wasabi-400 to-emeraldgreen-700' },
+  { id: 'euro',    name: '유러피안 채소', icon: 'ri-home-4-line', gradient: 'from-lime-400 to-wasabi-700' },
+  { id: 'compare', name: '비교 작목',   icon: 'ri-scales-3-line', gradient: 'from-slate-400 to-gray-600' },
 ];
 
 /* ───────── 계산 함수 ───────── */
@@ -379,9 +386,10 @@ export default function ProfitAnalysis() {
   // }, [navigate]);
 
   // 입력 상태
-  const [selectedCategory, setSelectedCategory] = useState<string>('herb');
+  const [selectedCategory, setSelectedCategory] = useState<string>('wasabi');
   const [cropId, setCropId] = useState<string>('wasabi');
-  const [plants, setPlants] = useState<string>('3000');
+  // 1차 정식 10,000주 (farmStory FARM_STATS 와 동일 기준)
+  const [plants, setPlants] = useState<string>('10000');
   const [areaM2, setAreaM2] = useState<string>('500');
   const [electricCost, setElectricCost] = useState<string>('150000');
   const [laborCost, setLaborCost] = useState<string>('3000000');
@@ -580,13 +588,13 @@ export default function ProfitAnalysis() {
             </div>
             <div>
               <p className="text-white font-black text-sm">향재원 매출 목표</p>
-              <p className="text-white/70 text-xs">서초구 양재동 · 2026년 9월 오픈</p>
+              <p className="text-white/70 text-xs">서초구 양재동 · 고추냉이 + 특수작물 + 노지 화훼</p>
             </div>
           </div>
           <div className="p-4 grid grid-cols-2 gap-2.5">
             {[
-              { label: '1개월차 목표', value: '2,700만원', sub: '공간대여 + 스마트팜', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100' },
-              { label: '3개월차 목표', value: '3,540만원', sub: '복합 수익 모델',      color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-100' },
+              { label: '1개월차 목표', value: '2,700만원', sub: '고추냉이 + 특수작물 출하', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100' },
+              { label: '3개월차 목표', value: '3,540만원', sub: '노지 조경수·화훼 출하 가세', color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-100' },
               { label: '연간 매출 목표', value: '₩4억', sub: 'ROI 22% · 3.5년 회수',  color: 'text-pink-600',   bg: 'bg-pink-50',   border: 'border-pink-100' },
               { label: 'BEP 달성',   value: '3개월',     sub: '월 단위 흑자 전환',   color: 'text-emerald-600',bg: 'bg-emerald-50',border: 'border-emerald-100' },
             ].map(item => (
@@ -664,7 +672,9 @@ export default function ProfitAnalysis() {
                     <p className={`text-sm font-black mb-1 ${cropId === crop.id ? 'text-purple-900' : 'text-gray-800'}`}>{crop.name}</p>
                     <p className="text-[11px] text-gray-500 font-medium">{(crop.pricePerKg / 1000).toFixed(0)}천원/kg</p>
                     <div className="mt-1.5 flex items-center justify-center gap-2 text-[10px]">
-                      <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-bold">연{crop.rotationsPerYear}회</span>
+                      <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-bold" translate="no">
+                        {crop.rotationsPerYear >= 1 ? `연 ${crop.rotationsPerYear}회전` : `${Math.round(12 / crop.rotationsPerYear)}개월 작기`}
+                      </span>
                     </div>
                   </button>
                 );
@@ -689,7 +699,7 @@ export default function ProfitAnalysis() {
               {[
                 { label: '판매가', value: `${(cropData.pricePerKg/1000).toFixed(0)}천원/kg` },
                 { label: '수율', value: `${cropData.yieldPerPlant}g/주` },
-                { label: '연간회전', value: `${cropData.rotationsPerYear}회` },
+                { label: '연간회전', value: cropData.rotationsPerYear >= 1 ? `${cropData.rotationsPerYear}회` : `${Math.round(12 / cropData.rotationsPerYear)}개월 작기` },
               ].map(item => (
                 <div key={item.label} className="bg-white rounded-xl p-2.5 text-center shadow-sm">
                   <p className="text-[10px] text-gray-500 font-medium">{item.label}</p>

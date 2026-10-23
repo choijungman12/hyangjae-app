@@ -108,7 +108,7 @@ export default function AdminMembers() {
                 </div>
                 <div className="text-right flex-shrink-0">
                   <p className="text-[10px] text-gray-400">{member.id}</p>
-                  <p className="text-[10px] font-bold text-blue-600">예약 {member.bookings}건</p>
+                  <p className="text-[10px] font-bold text-blue-600" translate="no">주문 {member.bookings}건</p>
                 </div>
               </button>
             ))}
@@ -146,7 +146,7 @@ export default function AdminMembers() {
                 { label: '이메일', value: selectedMember.email || '-' },
                 { label: '연락처', value: selectedMember.phone || '-' },
                 { label: '가입 방식', value: selectedMember.type === 'kakao' ? '카카오' : '게스트' },
-                { label: '예약 횟수', value: `${selectedMember.bookings}건` },
+                { label: '주문 횟수', value: `${selectedMember.bookings}건` },
               ].map(row => (
                 <div key={row.label} className="bg-gray-50 rounded-xl p-3">
                   <p className="text-[10px] text-gray-400 font-bold mb-0.5">{row.label}</p>
@@ -156,7 +156,7 @@ export default function AdminMembers() {
             </div>
             <div className="flex gap-3">
               <button className="flex-1 py-3 bg-gray-100 rounded-xl text-sm font-black text-gray-600 hover:bg-gray-200 transition-all">문자 발송</button>
-              <button className="flex-1 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl text-sm font-black text-white shadow-md hover:shadow-lg transition-all">예약 내역</button>
+              <button className="flex-1 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl text-sm font-black text-white shadow-md hover:shadow-lg transition-all">주문 내역</button>
             </div>
           </div>
         </div>

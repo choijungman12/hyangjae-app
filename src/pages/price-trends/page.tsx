@@ -23,7 +23,7 @@ export default function PriceTrends() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [allCrops, setAllCrops] = useState<CropPriceInfo[]>([]);
-  const [categoryFilter, setCategoryFilter] = useState<'all' | '엽채류' | '과채류' | '근채류' | '허브류'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<'all' | '특수채소' | '엽채류' | '과채류' | '근채류' | '허브류'>('all');
   const heroRef = useRef<HTMLDivElement | null>(null);
 
   const loadAllCrops = useCallback(async () => {
@@ -451,7 +451,7 @@ export default function PriceTrends() {
 
         {/* 카테고리 필터 */}
         <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 mb-3">
-          {(['all', '엽채류', '과채류', '근채류', '허브류'] as const).map(cat => (
+          {(['all', '특수채소', '엽채류', '과채류', '근채류', '허브류'] as const).map(cat => (
             <button
               key={cat}
               onClick={() => setCategoryFilter(cat)}

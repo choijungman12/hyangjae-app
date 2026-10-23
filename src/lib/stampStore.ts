@@ -1,7 +1,7 @@
 /**
  * 스탬프 리워드 저장소
  *
- * 이용 완료(`status='done'`) 예약 1건당 스탬프 1개 적립.
+ * 수령 완료(`status='done'`) 주문 1건당 스탬프 1개 적립.
  * 10개 달성 시 향재원 고추냉이 선물 세트 쿠폰(6개월 유효) 자동 발급.
  *
  * 저장 위치: localStorage (key: `hyangjae_stamps_${userId}`)
@@ -101,8 +101,8 @@ export interface AddStampResult {
 }
 
 /**
- * 예약 1건을 기준으로 스탬프 1개 적립.
- * 같은 bookingId 로 중복 호출 시 재적립되지 않음.
+ * 주문 1건을 기준으로 스탬프 1개 적립.
+ * 같은 orderId 로 중복 호출 시 재적립되지 않음.
  * 10개 도달 시 쿠폰 발급 + 현재 카드 0으로 리셋 (총 누적은 유지).
  */
 export function addStamp(userId: string, bookingId: string | number): AddStampResult {

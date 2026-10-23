@@ -246,7 +246,7 @@ export default function MapPage() {
             ))}
             <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2">
               <i className="ri-phone-line text-emerald-500" />
-              <span className="text-xs font-bold text-gray-700">예약 문의</span>
+              <span className="text-xs font-bold text-gray-700">방문 · 납품 문의</span>
               {/* TODO: 🟡 EDIT:PHONE ─ 대표 전화번호 */}
               <a href="tel:01049290070" className="text-xs font-black text-emerald-600 ml-auto">010-4929-0070</a>
             </div>
@@ -280,14 +280,23 @@ export default function MapPage() {
         </div>
       </section>
 
-      {/* 예약 CTA */}
-      <section className="px-4 pb-6">
+      {/* 방문 안내 CTA — 농산물 생산 구역이라 사전 협의가 필요합니다 */}
+      <section className="px-4 pb-6 space-y-3">
+        <div className="rounded-2xl border border-red-200 bg-gradient-to-r from-red-50 to-orange-50 p-4 flex items-start gap-2.5">
+          <i className="ri-error-warning-line text-red-500 text-lg flex-shrink-0 mt-0.5" aria-hidden="true" />
+          <div>
+            <p className="text-xs font-black text-red-800">취식 · 화기 사용 전면 불가</p>
+            <p className="text-[11px] text-red-700 leading-relaxed mt-0.5">
+              숯불·바비큐·도시락을 포함한 모든 취식이 불가하며, 야영·숙박·공간대여도 운영하지 않습니다.
+            </p>
+          </div>
+        </div>
         <Link
-          to="/booking"
-          className="block w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white py-4 rounded-2xl font-black text-sm text-center shadow-xl hover:shadow-2xl transform hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
+          to="/visit"
+          className="block w-full bg-gradient-to-r from-wasabi-500 to-emeraldgreen-700 text-white py-4 rounded-2xl font-black text-sm text-center shadow-xl hover:shadow-2xl transform hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
         >
-          <i className="ri-calendar-check-line text-lg" />
-          향재원 예약하기
+          <i className="ri-information-line text-lg" aria-hidden="true" />
+          방문 안내 확인하기
         </Link>
       </section>
 

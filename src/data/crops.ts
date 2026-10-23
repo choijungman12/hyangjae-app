@@ -512,5 +512,15 @@ export const CROP_VISUAL: Record<string, { emoji: string; gradient: string }> = 
   radish:          { emoji: '🥕', gradient: 'from-purple-300 to-pink-400' },
   carrot:          { emoji: '🥕', gradient: 'from-orange-400 to-amber-500' },
   potato:          { emoji: '🥔', gradient: 'from-yellow-600 to-amber-700' },
-  chard:           { emoji: '🌿', gradient: 'from-teal-400 to-cyan-500' },
+
+  /* ── 향재원 출하 품목 — 재배동 1~8번 + 고추냉이 부위별 + 노지 ── */
+  'wasabi-leaf':   { emoji: '🌿', gradient: 'from-wasabi-300 to-emeraldgreen-600' },
+  rucola:          { emoji: '🌿', gradient: 'from-wasabi-400 to-emeraldgreen-600' },
+  butterhead:      { emoji: '🥬', gradient: 'from-lime-300 to-emeraldgreen-600' },
+  radicchio:       { emoji: '🍷', gradient: 'from-rose-500 to-purple-700' },
+  'cavolo-nero':   { emoji: '🥬', gradient: 'from-emeraldgreen-700 to-slate-800' },
+  chard:           { emoji: '🌈', gradient: 'from-orange-400 to-rose-600' },
+  fennel:          { emoji: '🌾', gradient: 'from-amber-300 to-lime-600' },
+  beet:            { emoji: '🫐', gradient: 'from-fuchsia-600 to-red-800' },
+  blueberry:       { emoji: '🫐', gradient: 'from-indigo-500 to-blue-800' },
 };

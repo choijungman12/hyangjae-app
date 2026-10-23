@@ -48,7 +48,7 @@ export interface PlantDisease {
  * 학명(species) → 한국어명 매핑
  */
 const SCIENTIFIC_TO_KOREAN: Record<string, string> = {
-  // 향재원 주력·데크 작물
+  // 향재원 주력 작물 · 재배동 특수작물
   'Eutrema japonicum': '고추냉이',
   'Wasabia japonica': '고추냉이',
   'Lactuca sativa': '상추',

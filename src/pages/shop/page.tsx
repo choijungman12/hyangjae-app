@@ -87,7 +87,7 @@ export default function ShopPage() {
             <div>
               <div className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full mb-2 border border-white/30">
                 <i className="ri-leaf-line text-xs" />
-                <span className="text-[10px] font-black">Farm-to-Table · 국내산 100%</span>
+                <span className="text-[10px] font-black">양재동 직접 재배 · 국내산 100%</span>
               </div>
               <h2 className="text-xl font-black mb-1 drop-shadow-lg">향재원 제품 라인업</h2>
               <p className="text-sm text-white/80">스마트팜에서 재배한 국산 고추냉이로<br />만든 프리미엄 가공식품</p>
@@ -248,7 +248,7 @@ export default function ShopPage() {
               <li>• 5만원 이상 주문 시 <b>무료배송</b> (미만 3,000원)</li>
               <li>• 평일 오후 2시 이전 주문 시 당일 출고</li>
               <li>• 냉장·냉동 상품은 별도 배송</li>
-              <li>• 2026년 9월 정식 오픈 예정 · 사전 예약 접수 중</li>
+              <li>• 고추냉이 근경은 수확 시기에 따라 수량이 제한됩니다</li>
             </ul>
           </div>
         </div>

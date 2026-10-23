@@ -1,11 +1,11 @@
 import { Link, useLocation } from 'react-router-dom';
 
 const NAV_ITEMS = [
-  { to: '/', icon: 'ri-home-5', label: '홈', activeColor: 'text-emerald-600' },
-  { to: '/smart-farm-data', icon: 'ri-dashboard-3', label: '데이터', activeColor: 'text-emerald-600' },
-  { to: '/cultivation-calendar', icon: 'ri-calendar-check', label: '달력', activeColor: 'text-blue-600' },
-  { to: '/profit-analysis', icon: 'ri-bar-chart-box', label: '수익분석', activeColor: 'text-purple-600' },
-  { to: '/ai-consultant', icon: 'ri-robot', label: 'AI상담', activeColor: 'text-indigo-600' },
+  { to: '/', icon: 'ri-home-5', label: '홈', activeColor: 'text-wasabi-600' },
+  { to: '/wasabi', icon: 'ri-plant', label: '고추냉이', activeColor: 'text-wasabi-600' },
+  { to: '/houses', icon: 'ri-home-4', label: '재배동', activeColor: 'text-lime-600' },
+  { to: '/care-farming', icon: 'ri-heart-pulse', label: '치유농업', activeColor: 'text-rose-600' },
+  { to: '/smart-farm-data', icon: 'ri-dashboard-3', label: '데이터', activeColor: 'text-blueangel-700' },
 ];
 
 export default function BottomNav() {
@@ -28,7 +28,7 @@ export default function BottomNav() {
               aria-current={isActive ? 'page' : undefined}
             >
               {isActive && (
-                <div className="absolute inset-0 bg-gradient-to-t from-emerald-50/80 to-transparent dark:from-emerald-900/30" />
+                <div className="absolute inset-0 bg-gradient-to-t from-wasabi-50/80 to-transparent dark:from-wasabi-900/40" />
               )}
               <i
                 className={`${item.icon}-${isActive ? 'fill' : 'line'} text-xl relative z-10 transition-all duration-300 ${

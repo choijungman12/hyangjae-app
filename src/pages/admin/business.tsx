@@ -7,8 +7,8 @@ import { CROP_MARKET_DETAILS } from '@/data/cropMarketInfo';
  *  사업자 전용 비즈니스 대시보드
  *
  *  - 시설·수확 핵심 지표 (KPI)
- *  - 작목반장 시세 (고추냉이·쌈채소·딸기)
- *  - 경쟁업체 비교표
+ *  - 출하 품목 시세 밴드 (고추냉이·유러피안 채소·노지 조경수)
+ *  - 출하 채널 비교표
  *  - 재무 시뮬레이션 (낙관/현실/비관 3개 시나리오)
  *
  *  🔒 /admin 로그인 필요. 일반 고객은 접근 불가.
@@ -24,75 +24,87 @@ const INVEST_DEFAULTS = {
   subsidy: 90_000_000,  // 무상 보조금
   loan: 200_000_000,    // 융자 (이자 1%)
   reserve: 20_000_000,  // 초기 운영자금
-  deckCount: 8,         // 체험 데크 수
-  deckWeekday: 139_000, // 평일 요금
-  deckWeekend: 159_000, // 주말 요금
+  houseCount: 8,        // 유러피안 특수작물 재배동 수
+  houseRevYear: 9_600_000, // 재배동 1동 연 매출 추정 (원)
+  fieldTrees: 600,      // 노지 조경수 식재 주수
+  treePriceAvg: 36_000, // 조경수 평균 출하 단가 (원/주)
+  treeTurnYears: 2,     // 조경수 평균 회전 연수
   leafPriceMonth: 2000, // 잎 B2B 원/주·월
   rootPriceKg: 120_000, // 근경 원/kg
   rootWeight: 45,       // g/주
   rootRatio: 30,        // 근경 비율 %
 };
 
-// ── 작목반장 시세 (CROP_MARKET_DETAILS 활용) ──
-const TARGET_CROPS = ['wasabi', 'lettuce', 'strawberry', 'perilla', 'tomato'] as const;
+// ── 향재원 출하 품목 시세 밴드 ──
+const TARGET_CROPS = ['wasabi', 'rucola', 'radicchio', 'basil', 'lettuce'] as const;
 
 const PRICE_BANDS: Record<string, { low: number; mid: number; high: number; unit: string; source: string }> = {
-  wasabi:     { low: 80000,  mid: 100000, high: 120000, unit: '원/kg (생근경)', source: '국산 프리미엄 · 고급 일식당 직거래' },
-  lettuce:    { low: 3000,   mid: 5000,   high: 8000,   unit: '원/kg',          source: '가락시장 도매 기준' },
-  strawberry: { low: 15000,  mid: 25000,  high: 40000,  unit: '원/kg',          source: '12월 초 최고가 → 2~3월 하락' },
-  perilla:    { low: 3500,   mid: 5000,   high: 7500,   unit: '원/100g',        source: '시설재배 안정 공급' },
-  tomato:     { low: 4000,   mid: 6500,   high: 10000,  unit: '원/kg',          source: '고당도 브랜드 2~3배' },
+  wasabi:    { low: 80000, mid: 120000, high: 200000, unit: '원/kg (생근경)', source: 'KAMIS 미등재 · 고급 일식당 직거래 실거래가' },
+  rucola:    { low: 11000, mid: 16000,  high: 23000,  unit: '원/kg',          source: '이탈리안 레스토랑 B2B · 여름 고온기 상승' },
+  radicchio: { low: 15000, mid: 22000,  high: 32000,  unit: '원/kg',          source: '가을·겨울 적색 발현기 최고가' },
+  basil:     { low: 28000, mid: 38000,  high: 52000,  unit: '원/kg',          source: '국내산 프리미엄 · 수입 대비 2배' },
+  lettuce:   { low: 3000,  mid: 9500,   high: 18000,  unit: '원/kg',          source: '가락시장 도매 · 여름 고온기 급등' },
 };
 
-// ── 경쟁업체 비교 ──
-interface CompetitorRow {
+/** 노지 조경수 — "주" 단위 거래라 kg 시세와 분리해 표시합니다 */
+const TREE_PRICE_BANDS = [
+  { name: '블루엔젤',      spec: '수고 1.2~2.0m · 근분', low: 28000, mid: 40000, high: 60000, note: '도심 정원·아파트 조경 포인트 수종' },
+  { name: '에메랄드그린',  spec: '수고 1.0~1.8m · 포트', low: 22000, mid: 32000, high: 48000, note: '생울타리·경계식재 최다 수요' },
+  { name: '에메랄드골드',  spec: '수고 0.8~1.5m · 포트', low: 20000, mid: 29000, high: 42000, note: '황금빛 상록 · 포인트 식재' },
+  { name: '블루베리 (묘)', spec: '수고 0.6~1.2m · 포트', low: 12000, mid: 18000, high: 28000, note: '수확 6~8월 · 체험 연계' },
+];
+
+// ── 출하 채널 비교 ──
+interface ChannelRow {
   name: string;
-  location: string;
-  decks: number;
-  weekdayPrice: number;
-  included: string;
-  petPolicy: string;
+  /** 주 취급 품목 */
+  items: string;
+  /** 향재원 기준 운송 거리·시간 */
+  distance: string;
+  /** 정산 주기 */
+  settlement: string;
+  /** 수수료·마진 구조 */
+  margin: string;
+  /** 채널의 강점 */
   usp: string;
-  isUs?: boolean;
+  /** 우선순위 채널 여부 */
+  isPrimary?: boolean;
 }
 
-const COMPETITORS: CompetitorRow[] = [
+const CHANNELS: ChannelRow[] = [
   {
-    name: '향재원',
-    location: '서울 서초 양재동',
-    decks: 8,
-    weekdayPrice: 139000,
-    included: '데크 + 전용 텃밭 수확 300g + 스마트팜 투어',
-    petPolicy: '7·8번 데크 · +10,000원/마리',
-    usp: '강남권 + 실제 고추냉이 스마트팜 + 전용 텃밭',
-    isUs: true,
+    name: '양재 화훼공판장',
+    items: '블루엔젤 · 에메랄드그린 · 절화',
+    distance: '같은 양재동 생활권 · 차량 5분대',
+    settlement: '경매 후 정산',
+    margin: '경매 수수료 차감',
+    usp: '초단거리 · 수확 당일 출하로 품질 유지',
+    isPrimary: true,
   },
   {
-    name: '비욘더팜',
-    location: '경기 하남 감이동',
-    decks: 20,
-    weekdayPrice: 80000,
-    included: '공간 + 집기만',
-    petPolicy: '중형견 이상 입마개',
-    usp: '저가 대량 · BYO 콜키지 프리',
+    name: '요식업 직거래',
+    items: '고추냉이 생근경 · 유러피안 특수작물',
+    distance: '서울 전역 · 당일 배송',
+    settlement: '월 정산',
+    margin: '중간 유통 없음 (마진 최대)',
+    usp: '국산 프리미엄 포지션 · 단가 방어력 높음',
+    isPrimary: true,
   },
   {
-    name: '우면동 체험농장',
-    location: '서울 서초 우면동',
-    decks: 0,
-    weekdayPrice: 30000,
-    included: '체험 프로그램만 (숙박 X)',
-    petPolicy: '동반 불가',
-    usp: '도심 당일 체험',
+    name: '조경 시공사',
+    items: '블루엔젤 · 에메랄드그린 (근분)',
+    distance: '수도권',
+    settlement: '현장 검수 후 정산',
+    margin: '대량 할인 요구 있음',
+    usp: '한 번에 대량 출하 · 재고 회전 빠름',
   },
   {
-    name: '과천 프리미엄 글램핑',
-    location: '경기 과천',
-    decks: 12,
-    weekdayPrice: 180000,
-    included: '데크 + 조식 뷔페',
-    petPolicy: '전 데크 가능 · +20,000원',
-    usp: '호텔급 편의시설 · 조식 포함',
+    name: '온라인 직판',
+    items: '고추냉이 가공품 · 소량 생근경',
+    distance: '전국 택배',
+    settlement: '즉시 결제',
+    margin: '플랫폼 수수료 + 배송비',
+    usp: '브랜드 노출 · 소비자 데이터 확보',
   },
 ];
 
@@ -100,7 +112,7 @@ const COMPETITORS: CompetitorRow[] = [
 interface Scenario {
   id: 'optimistic' | 'realistic' | 'pessimistic';
   name: string;
-  occupancy: number;    // 예약률 (%)
+  shipRate: number;     // 계획 대비 출하 달성률 (%)
   monthlyRevenue: number; // 월 매출 (원)
   monthlyCost: number;    // 월 운영비 (원)
   color: string;
@@ -112,7 +124,7 @@ const SCENARIOS: Scenario[] = [
   {
     id: 'optimistic',
     name: '낙관',
-    occupancy: 85,
+    shipRate: 85,
     monthlyRevenue: 42_000_000, // 월 4,200만원
     monthlyCost: 18_000_000,
     color: 'text-emerald-700',
@@ -122,7 +134,7 @@ const SCENARIOS: Scenario[] = [
   {
     id: 'realistic',
     name: '현실',
-    occupancy: 65,
+    shipRate: 65,
     monthlyRevenue: 33_000_000, // 월 3,300만원 → 연 4억
     monthlyCost: 19_000_000,
     color: 'text-blue-700',
@@ -132,7 +144,7 @@ const SCENARIOS: Scenario[] = [
   {
     id: 'pessimistic',
     name: '비관',
-    occupancy: 45,
+    shipRate: 45,
     monthlyRevenue: 22_000_000,
     monthlyCost: 20_000_000,
     color: 'text-amber-700',
@@ -141,7 +153,14 @@ const SCENARIOS: Scenario[] = [
   },
 ];
 
-const INITIAL_INVESTMENT = 1_500_000_000; // 15억
+/**
+ * 시나리오 분석 기준 투자액.
+ *
+ * ❗ 상단 통합 시뮬레이터의 totalInvest(시설·설비·묘·노지 식재 합계)와는 범위가 다릅니다.
+ *   이 값은 토지 취득비를 포함한 **총사업비** 기준이라 시뮬레이터 산출액보다 큽니다.
+ *   화면에서도 두 숫자를 나란히 보여 주고 범위를 명시합니다.
+ */
+const INITIAL_INVESTMENT = 1_500_000_000; // 15억 (토지 포함 총사업비)
 
 function fmtWon(n: number): string {
   if (n >= 100_000_000) return `${(n / 100_000_000).toFixed(1)}억`;
@@ -159,8 +178,8 @@ export default function AdminBusiness() {
   // ── 통합 시뮬레이터 상태 ──
   const [simArea, setSimArea] = useState(INVEST_DEFAULTS.area);
   const [simPlants, setSimPlants] = useState(INVEST_DEFAULTS.plants);
-  const [simDecks, setSimDecks] = useState(INVEST_DEFAULTS.deckCount);
-  const [simHasDeck, setSimHasDeck] = useState(true);
+  const [simHouses, setSimHouses] = useState(INVEST_DEFAULTS.houseCount);
+  const [simTrees, setSimTrees] = useState(INVEST_DEFAULTS.fieldTrees);
   const [simRootRatio, setSimRootRatio] = useState(INVEST_DEFAULTS.rootRatio);
   const [simLeafPrice, setSimLeafPrice] = useState(INVEST_DEFAULTS.leafPriceMonth);
   const [simRootPrice, setSimRootPrice] = useState(INVEST_DEFAULTS.rootPriceKg);
@@ -189,8 +208,10 @@ export default function AdminBusiness() {
     const areaRatio = simArea / 150;
     const equipCost = Math.round(INVEST_DEFAULTS.equipBaseCost * areaRatio);
     const seedlingCost = simPlants * INVEST_DEFAULTS.seedlingCost;
-    const deckInvest = simHasDeck ? simDecks * 15_000_000 : 0; // 데크당 약 1500만
-    const totalInvest = INVEST_DEFAULTS.structureCost + equipCost + seedlingCost + deckInvest + INVEST_DEFAULTS.reserve;
+    // 재배동 1동당 설비(관수·환기·센서) 약 900만 + 노지 묘목 식재비
+    const houseInvest = simHouses * 9_000_000;
+    const fieldInvest = simTrees * 12_000;
+    const totalInvest = INVEST_DEFAULTS.structureCost + equipCost + seedlingCost + houseInvest + fieldInvest + INVEST_DEFAULTS.reserve;
     const selfFund = Math.max(0, totalInvest - INVEST_DEFAULTS.subsidy - INVEST_DEFAULTS.loan);
 
     // 작물 매출 (2년차 기준)
@@ -201,22 +222,26 @@ export default function AdminBusiness() {
     const rootRevYear = rootPlants * rootPerPlant;
     const cropRevYear = leafRevYear + rootRevYear;
 
-    // 공간대여 매출 (연간)
-    const deckRevYear = simHasDeck
-      ? Math.round(simDecks * ((INVEST_DEFAULTS.deckWeekday * 2 * 260 / 365) + (INVEST_DEFAULTS.deckWeekend * 3 * 105 / 365)) * 0.65) // 65% 예약률
-      : 0;
+    // 유러피안 특수작물 매출 (재배동 × 동당 연 매출)
+    const houseRevYear = simHouses * INVEST_DEFAULTS.houseRevYear;
+
+    // 노지 조경수·화훼 매출 (회전 연수로 나눠 연 환산)
+    const fieldRevYear = Math.round(
+      (simTrees * INVEST_DEFAULTS.treePriceAvg) / INVEST_DEFAULTS.treeTurnYears
+    );
 
     // 제품 판매 매출 (추정)
     const productRevYear = Math.round(cropRevYear * 0.15); // 작물의 15%를 가공 제품으로
 
-    const totalRevYear = cropRevYear + deckRevYear + productRevYear;
+    const totalRevYear = cropRevYear + houseRevYear + fieldRevYear + productRevYear;
 
     // 연간 운영비
     const annualOpex = Math.round(
       15_000_000 * Math.pow(areaRatio, 0.7) + 5_250_000 * areaRatio +
       6_000_000 * Math.pow(areaRatio, 0.6) + 12_000_000 * Math.pow(areaRatio, 0.5) +
       2_000_000 + 3_000_000 +
-      (simHasDeck ? simDecks * 2_000_000 : 0) // 데크 운영비
+      simHouses * 1_800_000 +  // 재배동 운영비 (난방·관수·자재)
+      Math.round(simTrees * 4_000) // 노지 관리비 (전정·방제·관수)
     );
 
     const annualNetProfit = totalRevYear - annualOpex;
@@ -224,12 +249,12 @@ export default function AdminBusiness() {
     const recoverYears = annualNetProfit > 0 ? selfFund / annualNetProfit : Infinity;
 
     return {
-      totalInvest, selfFund, equipCost, seedlingCost, deckInvest,
-      leafRevYear, rootRevYear, cropRevYear, deckRevYear, productRevYear, totalRevYear,
+      totalInvest, selfFund, equipCost, seedlingCost, houseInvest, fieldInvest,
+      leafRevYear, rootRevYear, cropRevYear, houseRevYear, fieldRevYear, productRevYear, totalRevYear,
       annualOpex, annualNetProfit, roi, recoverYears,
       rootPlants, leafPlants,
     };
-  }, [simArea, simPlants, simDecks, simHasDeck, simRootRatio, simLeafPrice, simRootPrice, simRootWeight]);
+  }, [simArea, simPlants, simHouses, simTrees, simRootRatio, simLeafPrice, simRootPrice, simRootWeight]);
 
   if (!authed) return null;
 
@@ -246,7 +271,7 @@ export default function AdminBusiness() {
               <i className="ri-bar-chart-box-line text-emerald-500" aria-hidden="true" />
               사업자 전용 대시보드
             </h1>
-            <p className="text-[11px] text-gray-500">작목반장 시세 · 경쟁업체 비교 · 재무 시뮬레이션</p>
+            <p className="text-[11px] text-gray-500">작목반장 시세 · 출하 채널 비교 · 재무 시뮬레이션</p>
           </div>
           <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
             사업자 전용
@@ -255,7 +280,7 @@ export default function AdminBusiness() {
       </header>
 
       <div className="px-4 pt-5 space-y-5">
-        {/* ═══ 통합 시뮬레이터 — 시설 + 작물 + 공간대여 종합 ═══ */}
+        {/* ═══ 통합 시뮬레이터 — 온실 + 재배동 + 노지 종합 ═══ */}
         <section>
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-black text-gray-900 flex items-center gap-1.5">
@@ -294,20 +319,25 @@ export default function AdminBusiness() {
               <input type="range" min={0} max={70} step={5} value={simRootRatio} onChange={e => setSimRootRatio(Number(e.target.value))}
                 className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-amber-500" />
             </div>
-            {/* 공간대여 데크 */}
-            <div className="flex items-center gap-3">
-              <button type="button" onClick={() => setSimHasDeck(!simHasDeck)}
-                className={`w-12 h-7 rounded-full transition-all ${simHasDeck ? 'bg-emerald-500' : 'bg-gray-300'}`}>
-                <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${simHasDeck ? 'translate-x-6' : 'translate-x-1'}`} />
-              </button>
-              <span className="text-xs text-gray-600">공간대여 데크</span>
-              {simHasDeck && (
-                <div className="flex items-center gap-2 ml-auto">
-                  <button type="button" onClick={() => setSimDecks(Math.max(0, simDecks - 1))} className="w-7 h-7 bg-gray-100 rounded-lg text-xs font-black">-</button>
-                  <span className="text-sm font-black text-gray-900" translate="no">{simDecks}개</span>
-                  <button type="button" onClick={() => setSimDecks(Math.min(20, simDecks + 1))} className="w-7 h-7 bg-gray-100 rounded-lg text-xs font-black">+</button>
-                </div>
-              )}
+            {/* 유러피안 재배동 */}
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="text-gray-600">유러피안 재배동</span>
+                <span className="font-black text-lime-600" translate="no">{simHouses}동</span>
+              </div>
+              <input type="range" min={0} max={16} step={1} value={simHouses} onChange={e => setSimHouses(Number(e.target.value))}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-lime-500"
+                aria-label="유러피안 재배동 수" />
+            </div>
+            {/* 노지 조경수 */}
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="text-gray-600">노지 조경수 (블루엔젤·에메랄드그린)</span>
+                <span className="font-black text-blueangel-700" translate="no">{simTrees.toLocaleString()}주</span>
+              </div>
+              <input type="range" min={0} max={2000} step={50} value={simTrees} onChange={e => setSimTrees(Number(e.target.value))}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-cyan-600"
+                aria-label="노지 조경수 식재 주수" />
             </div>
           </div>
 
@@ -328,7 +358,7 @@ export default function AdminBusiness() {
                 <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center mb-2"><i className="ri-money-dollar-circle-line text-sm" /></div>
                 <p className="text-lg font-black" translate="no">{fmtWon(sim.totalRevYear)}</p>
                 <p className="text-[10px] text-white/80 mt-0.5">연간 총 매출</p>
-                <p className="text-[9px] text-white/60">작물 {fmtWon(sim.cropRevYear)} + 데크 {fmtWon(sim.deckRevYear)}</p>
+                <p className="text-[9px] text-white/60">고추냉이 {fmtWon(sim.cropRevYear)} + 특수작물 {fmtWon(sim.houseRevYear)} + 노지 {fmtWon(sim.fieldRevYear)}</p>
               </div>
             </div>
             <div className={`relative bg-gradient-to-br ${sim.annualNetProfit >= 0 ? 'from-green-500 to-emerald-600' : 'from-red-500 to-rose-600'} rounded-2xl p-4 text-white shadow-lg overflow-hidden`}>
@@ -358,7 +388,8 @@ export default function AdminBusiness() {
               {[
                 { label: `잎 매출 (${sim.leafPlants.toLocaleString()}주)`, value: sim.leafRevYear, color: 'bg-emerald-500' },
                 { label: `근경 매출 (${sim.rootPlants.toLocaleString()}주)`, value: sim.rootRevYear, color: 'bg-amber-500' },
-                { label: `공간대여 (${simHasDeck ? simDecks + '데크' : '없음'})`, value: sim.deckRevYear, color: 'bg-blue-500' },
+                { label: `유러피안 특수작물 (${simHouses}동)`, value: sim.houseRevYear, color: 'bg-lime-500' },
+                { label: `노지 조경수·화훼 (${simTrees.toLocaleString()}주)`, value: sim.fieldRevYear, color: 'bg-cyan-600' },
                 { label: '가공 제품 (추정)', value: sim.productRevYear, color: 'bg-purple-500' },
               ].map(item => (
                 <div key={item.label} className="flex items-center gap-2">
@@ -383,7 +414,7 @@ export default function AdminBusiness() {
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-black text-gray-900 flex items-center gap-1.5">
               <i className="ri-plant-line text-emerald-500" aria-hidden="true" />
-              작목반장 시세 (KAMIS 기반 추정)
+              출하 품목 시세 밴드
             </h2>
             <Link to="/price-trends" className="text-[10px] font-black text-emerald-600 flex items-center gap-0.5">
               전체 보기 <i className="ri-arrow-right-s-line" />
@@ -433,48 +464,95 @@ export default function AdminBusiness() {
           </div>
         </section>
 
-        {/* ═══ 경쟁업체 비교표 ═══ */}
+        {/* ═══ 노지 조경수 단가 — "주" 단위 거래 ═══ */}
         <section>
           <div className="mb-3">
             <h2 className="text-sm font-black text-gray-900 flex items-center gap-1.5">
-              <i className="ri-group-2-line text-blue-500" aria-hidden="true" />
-              경쟁업체 비교
+              <i className="ri-leaf-line text-emerald-500" aria-hidden="true" />
+              노지 조경수 · 과수 단가
             </h2>
-            <p className="text-[11px] text-gray-500 mt-0.5">포지셔닝·가격·USP 기반 시장 분석</p>
+            <p className="text-[11px] text-gray-500 mt-0.5">
+              kg 이 아니라 <b>주(株) 단위</b> 거래입니다. 규격(수고)이 단가를 결정합니다.
+            </p>
+          </div>
+          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 divide-y divide-gray-100 overflow-hidden">
+            {TREE_PRICE_BANDS.map(t => (
+              <div key={t.name} className="p-4">
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-gray-900">{t.name}</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5" translate="no">{t.spec}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-black text-emerald-700" translate="no">
+                      {t.mid.toLocaleString()}원
+                    </p>
+                    <p className="text-[9px] text-gray-400">주당 평균</p>
+                  </div>
+                </div>
+                {/* 단가 밴드 */}
+                <div className="relative h-5 bg-gradient-to-r from-amber-200 via-emerald-300 to-red-200 rounded-full overflow-hidden">
+                  <div
+                    className="absolute inset-y-0 bg-emerald-500 rounded-full"
+                    style={{
+                      left: `${((t.mid - t.low) / (t.high - t.low)) * 100 - 8}%`,
+                      width: '16%',
+                    }}
+                  />
+                </div>
+                <div className="flex items-center justify-between text-[10px] font-bold mt-1.5" translate="no">
+                  <span className="text-amber-700">최저 {t.low.toLocaleString()}</span>
+                  <span className="text-gray-400">원 / 주</span>
+                  <span className="text-red-700">최고 {t.high.toLocaleString()}</span>
+                </div>
+                <p className="text-[10px] text-gray-500 mt-2 leading-relaxed">💡 {t.note}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-[10px] text-gray-400 mt-2 px-1">
+            ※ 출하 성수기(3~5월 · 9~11월)에 단가가 올라갑니다. 양재 화훼공판장 경매가와 조경 시공사 직거래가의 차이가 큽니다.
+          </p>
+        </section>
+
+        {/* ═══ 출하 채널 비교표 ═══ */}
+        <section>
+          <div className="mb-3">
+            <h2 className="text-sm font-black text-gray-900 flex items-center gap-1.5">
+              <i className="ri-truck-line text-blue-500" aria-hidden="true" />
+              출하 채널 비교
+            </h2>
+            <p className="text-[11px] text-gray-500 mt-0.5">거리 · 정산 · 마진 구조로 본 채널 우선순위</p>
           </div>
           <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="divide-y divide-gray-100">
-              {COMPETITORS.map(c => (
-                <div key={c.name} className={`p-4 ${c.isUs ? 'bg-gradient-to-br from-emerald-50 to-teal-50' : ''}`}>
+              {CHANNELS.map(c => (
+                <div key={c.name} className={`p-4 ${c.isPrimary ? 'bg-gradient-to-br from-wasabi-50 to-emeraldgreen-100' : ''}`}>
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className={`text-sm font-black ${c.isUs ? 'text-emerald-900' : 'text-gray-900'}`}>{c.name}</p>
-                        {c.isUs && (
-                          <span className="text-[9px] font-black bg-emerald-500 text-white px-1.5 py-0.5 rounded">우리</span>
+                        <p className={`text-sm font-black ${c.isPrimary ? 'text-wasabi-900' : 'text-gray-900'}`}>{c.name}</p>
+                        {c.isPrimary && (
+                          <span className="text-[9px] font-black bg-wasabi-500 text-white px-1.5 py-0.5 rounded">우선</span>
                         )}
                       </div>
-                      <p className="text-[10px] text-gray-500 mt-0.5">{c.location} · 데크 {c.decks === 0 ? '없음' : `${c.decks}개`}</p>
+                      <p className="text-[10px] text-gray-500 mt-0.5">{c.items}</p>
                     </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className={`text-sm font-black ${c.isUs ? 'text-emerald-700' : 'text-gray-900'}`} translate="no">
-                        {c.weekdayPrice.toLocaleString()}원
-                      </p>
-                      <p className="text-[9px] text-gray-500">평일</p>
+                    <div className="text-right flex-shrink-0 max-w-[40%]">
+                      <p className="text-[10px] font-black text-gray-700 leading-tight">{c.distance}</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-1 gap-1.5 mt-2">
                     <div className="flex items-start gap-2 text-[11px]">
-                      <span className="text-gray-400 font-bold flex-shrink-0">포함</span>
-                      <span className={`${c.isUs ? 'text-emerald-800 font-bold' : 'text-gray-700'}`}>{c.included}</span>
+                      <span className="text-gray-400 font-bold flex-shrink-0">정산</span>
+                      <span className="text-gray-700">{c.settlement}</span>
                     </div>
                     <div className="flex items-start gap-2 text-[11px]">
-                      <span className="text-gray-400 font-bold flex-shrink-0">애견</span>
-                      <span className="text-gray-700">{c.petPolicy}</span>
+                      <span className="text-gray-400 font-bold flex-shrink-0">마진</span>
+                      <span className="text-gray-700">{c.margin}</span>
                     </div>
                     <div className="flex items-start gap-2 text-[11px]">
-                      <span className="text-gray-400 font-bold flex-shrink-0">USP</span>
-                      <span className={`${c.isUs ? 'text-emerald-800 font-bold' : 'text-gray-700'}`}>{c.usp}</span>
+                      <span className="text-gray-400 font-bold flex-shrink-0">강점</span>
+                      <span className={`${c.isPrimary ? 'text-wasabi-800 font-bold' : 'text-gray-700'}`}>{c.usp}</span>
                     </div>
                   </div>
                 </div>
@@ -482,7 +560,7 @@ export default function AdminBusiness() {
             </div>
           </div>
           <p className="text-[10px] text-gray-400 mt-2 px-1">
-            💡 비교 데이터는 공개 정보 기준 추정치. 실제 경쟁 분석은 현장 조사 후 업데이트 필요.
+            💡 채널별 수수료·정산 조건은 계약 시점에 확정됩니다. 실제 거래 데이터가 쌓이면 갱신하세요.
           </p>
         </section>
 
@@ -493,7 +571,7 @@ export default function AdminBusiness() {
               <i className="ri-line-chart-line text-purple-500" aria-hidden="true" />
               재무 시뮬레이션
             </h2>
-            <p className="text-[11px] text-gray-500 mt-0.5">예약률·매출·원가 시나리오 3종 비교</p>
+            <p className="text-[11px] text-gray-500 mt-0.5">출하 달성률·매출·원가 시나리오 3종 비교</p>
           </div>
 
           {/* 시나리오 탭 */}
@@ -516,8 +594,8 @@ export default function AdminBusiness() {
           <div className={`rounded-3xl shadow-sm border-2 p-5 ${activeScenario.bg} ${activeScenario.border}`}>
             <div className="grid grid-cols-2 gap-3 mb-4">
               <div className="bg-white rounded-xl p-3 border border-gray-100">
-                <p className="text-[10px] text-gray-500 font-bold">예약률</p>
-                <p className="text-xl font-black text-gray-900" translate="no">{activeScenario.occupancy}%</p>
+                <p className="text-[10px] text-gray-500 font-bold">출하 달성률</p>
+                <p className="text-xl font-black text-gray-900" translate="no">{activeScenario.shipRate}%</p>
               </div>
               <div className="bg-white rounded-xl p-3 border border-gray-100">
                 <p className="text-[10px] text-gray-500 font-bold">월 매출</p>
@@ -553,13 +631,21 @@ export default function AdminBusiness() {
                 </span>
               </div>
               <div className="flex items-center justify-between text-[11px] pt-2 border-t border-gray-200">
-                <span className="text-gray-500 font-bold">초기 투자</span>
+                <span className="text-gray-500 font-bold">초기 투자 (토지 포함 총사업비)</span>
                 <span className="font-black text-gray-900" translate="no">{fmtWon(INITIAL_INVESTMENT)}</span>
               </div>
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-gray-500 font-bold">└ 시설 투자만 (위 시뮬레이터 산출)</span>
+                <span className="font-black text-gray-600" translate="no">{fmtWon(sim.totalInvest)}</span>
+              </div>
+              <p className="text-[10px] text-gray-400 leading-relaxed pt-1">
+                ※ 위 ROI·BEP 는 토지 포함 총사업비 {fmtWon(INITIAL_INVESTMENT)} 기준입니다.
+                시설 투자만으로 보려면 시뮬레이터 산출액 {fmtWon(sim.totalInvest)} 을 기준으로 다시 읽어 주세요.
+              </p>
             </div>
 
             <p className="text-[10px] text-gray-500 mt-3 leading-relaxed">
-              💡 시나리오는 단순 가정치입니다. 실제 운영 데이터(월별 예약 수, 계절 변동, 인건비, 감가상각)가 쌓이면 더 정확한 예측이 가능합니다.
+              💡 시나리오는 단순 가정치입니다. 실제 운영 데이터(월별 출하량, 계절 변동, 인건비, 감가상각)가 쌓이면 더 정확한 예측이 가능합니다.
             </p>
           </div>
         </section>
@@ -624,7 +710,7 @@ export default function AdminBusiness() {
                 <p className="text-xs font-black text-blue-900 mb-1">사업자 전용 페이지 안내</p>
                 <p className="text-[11px] text-blue-800 leading-relaxed">
                   이 페이지는 <b>관리자 로그인 후에만 접근</b>할 수 있으며, 일반 고객 앱에서는 노출되지 않습니다.
-                  시세·비교·시뮬레이션 데이터는 현재 추정치이며, 실제 운영 데이터(예약·매출·원가)가 쌓이면
+                  시세·비교·시뮬레이션 데이터는 현재 추정치이며, 실제 운영 데이터(출하·매출·원가)가 쌓이면
                   자동으로 갱신되도록 Supabase 연동 후 고도화 예정입니다.
                 </p>
               </div>

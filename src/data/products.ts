@@ -1,8 +1,8 @@
 /**
  * 향재원 제품 데이터
  *
- * 2026년 9월 정식 오픈 예정. 현재 표기된 가격은 예상 판매가이며,
- * 실제 출시 전에 관리자 페이지에서 수정 가능합니다.
+ * 표기된 가격은 예상 판매가이며, 출시 전에 관리자 페이지에서 수정할 수 있습니다.
+ * 고추냉이 근경은 정식 후 18~24개월이 지나야 출하되므로 수량이 제한됩니다.
  *
  * ═══════════════════════════════════════════════════════════
  * ! 🔴 수정 포인트:
@@ -314,157 +314,64 @@ export function getProductsByCategory(category: ProductCategory | 'all'): Produc
 }
 
 // ═══════════════════════════════════════════════════════════
-// Sprint-03: 현장 판매 소모품 · 시즌 수확 · 파트너 상점
+// 농산물 출하 — 재배 구역에서 나오는 품목과 납품 채널
+//
+// ❗ 향재원은 농산물 생산 시설입니다. 현장 취식·숯불·공간대여를
+//    운영하지 않으므로 관련 품목 데이터는 존재하지 않습니다.
 // ═══════════════════════════════════════════════════════════
 
-export type OnSiteItemCategory = 'fuel' | 'utensil' | 'meal' | 'snack' | 'drink' | 'ice';
+export type FarmOutputCategory = 'wasabi' | 'european' | 'tree' | 'flower';
 
-export interface OnSiteItem {
+export interface FarmOutput {
   id: string;
-  category: OnSiteItemCategory;
+  category: FarmOutputCategory;
   name: string;
-  price: number;
+  /** 출하 단위 */
   unit: string;
+  /** 주 납품 채널 */
+  channel: string;
+  /** 출하 가능 시기 */
+  season: string;
   note?: string;
 }
 
-export const ON_SITE_ITEM_CATEGORY_LABELS: Record<OnSiteItemCategory, { label: string; icon: string }> = {
-  fuel:    { label: '숯·연료',  icon: 'ri-fire-line' },
-  utensil: { label: '집기',    icon: 'ri-knife-line' },
-  meal:    { label: '간편식',  icon: 'ri-restaurant-line' },
-  snack:   { label: '스낵',    icon: 'ri-cake-line' },
-  drink:   { label: '음료',    icon: 'ri-cup-line' },
-  ice:     { label: '얼음',    icon: 'ri-snowy-line' },
+export const FARM_OUTPUT_CATEGORY_LABELS: Record<FarmOutputCategory, { label: string; icon: string }> = {
+  wasabi:   { label: '고추냉이',        icon: 'ri-plant-line' },
+  european: { label: '유러피안 특수작물', icon: 'ri-home-4-line' },
+  tree:     { label: '조경수',          icon: 'ri-leaf-line' },
+  flower:   { label: '화훼',            icon: 'ri-flower-line' },
 };
 
-// 🟢 EDIT:ON_SITE_ITEMS ─ 현장 판매 일회용 소모품 (고기·식재료 제외)
-export const ON_SITE_ITEMS: OnSiteItem[] = [
-  { id: 'charcoal-3kg',   category: 'fuel',    name: '참숯',                price: 8000, unit: '3kg' },
-  { id: 'firestarter',    category: 'fuel',    name: '착화제',              price: 3000, unit: '1개' },
-  { id: 'disposable-set', category: 'utensil', name: '일회용 접시·수저 세트', price: 2000, unit: '5인 세트' },
-  { id: 'foil-roll',      category: 'utensil', name: '호일',                price: 2000, unit: '1롤' },
-  { id: 'cup-ramen',      category: 'meal',    name: '컵라면',              price: 2500, unit: '1개' },
-  { id: 'cup-rice',       category: 'meal',    name: '컵밥',                price: 4500, unit: '1개' },
-  { id: 'instant-soup',   category: 'meal',    name: '즉석국',              price: 3500, unit: '1팩' },
-  { id: 'snack-pack',     category: 'snack',   name: '과자',                price: 2000, unit: '1봉' },
-  { id: 'marshmallow',    category: 'snack',   name: '마시멜로',            price: 4000, unit: '1봉', note: '캠프파이어용' },
-  { id: 'skewer-set',     category: 'snack',   name: '꼬치 세트',            price: 4000, unit: '5개', note: '어묵·소세지 혼합' },
-  { id: 'water-500',      category: 'drink',   name: '생수',                price: 1500, unit: '500ml' },
-  { id: 'canned-coffee',  category: 'drink',   name: '캔 커피',              price: 2500, unit: '1캔' },
-  { id: 'canned-juice',   category: 'drink',   name: '캔 주스',              price: 2500, unit: '1캔' },
-  { id: 'soda',           category: 'drink',   name: '탄산음료',             price: 2500, unit: '1캔' },
-  { id: 'ice-1kg',        category: 'ice',     name: '얼음',                price: 3000, unit: '1kg' },
+/* 🟢 EDIT:FARM_OUTPUTS ─ 출하 품목·단위·채널 수정
+ *
+ * ❗ european 8품목은 farmStory.ts 의 CROP_HOUSES(재배동 1~8번 배정)와 1:1로 맞춰야 합니다.
+ *   두 목록이 벌어지면 "기르지도 않는 작물을 판다"는 표기가 생깁니다.
+ */
+export const FARM_OUTPUTS: FarmOutput[] = [
+  // ── 고추냉이 (수경 온실) ──
+  { id: 'wasabi-rhizome', category: 'wasabi',   name: '고추냉이 생근경', unit: '100g', channel: '직판 · 요식업 납품', season: '정식 약 18개월 후부터', note: '수확까지 긴 호흡이 필요한 품목' },
+  { id: 'wasabi-leaf',    category: 'wasabi',   name: '고추냉이 잎·줄기', unit: '100g', channel: '일식당 · 가공',     season: '정식 약 4개월 후부터' },
+
+  // ── 유러피안 채소 — 재배동 1~8번 배정 작물 ──
+  { id: 'rucola',       category: 'european', name: '루꼴라',          unit: '100g', channel: '이탈리안 레스토랑',    season: '연중 (서늘기 품질 우수)', note: '1번 재배동' },
+  { id: 'basil',        category: 'european', name: '바질 (제노베제)',  unit: '100g', channel: '이탈리안 · 홈쿠킹',   season: '연중 (가온)',            note: '2번 재배동' },
+  { id: 'butterhead',   category: 'european', name: '버터헤드 · 로메인', unit: '1통',  channel: '샐러드 전문점 · 호텔', season: '연중',                  note: '3번 재배동' },
+  { id: 'radicchio',    category: 'european', name: '라디키오 (트레비소)', unit: '1통', channel: '파인다이닝 · 그로서리', season: '가을~겨울',           note: '4번 재배동' },
+  { id: 'cavolo-nero',  category: 'european', name: '카볼로 네로',     unit: '200g', channel: '이탈리안 · 건강식',    season: '늦가을~겨울',            note: '5번 재배동 · 장기 수확' },
+  { id: 'chard',        category: 'european', name: '스위스 차드',     unit: '200g', channel: '레스토랑 · 베이비리프', season: '연중',                  note: '6번 재배동' },
+  { id: 'fennel',       category: 'european', name: '펜넬',            unit: '1구근', channel: '파인다이닝 · 델리',    season: '가을~봄',                note: '7번 재배동' },
+  { id: 'beet',         category: 'european', name: '비트',            unit: '1뿌리', channel: '레스토랑 · 가공',      season: '가을~초겨울',            note: '8번 재배동 · 잎 병행 출하' },
+
+  // ── 노지 과수 · 조경수 · 화훼 ──
+  { id: 'blueberry',     category: 'flower', name: '블루베리',        unit: 'kg',  channel: '직판 · 수확 체험',           season: '6~8월',                 note: '재배동 앞 노지 (쇄석 제거 구역)' },
+  { id: 'emerald-gold',  category: 'tree',   name: '에메랄드골드',    unit: '주',  channel: '양재 화훼공판장 · 조경시공', season: '3~5월 · 9~11월 성수기', note: '재배동 앞 노지 (쇄석 제거 구역)' },
+  { id: 'blue-angel',    category: 'tree',   name: '블루엔젤',        unit: '주',  channel: '양재 화훼공판장 · 조경시공', season: '3~5월 · 9~11월 성수기', note: '잔여 노지' },
+  { id: 'emerald-green', category: 'tree',   name: '에메랄드그린',    unit: '주',  channel: '양재 화훼공판장 · 조경시공', season: '3~5월 · 9~11월 성수기', note: '잔여 노지' },
+  { id: 'cut-flower',    category: 'flower', name: '절화 화훼',       unit: '단',  channel: '양재 화훼공판장',            season: '봄 · 가을',             note: '수확 당일 출하 원칙' },
+  { id: 'nursery',       category: 'flower', name: '판매용 묘목 · 화훼묘', unit: '포트', channel: '화훼단지 · 직판',      season: '연중' },
 ];
 
-// ───────────────────────────────────────────────────────────
-// 월별 수확 달력 (데크별 전용 텃밭)
-// ───────────────────────────────────────────────────────────
-
-export interface HarvestMonth {
-  primary: string[];   // 시즌성 주력 작물 (딸기 등)
-  rotation: string[];  // 연중 쌈채소 로테이션
+export function getFarmOutputsByCategory(category: FarmOutputCategory | 'all'): FarmOutput[] {
+  if (category === 'all') return FARM_OUTPUTS;
+  return FARM_OUTPUTS.filter(o => o.category === category);
 }
-
-// 🟢 EDIT:SEASONAL_HARVEST ─ 월별 수확 가능 작물
-export const SEASONAL_HARVEST: Record<number, HarvestMonth> = {
-  1:  { primary: ['딸기'], rotation: ['상추', '로메인'] },
-  2:  { primary: ['딸기'], rotation: ['상추', '로메인'] },
-  3:  { primary: ['딸기'], rotation: ['상추', '깻잎'] },
-  4:  { primary: ['딸기'], rotation: ['상추', '로메인', '깻잎'] },
-  5:  { primary: ['딸기'], rotation: ['상추', '깻잎', '양상추'] },
-  6:  { primary: [],       rotation: ['상추', '깻잎', '로메인', '양상추'] },
-  7:  { primary: [],       rotation: ['상추', '깻잎', '로메인', '양상추'] },
-  8:  { primary: [],       rotation: ['상추', '깻잎', '로메인', '양상추'] },
-  9:  { primary: [],       rotation: ['상추', '깻잎', '로메인', '양상추'] },
-  10: { primary: [],       rotation: ['상추', '깻잎', '로메인'] },
-  11: { primary: [],       rotation: ['상추', '깻잎', '로메인'] },
-  12: { primary: ['딸기'], rotation: ['상추', '로메인'] },
-};
-
-/** 4인 기준 300g, 1인 추가마다 +75g (최대 8인 = 600g) */
-export function calcHarvestGrams(guests: number): number {
-  const safe = Math.max(4, Math.min(8, guests));
-  return 300 + (safe - 4) * 75;
-}
-
-/** 현재 월(1-12)의 수확 정보 반환 */
-export function getHarvestForMonth(month: number): HarvestMonth {
-  const normalized = ((month - 1) % 12 + 12) % 12 + 1;
-  return SEASONAL_HARVEST[normalized];
-}
-
-// ───────────────────────────────────────────────────────────
-// 파트너 상점 (고기·식재료 배달 제휴)
-// ───────────────────────────────────────────────────────────
-
-export type PartnerCategory = 'butcher' | 'restaurant' | 'grocery';
-
-export interface PartnerStore {
-  id: string;
-  name: string;
-  category: PartnerCategory;
-  phone: string | null;
-  deliveryTimeMin: number;
-  distance: string;
-  notes: string;
-  confirmed: boolean;
-}
-
-export const PARTNER_CATEGORY_LABELS: Record<PartnerCategory, { label: string; icon: string }> = {
-  butcher:    { label: '정육점',  icon: 'ri-restaurant-2-line' },
-  restaurant: { label: '한식당',  icon: 'ri-bowl-line' },
-  grocery:    { label: '마트',   icon: 'ri-store-2-line' },
-};
-
-// 🟢 EDIT:PARTNER_STORES ─ 파트너 상점 (실 제휴 체결 시 confirmed: true + 실명·전화 교체)
-export const PARTNER_STORES: PartnerStore[] = [
-  {
-    id: 'partner-butcher-1',
-    name: '(제휴 협의 중 · 정육점)',
-    category: 'butcher',
-    phone: null,
-    deliveryTimeMin: 15,
-    distance: '—',
-    notes: '양재동 반경 1km 내 정육점 제휴 협의 예정',
-    confirmed: false,
-  },
-  {
-    id: 'partner-restaurant-1',
-    name: '(제휴 협의 중 · 한식당)',
-    category: 'restaurant',
-    phone: null,
-    deliveryTimeMin: 20,
-    distance: '—',
-    notes: '반찬·국·구이류 배달 협의 예정',
-    confirmed: false,
-  },
-];
-
-// ───────────────────────────────────────────────────────────
-// 예약 추가 옵션 (Add-on)
-// ───────────────────────────────────────────────────────────
-
-export interface BookingAddOn {
-  id: string;
-  name: string;
-  price: number;
-  description: string;
-  availability?: string;
-}
-
-// 🟢 EDIT:BOOKING_ADDONS ─ 예약 시 선택 가능한 추가 옵션
-export const BOOKING_ADDONS: BookingAddOn[] = [
-  {
-    id: 'harvest-upgrade',
-    name: '수확량 업그레이드 +200g',
-    price: 5000,
-    description: '기본 제공량에서 200g 추가 수확 (쌈 좋아하는 팀 추천)',
-  },
-  {
-    id: 'strawberry-full-course',
-    name: '딸기 풀코스 체험 +500g',
-    price: 15000,
-    description: '딸기 시즌 한정 대량 수확 체험',
-    availability: '12월 ~ 5월',
-  },
-];

@@ -4,24 +4,37 @@
  * 관리자 페이지에서 업로드한 이미지를 localStorage에 base64로 저장하고,
  * 다른 페이지에서 키로 조회해서 사용합니다.
  *
+ * ❗ 업로드 이미지 가이드
+ *   향재원은 농산물 생산 시설입니다. 야영·숙박·취식을 연상시키는 사진
+ *   (텐트 내부 침구, 화로대, 수영장, 차려진 상차림, 카페·휴게 공간 등)은 올리지 마세요.
+ *   재배 베드 · 작물 · 온실 설비 · 노지 조경수 사진을 사용합니다.
+ *
  * 저장 가능한 이미지 키 목록:
- *   ── 홈 페이지 히어로 캐러셀 (메인 화면 자동 슬라이드) ──
- *   - hero-slide-1 ~ hero-slide-5 : 홈 히어로 슬라이드 5장
+ *   ❗ 아래 키는 **모두 화면에 실제로 반영되는 슬롯**입니다.
+ *     소비처 없는 키를 추가하면 올려도 아무 변화가 없어 혼란만 생깁니다.
+ *     키를 늘릴 때는 반드시 렌더링하는 곳을 함께 만드세요.
  *
- *   ── 예약 페이지 데크 캐러셀 (Apple 스타일 슬라이드) ──
- *   - deck-slide-1 ~ deck-slide-5 : 데크 히어로 슬라이드 5장
+ *   ── 홈 ──
+ *   - hero-slide-1 : 홈 히어로 배경 (미업로드 시 메시 그라디언트)
  *
- *   ── 시설 둘러보기 대표 썸네일 ──
- *   - facility-mainhouse-thumb : 메인 하우스 대표 썸네일
- *   - facility-store-thumb     : 향재원 매점 대표 썸네일
- *   - facility-deck-thumb      : 체험 데크 대표 썸네일
- *   - facility-site-thumb      : 전체 부지 대표 썸네일
+ *   ── 재배 구역 대표 이미지 ──
+ *   - facility-greenhouse-thumb : 고추냉이 수경 온실  → /wasabi 히어로
+ *   - facility-house-thumb      : 유러피안 재배동     → /houses 히어로
+ *   - facility-field-thumb      : 노지 과수·조경수     → /field 히어로
  *
- *   ── (기존 · 호환성 유지) ──
- *   - glamping-outdoor : 스마트팜 체험 데크 외부 전경 (레거시 키)
- *   - glamping-interior: 스마트팜 체험 데크 내부 (레거시 키)
- *   - store-interior   : 향재원 매점 내부
- *   - store-products   : 매점 상품 진열대
+ *   ── 치유농업 프로그램 (업로드 전에는 SVG 일러스트가 대신 표시됩니다) ──
+ *   - care-worker : 흙 만지는 주말 (직장인)
+ *   - care-senior : 손끝 텃밭 (시니어)
+ *   - care-kids   : 흙 없는 농장 교실 (초·중학생)
+ *   - care-family : 마루의 하루 (가족)
+ *   - care-public : 공익형 치유 프로그램 (복지·장애인기관)
+ *
+ *   ── 브랜드 ──
+ *   - mascot-maru    : 마스코트 마루 일러스트
+ *   - store-products : 고추냉이 가공품 (제품 단독 촬영)  → 홈 제품 카드
+ *
+ * ❗ 치유농업 사진에는 참여자의 얼굴이 식별되지 않도록 하고,
+ *    촬영·게시 동의를 받은 사진만 업로드하세요.
  */
 
 const STORE_KEY = 'hyangjae_custom_images';
@@ -29,27 +42,20 @@ const MAX_WIDTH = 1280; // 원본이 너무 크면 리사이즈 (용량 절감)
 const JPEG_QUALITY = 0.85;
 
 export type ImageKey =
-  // 홈 히어로 캐러셀
+  // 홈 히어로 배경
   | 'hero-slide-1'
-  | 'hero-slide-2'
-  | 'hero-slide-3'
-  | 'hero-slide-4'
-  | 'hero-slide-5'
-  // 예약 페이지 데크 캐러셀
-  | 'deck-slide-1'
-  | 'deck-slide-2'
-  | 'deck-slide-3'
-  | 'deck-slide-4'
-  | 'deck-slide-5'
-  // 시설 둘러보기 대표 썸네일
-  | 'facility-mainhouse-thumb'
-  | 'facility-store-thumb'
-  | 'facility-deck-thumb'
-  | 'facility-site-thumb'
-  // 기존 호환
-  | 'glamping-outdoor'
-  | 'glamping-interior'
-  | 'store-interior'
+  // 재배 구역 대표 이미지 (각 구역 페이지 히어로)
+  | 'facility-greenhouse-thumb'
+  | 'facility-house-thumb'
+  | 'facility-field-thumb'
+  // 치유농업 프로그램 (미업로드 시 SVG 일러스트로 대체)
+  | 'care-worker'
+  | 'care-senior'
+  | 'care-kids'
+  | 'care-family'
+  | 'care-public'
+  // 브랜드 · 제품
+  | 'mascot-maru'
   | 'store-products';
 
 type ImageStore = Record<string, string>;

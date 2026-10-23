@@ -18,7 +18,7 @@ export default function CropDetail() {
       category: 'herb',
       image: '',
       overview: {
-        description: '고추냉이는 한국 국산 고급 향신료로, 서늘하고 습한 환경을 좋아합니다. 향재원에서는 메인 하우스(150평 스마트팜)에서만 재배되며, 데크 8개에서는 시기별로 상추·깻잎·로메인·양상추·딸기 등 다양한 작물이 재배됩니다. 재배 기간이 18~24개월로 매우 길어 메인 하우스 고추냉이는 가이드 투어·강판 체험 전용으로 운영됩니다.',
+        description: '고추냉이는 국산 고급 향신료로, 서늘하고 습한 환경을 좋아합니다. 향재원에서는 약 560㎡ 수경 온실에서만 재배하며, 유러피안 채소 재배동 8동에서는 루꼴라·바질·라디키오 등 동별로 다른 작물을 기릅니다. 잎·줄기는 정식 약 4개월 차부터, 근경은 약 18개월 차부터 수확합니다.',
         origin: '한국 국산',
         cultivationDifficulty: '높음',
         profitability: '매우 높음',
@@ -743,26 +743,26 @@ export default function CropDetail() {
                   향재원 운영 안내
                 </div>
                 <h3 className="text-sm font-black text-blue-900 leading-snug">
-                  <span className="bg-blue-600 text-white px-1.5 py-0.5 rounded">메인 하우스 150평</span> 고추냉이 스마트팜 · 투어 전용
+                  <span className="bg-blue-600 text-white px-1.5 py-0.5 rounded">수경 온실 560㎡</span> 고추냉이 전용 재배 구역
                 </h3>
               </div>
             </div>
             <ul className="space-y-1.5 text-[11px] text-gray-800 leading-relaxed mt-3 bg-white/80 backdrop-blur-sm rounded-2xl p-3 border border-blue-200">
               <li className="flex items-start gap-2">
                 <i className="ri-home-4-line text-blue-600 mt-0.5 flex-shrink-0" />
-                <span>고추냉이는 <b>메인 하우스에서만 재배</b>됩니다 (데크 8개에서는 상추·깻잎·로메인 등 시기별 작물 재배)</span>
+                <span>고추냉이는 <b>수경 온실에서만 재배</b>됩니다 (재배동 8동에서는 루꼴라·라디키오 등 유러피안 특수작물 재배)</span>
               </li>
               <li className="flex items-start gap-2">
                 <i className="ri-time-line text-blue-600 mt-0.5 flex-shrink-0" />
-                <span>재배 기간 <b>18~24개월</b>로 길어 대량 수확은 제공하지 않습니다</span>
+                <span>재배 기간 <b>18~24개월</b>로 길어 근경은 소량·예약 출하로만 공급합니다</span>
               </li>
               <li className="flex items-start gap-2">
                 <i className="ri-walk-line text-blue-600 mt-0.5 flex-shrink-0" />
-                <span>약 <b>20분 가이드 투어</b> + 웰컴 와사비 시식 (데크 예약에 기본 포함)</span>
+                <span>온실은 <b>농산물 생산 구역</b>입니다 · 취식·화기 사용 불가</span>
               </li>
               <li className="flex items-start gap-2">
                 <i className="ri-walk-line text-blue-600 mt-0.5 flex-shrink-0" />
-                <span><b>영어 튜터 프로그램 · 심화 투어</b> 등 체험은 데크 예약자에게만 옵션으로 제공됩니다</span>
+                <span><b>영농 견학</b>은 재배 일정에 따라 사전 협의 후에만 가능합니다</span>
               </li>
             </ul>
           </div>

@@ -9,10 +9,10 @@ const DEFAULT_CONTENT = {
   heroTitle: '향재원',
   heroSubtitle: '서초구 양재동 · 스마트팜 & 체험 공간',
   heroDesc: '고추냉이 스마트팜과 자연 속 힐링 체험을 경험하세요',
-  noticeText: '2026년 9월 정식 오픈 예정입니다. 사전 예약을 받고 있습니다.',
-  ctaBooking: '지금 예약하기',
+  noticeText: '향재원은 농산물 생산 시설입니다. 취식·화기 사용·공간대여를 운영하지 않습니다.',
+  ctaBooking: '방문 안내 보기',
   ctaMap: '오시는 길',
-  facilityDesc: '서울 서초구 양재동 178-4 · 약 536평 규모의 복합 스마트팜 공간',
+  facilityDesc: '서울 서초구 양재동 178-4 · 1,772㎡ 고추냉이 스마트팜 · 유러피안 특수작물 재배동 8동 · 노지 조경수·화훼',
   openHourWeekday: '11:00~14:00 / 18:00~21:00 (2타임)',
   openHourWeekend: '11:00~14:00 / 15:00~18:00 / 18:00~21:00 (3타임)',
   phone: '010-4929-0070',
@@ -120,7 +120,7 @@ export default function AdminContent() {
               { field: 'heroSubtitle', label: '부제목', placeholder: '서초구 양재동 · 스마트팜 & 체험 공간' },
               { field: 'heroDesc', label: '메인 설명', placeholder: '설명 문구' },
               { field: 'noticeText', label: '공지사항', placeholder: '공지 문구' },
-              { field: 'ctaBooking', label: '예약 버튼 텍스트', placeholder: '지금 예약하기' },
+              { field: 'ctaBooking', label: 'CTA 버튼 텍스트', placeholder: '방문 안내 보기' },
               { field: 'ctaMap', label: '지도 버튼 텍스트', placeholder: '오시는 길' },
               { field: 'facilityDesc', label: '시설 설명', placeholder: '시설 안내 문구' },
             ].map(row => (
@@ -282,32 +282,27 @@ interface ImageSlotDef {
   gradient: string;
 }
 
+/* ❗ 모든 슬롯은 화면에 실제로 반영되는 곳이 있습니다(설명의 "→" 뒤가 반영 위치).
+ *   소비처 없는 슬롯은 만들지 마세요 — 올려도 아무 변화가 없어 혼란만 생깁니다. */
 const IMAGE_SLOTS: ImageSlotDef[] = [
-  // ── 홈 페이지 히어로 캐러셀 (5장 자동 슬라이드) ──
-  { key: 'hero-slide-1', label: '홈 히어로 #1', description: '메인 화면 상단 · 첫 번째 슬라이드', gradient: 'from-emerald-400 to-teal-500' },
-  { key: 'hero-slide-2', label: '홈 히어로 #2', description: '메인 화면 상단 · 두 번째 슬라이드', gradient: 'from-emerald-400 to-teal-500' },
-  { key: 'hero-slide-3', label: '홈 히어로 #3', description: '메인 화면 상단 · 세 번째 슬라이드', gradient: 'from-emerald-400 to-teal-500' },
-  { key: 'hero-slide-4', label: '홈 히어로 #4', description: '메인 화면 상단 · 네 번째 슬라이드', gradient: 'from-emerald-400 to-teal-500' },
-  { key: 'hero-slide-5', label: '홈 히어로 #5', description: '메인 화면 상단 · 다섯 번째 슬라이드', gradient: 'from-emerald-400 to-teal-500' },
+  // ── 홈 ──
+  { key: 'hero-slide-1', label: '홈 히어로 배경', description: '→ 홈 최상단 히어로 배경 · 온실 또는 전체 부지 (미업로드 시 메시 그라디언트)', gradient: 'from-wasabi-400 to-emeraldgreen-600' },
 
-  // ── 예약 페이지 데크 캐러셀 (5장 자동 슬라이드) ──
-  { key: 'deck-slide-1', label: '예약 데크 #1', description: '예약 페이지 상단 · 첫 번째 슬라이드', gradient: 'from-orange-400 to-red-500' },
-  { key: 'deck-slide-2', label: '예약 데크 #2', description: '예약 페이지 상단 · 두 번째 슬라이드', gradient: 'from-orange-400 to-red-500' },
-  { key: 'deck-slide-3', label: '예약 데크 #3', description: '예약 페이지 상단 · 세 번째 슬라이드', gradient: 'from-orange-400 to-red-500' },
-  { key: 'deck-slide-4', label: '예약 데크 #4', description: '예약 페이지 상단 · 네 번째 슬라이드', gradient: 'from-orange-400 to-red-500' },
-  { key: 'deck-slide-5', label: '예약 데크 #5', description: '예약 페이지 상단 · 다섯 번째 슬라이드', gradient: 'from-orange-400 to-red-500' },
+  // ── 재배 구역 ──
+  { key: 'facility-greenhouse-thumb', label: '고추냉이 수경 온실', description: '→ /wasabi 히어로 · 수경 베드와 보광 설비가 보이는 온실 내부', gradient: 'from-wasabi-400 to-emeraldgreen-700' },
+  { key: 'facility-house-thumb', label: '유러피안 재배동', description: '→ /houses 히어로 · 재배동 내부 재배 설비', gradient: 'from-lime-400 to-wasabi-700' },
+  { key: 'facility-field-thumb', label: '노지 과수 · 조경수', description: '→ /field 히어로 · 블루베리·에메랄드골드·조경수 식재 구역', gradient: 'from-blueangel-300 to-blueangel-700' },
 
-  // ── 시설 둘러보기 대표 썸네일 ──
-  { key: 'facility-mainhouse-thumb', label: '시설 · 메인 하우스', description: '홈 화면 시설 둘러보기 · 메인 하우스 카드 대표 이미지', gradient: 'from-blue-400 to-indigo-500' },
-  { key: 'facility-store-thumb', label: '시설 · 향재원 매점', description: '홈 화면 시설 둘러보기 · 매점 카드 대표 이미지', gradient: 'from-amber-400 to-orange-500' },
-  { key: 'facility-deck-thumb', label: '시설 · 체험 데크', description: '홈 화면 시설 둘러보기 · 체험 데크 카드 대표 이미지', gradient: 'from-emerald-400 to-teal-500' },
-  { key: 'facility-site-thumb', label: '시설 · 전체 부지', description: '홈 화면 시설 둘러보기 · 전체 부지 카드 대표 이미지', gradient: 'from-purple-400 to-pink-500' },
+  // ── 치유농업 프로그램 (미업로드 시 벡터 일러스트가 표시됨) ──
+  { key: 'care-worker', label: '치유 · 흙 만지는 주말', description: '→ /care-farming/weekend-soil · 직장인 프로그램 ❗참여자 얼굴 비식별 + 촬영·게시 동의 필수', gradient: 'from-wasabi-500 to-emeraldgreen-700' },
+  { key: 'care-senior', label: '치유 · 손끝 텃밭', description: '→ /care-farming/fingertip-garden · 시니어 프로그램 ❗초상권 동의 필수', gradient: 'from-rose-400 to-soil-700' },
+  { key: 'care-kids', label: '치유 · 흙 없는 농장 교실', description: '→ /care-farming/soilless-classroom · 아동·청소년 ❗미성년자는 보호자 동의 필수', gradient: 'from-blueangel-300 to-blueangel-700' },
+  { key: 'care-family', label: '치유 · 마루의 하루', description: '→ /care-farming/maru-day · 가족 프로그램 ❗초상권 동의 필수', gradient: 'from-amber-400 to-orange-600' },
+  { key: 'care-public', label: '치유 · 공익형 프로그램', description: '→ /care-farming/public-care · 복지·장애인기관 ❗기관 협의 + 초상권 동의 필수', gradient: 'from-emeraldgreen-500 to-blueangel-700' },
 
-  // ── 기존 호환 슬롯 (삭제 금지 · 하위 호환) ──
-  { key: 'glamping-outdoor', label: '(구) 데크 외부', description: '레거시 호환 슬롯', gradient: 'from-gray-400 to-gray-500' },
-  { key: 'glamping-interior', label: '(구) 데크 내부', description: '레거시 호환 슬롯', gradient: 'from-gray-400 to-gray-500' },
-  { key: 'store-interior', label: '매점 내부', description: '예약 페이지 · 향재원 매점 전경', gradient: 'from-amber-400 to-orange-500' },
-  { key: 'store-products', label: '매점 상품', description: '가공상품 진열대 이미지', gradient: 'from-purple-400 to-pink-500' },
+  // ── 브랜드 · 제품 ──
+  { key: 'mascot-maru', label: '마스코트 마루', description: '→ 홈 마스코트 섹션 · 배경 투명 PNG 권장', gradient: 'from-wasabi-300 to-emeraldgreen-600' },
+  { key: 'store-products', label: '고추냉이 가공품', description: '→ 홈 제품 카드 · 제품 단독 촬영 (상차림·음식 사진 금지)', gradient: 'from-purple-400 to-pink-500' },
 ];
 
 function ImageUploadSection() {

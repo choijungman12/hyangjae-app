@@ -87,12 +87,12 @@ export function clearNaverPayHistory(): void {
   window.localStorage.removeItem(STORAGE_KEY);
 }
 
-/** 총 금액에서 예약금(30%, 100원 단위 반올림) 계산 */
+/** 총 금액에서 선결제금(30%, 100원 단위 반올림) 계산 */
 export function calcDeposit(total: number): number {
   return Math.round((total * 0.3) / 100) * 100;
 }
 
-/** 예약금과 현장 잔액을 한 번에 계산 */
+/** 선결제금과 잔액을 한 번에 계산 (대량 납품 선금 결제용) */
 export function splitBookingPayment(total: number): { total: number; deposit: number; remainder: number } {
   const deposit = calcDeposit(total);
   return {

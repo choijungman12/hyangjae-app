@@ -2,294 +2,236 @@
 
 > **🤖 Claude 부트스트랩 — 새 세션 첫 작업 (필독)**
 >
-> 이 프로젝트를 처음 보는 Claude 인스턴스라면, 사용자에게 답하기 전에 **반드시 다음 파일들을 모두 읽어라.** 이전 세션과 합의된 사용자 선호·금지 사항·진행 중인 스프린트 상태가 들어있다 — 이걸 읽지 않으면 같은 실수를 반복하게 된다.
+> 이 프로젝트를 처음 보는 Claude 인스턴스라면, 사용자에게 답하기 전에 반드시 아래 순서로 읽으세요.
 >
-> 1. `memory/claude-context/MEMORY.md` (인덱스)
-> 2. `memory/claude-context/project_hyangjaewon.md` (프로젝트 개요)
-> 3. `memory/claude-context/project_platform_overview.md` (4대 핵심기능·시장·비전 — 사업 자료 작성 시 필수)
-> 4. `memory/claude-context/project_business_data.md` (사업 절대값)
-> 5. `memory/claude-context/project_sprint_status.md` (스프린트 진행)
-> 6. `memory/claude-context/feedback_no_glamping.md` (금기어)
-> 7. `memory/claude-context/feedback_origin_korean.md` (원산지 규칙)
-> 8. `memory/claude-context/feedback_role_boundaries.md` (4파트 역할 경계)
-> 9. `memory/claude-context/reference_project_docs.md` (문서 위치)
-> 10. `memory/specs/*.md` (확정 스펙)
-> 11. `memory/handoff/**/*.md` (작업 지시서)
+> 1. **이 파일 전체** — 특히 아래 「서비스 정체성」
+> 2. **`src/data/farmStory.ts`** — 농장 사실관계 단일 원천. 모든 카피의 근거입니다.
+> 3. **`src/data/farmSensors.ts`** — 센서·구역·설비·알림 규칙
+> 4. `README.md` — 구조·디자인 시스템·데이터 출처
+> 5. `memory/claude-context/*.md` — 과거 세션 메모 (⚠️ 2026-10 개편 이전 내용이 섞여 있음)
 >
-> 이 부트스트랩 영역은 컴퓨터에 무관하게 git 으로 동기화되므로, 어떤 머신에서 clone 받아도 동일한 컨텍스트를 즉시 복원할 수 있다.
+> **`memory/` 의 옛 메모와 이 파일이 충돌하면 이 파일과 `farmStory.ts` 가 우선입니다.**
+
+- **기준 날짜**: 2026-10-23
+- **주 브랜치**: `main`
 
 ---
 
-**운용 방식**: 단일 저장소(main) 기반, 역할별 브랜치로 작업. **독스(기획자/QA) 가 메인 조율자**이며 나머지 3개 역할(부킹·스마트팜·디자인)은 독스의 지시서(`memory/handoff/*.md`)에 따라 본인 브랜치에서 작업 후 푸시합니다.
+## 🚨 서비스 정체성 (절대 변경 금지)
 
-- **기준 날짜**: 2026-04-12
-- **오픈 예정**: 2026년 9월
-- **주 브랜치**: `main` (독스가 병합 책임)
+**향재원 = 서울 양재동 최초의 유기농 고추냉이 수경재배 스마트팜 · 농산물 생산 시설**
+
+### ❌ 아닌 것 — 금지어
+
+`공간대여` · `데크` · `글램핑` · `야영장` · `숙박` · `숯불` · `불멍` · `콜키지` ·
+`팜투테이블` · `매점` · `시식` · `일본산 와사비`
+
+이 단어가 코드·카피·이미지 파일명에 남아 있으면 **버그**입니다.
+
+### ✅ 맞는 것
+
+- 고추냉이 수경 온실 (3단 다단 베드 총 연장 634.5m, 무농약)
+- 유러피안 채소 재배동 8동 (동별 1품목, 유기질 배지, 무농약)
+- 노지 과수·조경수·화훼 (블루베리 · 에메랄드골드 · 블루엔젤 · 에메랄드그린 · 절화)
+- 치유농업 프로그램 5종 — **설계·인증 준비 단계. 판매·모집 중이 아님**
+
+### 🔇 취식 전면 불가
+
+농장 전역에서 숯불·바비큐·도시락·음주·화기 사용이 불가합니다.
+**치유농업 프로그램 참가자도 예외가 아닙니다** — 수확물은 포장해 가져가는 방식입니다.
+무농약 재배라 병해충이 한 번 들어오면 되돌릴 방법이 없다는 것이 근거입니다.
+
+이 공지는 `NoFoodNotice` 컴포넌트로 홈 최상단과 `/visit` 에 상시 노출합니다. 제거하지 마세요.
+
+### 🖼 이미지 규칙
+
+| | |
+|---|---|
+| **금지** | 텐트 내부 침구·소파, 화로대·모닥불, 수영장, 차려진 상차림, 카페·휴게 공간, 캠핑 의자 |
+| **허용** | 재배 베드, 작물, 온실 설비, 센서·제어반, 노지 조경수, 선별·포장 작업장 |
+
+현재 앱은 **시설 사진을 직접 참조하지 않습니다.** 벡터 도해를 쓰고, 검수된 실사진은 `/admin/content` 업로드로 교체합니다.
+문제가 확인된 렌더링 3장은 `archive/non-agricultural-renders/` 로 격리했습니다.
 
 ---
 
-## 🏢 핵심 사업 데이터 (절대 값 — 모든 역할 공통)
+## 🏢 핵심 사업 데이터 (절대 값)
 
-> **이 값과 불일치하는 모든 표기는 버그입니다.**
+> 이 값과 불일치하는 모든 표기는 버그입니다. 출처는 `src/data/farmStory.ts`.
 
-### 🎯 서비스 정체성 (절대 변경 금지)
-- **향재원 = 스마트팜 공간대여 서비스** (Smart Farm Space Rental)
-- ❌ 일반 글램핑/숙박 시설 아님
-- ❌ "글램핑", "Glamping", "파머스 글램핑" 같은 표현 **사용 금지**
-- ✅ 허용 표기: "스마트팜 공간대여", "스마트팜 체험 데크", "스마트팜 공간대여 데크"
-- 본 서비스는 **농업 체험 공간대여**이며, 데크별 전용 텃밭에서 작물을 직접 수확할 수 있음
+### 위치 · 사업자
 
-### 위치·사업자
-- 서울특별시 서초구 양재동 178-4 (약 536평)
-- 팜스마트 · 대표 최정만 · 010-4929-0070
-
-### 시설
-- **메인 하우스 스마트팜 150평** (고추냉이 전용, 가이드 투어만 가능)
-- **스마트팜 체험 데크 8개** (각 데크별 전용 텃밭 포함, 최대 8인 수용, 4인 기준)
-- 주력 작물: **고추냉이 (한국 국산)** — "일본산" 표기 금지
-- 데크 텃밭 작물: 상추·로메인·깻잎·양상추·딸기 (시기별 로테이션)
-
-### 요금 (4인·3시간 기준)
 | 항목 | 값 |
 |---|---|
-| 평일 | **139,000원** |
-| 주말 | **159,000원** |
-| 인원 추가 | 1명당 **+20,000원** |
-| 시간 연장 | 1시간당 **+40,000원** |
-| 불멍 | **+30,000원** |
-| 숯불 | **+20,000원** |
+| 소재지 | 서울특별시 서초구 양재동 178-4 |
+| 면적 | 1,772㎡ (약 536평) · 자연녹지지역 |
+| 운영 | 농업회사법인 향재원 주식회사 (대표 **이민경**) |
+| 토지소유자 | 최정만 |
+| 연락처 | 010-4929-0070 |
 
-### 타임
-- **평일**: 11:00~14:00 / 18:00~21:00 (2타임)
-- **주말**: 11:00~14:00 / 15:00~18:00 / 18:00~21:00 (3타임)
+### 고추냉이 (주력)
 
-### 체험 프로그램
-- 와사비 수확 **25,000원** / 영어 튜터 **45,000원** / 스마트팜 투어 **15,000원**
+| 항목 | 값 |
+|---|---|
+| 학명 | *Eutrema japonicum* · 십자화과 |
+| 원산지 표기 | **국산 (서울 양재동 재배)** — "일본산" 금지 |
+| 재배 시스템 | 3단 다단 베드 · 총 연장 **634.5m** · 양액 순환 · 워터칠러 |
+| 수온 | **13℃ 안팎** (적정 12~14) |
+| pH | 6~7 |
+| 용존산소 | 높게 유지 (7~9.5 mg/L) |
+| 차광 | 2중 산광스크린 + 알루미늄 **75%** + 보광 LED |
+| 병해충 | 무농약 — 흙이 없어 토양 병해충 원천 차단 |
+| 양액 | 순환식 · 외부 배출 없음 |
+| 육묘 | 모주 런너 채취 → 삽목 6~8주 → 정식 |
+| 1차 정식 | **2026.11 · 10,000주** |
+| 잎·줄기 수확 | 정식 후 약 **4개월** |
+| 근경 수확 | 정식 후 약 **18개월** (2028 상반기) |
+| 확장 | 2029 하반기 **20,000주** |
+| 근경 시세 | kg당 8만원대 ~ **최대 20만원대** |
 
-### 재무
-- 연 매출 4억 · ROI 22% · BEP 3개월 · 초기 투자 15억
+### 재배동 8동 (동별 1품목)
 
----
+1 루꼴라 · 2 바질(제노베제) · 3 버터헤드·로메인 · 4 라디키오(트레비소) ·
+5 카볼로 네로 · 6 스위스 차드 · 7 펜넬 · 8 비트
 
-## 👥 역할 정의 — 4개 파트 공존
+- 코코피트·펄라이트 유기질 배지 + 순환 양액 · 화학 농약 미사용
+- **2027년 친환경(무농약) 인증 신청**
+- 수확물은 「마루의 신선 꾸러미」 정기 배송으로 서초구민 우선 공급
 
-각 역할은 **자기 브랜치**에서 작업하며, 본인 담당 영역 외 파일은 건드리지 않습니다. 경계가 겹치는 파일은 사전 협의 필요.
+### 치유농업
 
----
+- 근거 법률: 「치유농업 연구개발 및 육성에 관한 법률」(2021 시행)
+- 목표 인증: 농촌진흥청 **「우수 치유농업시설 인증」**(2026년 첫 시행)
+- 운영자: **치유농업사 양성과정 이수**
+- 프로그램 5종: 흙 만지는 주말(직장인) / 손끝 텃밭(시니어) / 흙 없는 농장 교실(초·중학생) /
+  마루의 하루(가족) / 공익형 치유 프로그램(복지·장애인기관)
+- 효과 수치는 **농촌진흥청 실증 결과**이며 화면에 출처를 반드시 함께 표기합니다
 
-### 📋 1. 독스 (기획자/QA) — 메인 조율자
+### 마스코트
 
-**브랜치**: `docs/review`
-
-**수정 가능**:
-- `*.md` — 프로젝트 문서 (README, privacy, terms 등)
-- `memory/**` — 사업계획서·메모리·handoff 지시서
-- `src/data/*.ts` — 데이터 파일 **상수값만** (interface/export 구조 유지)
-- `.env.example` — 환경변수 예시 (실제 값 금지)
-- `src/i18n/**` — 다국어 텍스트
-
-**절대 금지**:
-- 모든 `.tsx` 파일 (로직)
-- `.ts` 함수·타입 정의 변경
-- `src/components/**`, `lib/**`, `src/router/config.tsx`
-- `package.json`, 실제 `.env`
-
-**메인 조율자 권한**:
-- 4개 브랜치 통합 관리 (`main` 병합 책임)
-- 파트별 작업 지시서 발행 (`memory/handoff/for-*.md`)
-- QA 검수 + 타입체크 통과 확인 후 병합
-- CLAUDE.md 유지보수
-
-**우선 작업 (TODO)**:
-1. ✅ 개인정보 처리방침 (`privacy-policy.md`)
-2. ✅ 이용약관 (`terms-of-service.md`)
-3. ✅ README 재작성
-4. KAMIS 2026년 상반기 시세 반영 (`src/data/cropMarketInfo.ts`)
-5. 사업계획서 업데이트 (`memory/project_business_plan.md`)
-6. 앱스토어 소개 문구 (한국어·영어)
+**마루** — 고추냉이 잎과 뿌리줄기에서 따온 형태. 「마루의 신선 꾸러미」·「마루의 하루」에 이름을 씁니다.
 
 ---
 
-### 🛒 2. 부킹 (개발자 A) — 예약·이커머스·결제
+## 🎨 디자인 시스템 — Spatial Green
 
-**브랜치**: `feature/booking`
-
-**수정 가능**:
-- `src/pages/booking/**` — 데크 예약, 체험 프로그램
-- `src/pages/shop/**` — 카탈로그, 제품 상세, 장바구니
-- `src/pages/profile/**` — 사용자 마이페이지, 예약 내역
-- `src/pages/admin/bookings.tsx`, `admin/content.tsx` — 관리자 예약·콘텐츠
-- `src/lib/cart.ts` — 장바구니 상태 관리
-- `src/data/products.ts` — 제품 데이터 (독스와 협의)
-
-**절대 금지**:
-- `src/pages/smart-farm-data/**`, `device-control/**`, `price-trends/**`
-- `src/pages/cultivation-calendar/**`, `growing-guide/**`, `crop-*/**`
-- `src/components/**` (디자인 전담)
-- `src/router/config.tsx` (독스 전담)
-- `src/lib/iotClient.ts`, `kamisApi.ts`, `qrScanner.ts`
-
-**우선 작업 (TODO)**:
-1. **[Sprint-02] 예약금 30% + 네이버페이 Mock** (`memory/handoff/sprint-02-deposit-stamps/for-booking.md`)
-2. **[Sprint-02] 스탬프 적립 + 고추냉이 선물 세트 쿠폰**
-3. ✅ 예약 취소 환불 로직
-4. 결제 PG 실 연동 (Sprint-03)
-5. 주문 상태 추적 (준비/출고/배송중/완료)
-6. 재고 실시간 차감
-
-**주의사항**:
-1. **Papago 호환**: 총 금액·가격 엘리먼트에 `translate="no"` + `key` prop 필수
-2. **+/- 버튼**: `type="button"` + 함수형 setter
-3. **인원 입력**: span이 아닌 `<input type="number">`
-4. **Safe-area**: 하단 고정 버튼 `env(safe-area-inset-bottom)`
-5. **가격 계산**: 요일 기반(주말/평일) 정확히 반영
-
----
-
-### 🌱 3. 스마트팜 (개발자 B) — IoT·농업 데이터
-
-**브랜치**: `feature/smartfarm`
-
-**수정 가능**:
-- `src/pages/smart-farm-data/**` — 실시간 센서 대시보드
-- `src/pages/device-control/**` — QR 스캔 + IoT 연결
-- `src/pages/price-trends/**` — KAMIS 가격 동향
-- `src/pages/cultivation-calendar/**`, `growing-guide/**`
-- `src/pages/crop-detail/**`, `crop-data-detail/**`, `crop-recognition/**`
-- `src/pages/facility-design/**`, `ai-consultant/**`
-- `src/pages/task-calendar/**`, `task-reminders/**`, `farm-calendar-memo/**`, `guide/**`
-- `src/pages/profit-analysis/**`
-- `src/lib/iotClient.ts`, `kamisApi.ts`, `qrScanner.ts`
-- `src/data/crops.ts`, `cropMarketInfo.ts`, `cropGrowingGuide.ts` (독스와 협의)
-
-**절대 금지**:
-- `src/pages/booking/**`, `shop/**`, `profile/**`, `admin/**` (부킹 전담)
-- `src/components/**` (디자인 전담)
-- `src/lib/cart.ts`
-- `src/router/config.tsx`
-
-**핵심 데이터**:
-- **주력 작물**: 고추냉이 (*Eutrema japonicum*) — **원산지 "한국 국산"**
-- **스마트팜 환경**: 주간 15~18°C / 야간 10~13°C / 차광 50~60% / EC 1.0~1.5 / pH 6.0~6.5
-- **재배 기간**: 정식 후 18~24개월
-- **지원 작물 14종**: 상추·케일·시금치·깻잎·토마토·딸기·파프리카·오이·방울토마토·무·당근·고추냉이·바질·민트
-
-**우선 작업 (TODO)**:
-1. MQTT over WebSocket 실시간 구독
-2. KAMIS 프록시 (Vercel Serverless Function)
-3. ✅ 재배 가이드 14종 전체 확장 (완료)
-4. 실제 IoT 기기 CORS 테스트
-5. 환경 제어 자동화 룰
-
-**주의사항**:
-1. **원산지 "한국 국산"** — "일본 수입" 표기 금지
-2. **API 키** — `.env` 로만, 하드코딩 금지
-3. **CORS 에러** — 사용자에게 안내 메시지 필수
-4. **Mock fallback** — API 실패 시 graceful fallback
-5. **장비 보호 경고 배너** 유지
-
----
-
-### 🎨 4. 디자인 (디자이너) — UI/UX·스타일링
-
-**브랜치**: `design/ui-refactor`
-
-**수정 가능**:
-- `src/components/**` — BottomNav, PageHeader, Toast, CropImage, DarkModeToggle 등
-- `src/index.css` — 전역 CSS
-- `tailwind.config.ts` — Tailwind 설정
-- `public/facility-images/`, `public/guide-images/` — 이미지 자산
-- `src/lib/imageStore.ts` — 이미지 업로드
-- 각 페이지의 **JSX 구조·className만** (로직 금지)
-- `src/pages/map/**` — 지도 페이지
-
-**절대 금지**:
-- 모든 페이지의 **로직** — `useState`, `useEffect`, 함수, 이벤트 핸들러, 타입
-- `src/data/**` (데이터)
-- `src/lib/cart.ts`, `iotClient.ts`, `kamisApi.ts`, `kakaoAuth.ts`, `qrScanner.ts`
-- `src/router/config.tsx`
-- `src/pages/admin/**`
-- `.env`
-
-**디자인 시스템**:
+정의: `tailwind.config.ts` · `src/index.css`
 
 | 범주 | 값 |
 |---|---|
-| **메인 색상** | emerald-400 ~ teal-500 (브랜드) |
-| **경고** | red-500 ~ orange-500 |
-| **정보** | blue-400 ~ indigo-500 |
-| **관리자** | gray-900 ~ gray-800 |
-| **이커머스** | orange-500 ~ red-500 |
+| 브랜드 메인 | `wasabi-400 ~ wasabi-700` (`wasabi-500` = `#3aa03d`) |
+| 보조 | `emeraldgreen-*` · `blueangel-*` · `soil-*` |
+| 경고 | `red-500 ~ orange-500` |
+| 관리자 | `gray-900 ~ gray-800` |
 
-- **카드**: `bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl border border-gray-100`
-- **버튼**: `hover:scale-105 active:scale-95 transition-all duration-300`
-- **모바일 우선**, Safe-area 대응 (`env(safe-area-inset-bottom)`)
+- **카드**: `glass-card` (유리면 + 깊이 그림자 + 상단 하이라이트)
+- **배경**: `mesh-bg` (오로라 메시) + `.orb` (떠다니는 블러 오브)
+- **3D**: `.scene` + `.card-3d`, 또는 `<Tilt3D>` 래퍼
+- **진입 모션**: `animate-rise-3d` + `delay-step-N` (N = 1~8)
+- **모바일 우선**, Safe-area 대응 (`pb-safe`)
 
-**애니메이션**:
-- `animate-pulse` — 알림·LIVE
-- `animate-bounce` — 호응 (duration 2~3s)
-- `animate-fadeIn` — 모달
-- `animate-slideUp` — 바텀시트
-- `animate-bounce-in` — Toast (커스텀, tailwind.config에 정의됨)
+> `delay-step-*` 은 `src/index.css` 의 `@layer` **바깥**에 있습니다 (Tailwind 퍼지 회피). 옮기지 마세요.
 
-**타이포그래피**:
-- 제목 `font-black` / 본문 `font-bold` / 캡션 `text-xs font-medium`
-- 최소 크기 `text-[10px]`
+### 벡터 도해 (사진 대체)
 
-**우선 작업 (TODO)**:
-1. ✅ 다크 모드 지원 (`dark:` variant)
-2. 실제 스마트팜 시설/매점 사진 교체
-3. 앱 아이콘 (512, 1024 PNG)
-4. 스플래시 스크린
-5. 접근성 (aria-label, focus, 대비)
-6. 애니메이션 duration 일관성
+| 컴포넌트 | 용도 |
+|---|---|
+| `WasabiMark` | 브랜드 마크 |
+| `HydroponicBedArt` | 3단 수경 베드 단면도 |
+| `GreenhousePlanArt` | 온실 평면도·투시도 (면적 → 동 수·폭·길이 역산) |
+| `CareProgramArt` | 치유농업 프로그램 일러스트 5종 |
+| `CareProgramImage` | 업로드 사진 있으면 사진, 없으면 일러스트 |
 
 ---
 
-## 🔄 공통 작업 흐름
+## 🗂 데이터 레이어 — 여기부터 고칩니다
+
+| 파일 | 담는 것 |
+|---|---|
+| `src/data/farmStory.ts` | **농장 사실관계 단일 원천** — 프로필, 연혁, 고추냉이, 재배동 8, 노지, 치유농업, 이용수칙, 마스코트 |
+| `src/data/farmSensors.ts` | **계측 모델** — 구역, 센서 규격·적정범위, 24시간 곡선, 설비, 알림 규칙, 작물 생육 현황 |
+| `src/data/products.ts` | 가공품(`PRODUCTS`) + 농산물 출하 품목(`FARM_OUTPUTS`) |
+| `src/data/cropMarketInfo.ts` | 작물별 시세 메타데이터 (특수채소 카테고리 포함) |
+| `src/lib/kamisApi.ts` | 시세 기준값 + KAMIS 호출 + 목업 fallback |
+| `src/lib/imageStore.ts` | 관리자 업로드 이미지 키 레지스트리 |
+
+**화면에 새 문구를 쓰기 전에 데이터 파일을 먼저 고치세요.** 페이지에 상수를 직접 박으면 다음 사람이 찾지 못합니다.
+
+---
+
+## 📏 작업 원칙
+
+1. **사실만 쓴다** — 수치에는 출처를 붙이고, 모델링 값은 모델링이라고 화면에 밝힌다
+2. **준비 중인 것은 준비 중이라고 쓴다** — 치유농업 프로그램, 친환경 인증 모두 아직 미취득
+3. **금지어 체크** — 커밋 전 아래 명령으로 확인
+4. **타입 안전** — `npm run type-check` 통과 없이 커밋 금지
+5. **접근성** — 아이콘은 `aria-hidden`, 상호작용 요소에는 `aria-label`/`aria-pressed`
+
+### 검증 명령
 
 ```bash
-# 작업 시작 전 — main 최신화
-git fetch origin
-git checkout <본인 브랜치>
-git merge origin/main
+# 금지어 잔존 확인 (farmStory.ts·NoFoodNotice.tsx·README 의 "금지" 설명 맥락은 제외하고 판단)
+grep -rn "공간대여\|데크\|글램핑\|숯불\|불멍\|콜키지\|팜투테이블\|매점" src/
 
-# 작업 후
-git add <본인 담당 파일>
-git commit -m "<type>(<scope>): <내용>"
-git push origin <본인 브랜치>
+# 일본산 표기 확인
+grep -rn "일본.*원산\|원산.*일본\|일본산" src/
 
-# 독스가 통합 브랜치에 병합 후 main 으로 fast-forward
+# 타입 체크 · 린트 · 빌드
+npm run type-check
+npm run lint
+npm run build
+```
+
+> 린트 기준선: 사전 존재 오류 29건 · 경고 12건. **이 수치를 넘기지 마세요.**
+
+---
+
+## 🔐 인증 구조
+
+- 일반 고객: 카카오 소셜 로그인 / 게스트
+- 사업자: `isBusinessAuth()` — 수지분석·시설설계 접근
+- 관리자: `/admin` 로그인 (`useAdminAuth`)
+- **현재 테스트 모드** — 인증 게이트가 주석 처리되어 열려 있습니다. 운영 배포 전 반드시 복구하세요.
+  (`src/pages/admin/business.tsx`, `src/pages/facility-design/page.tsx` 의 🧪 주석 참고)
+- `ADMIN_PASSWORD` 는 `src/pages/admin/page.tsx` 에 하드코딩되어 있습니다. 배포 전 교체 필수.
+
+---
+
+## 🧭 라우트 지도
+
+```
+/                      홈
+/wasabi                고추냉이
+/houses                재배동 8동
+/field                 노지 과수·조경수·화훼
+/care-farming          치유농업 허브
+/care-farming/:id      프로그램 상세 (5종)
+/visit                 방문 안내 (취식 불가 고지)
+
+/smart-farm-data       구역별 환경 계측 · 설비 제어
+/facility-design       시설 견적 + 평면도·투시도
+/profit-analysis       수익성 (고추냉이 5개년 + 작목별)
+/price-trends          시세
+/crop-recognition · /smart-camera · /device-control
+/cultivation-calendar · /task-calendar · /task-reminders · /farm-calendar-memo
+/growing-guide · /guide · /crop-detail · /crop-data-detail · /ai-consultant
+
+/login · /profile · /map · /shop · /shop/detail · /shop/cart
+
+/admin · /admin/inquiries · /admin/products · /admin/content · /admin/business · /admin/members
+
+/booking         → /visit            (구 경로 리다이렉트)
+/admin/bookings  → /admin/inquiries  (구 경로 리다이렉트)
 ```
 
 ---
 
-## 🔒 역할 경계 공통 원칙
+## 📌 알려진 남은 일
 
-1. **본인 담당 폴더 외 수정 금지** — 경계 파일은 반드시 사전 협의
-2. **타입·함수 시그니처 변경 금지** (부킹·스마트팜·디자인 모두, 독스는 `.tsx` 건들지 않음)
-3. **사업 데이터 불일치 = 버그** — 위의 "핵심 사업 데이터" 참조
-4. **원산지 "한국 국산"** — 모든 카피에서 일관 유지
-5. **2026년 기준** — 2024/2025 잔존 표기는 버그
-
----
-
-## 🔍 자주 쓰는 검증 명령
-
-```bash
-# 사업 데이터 정합성
-grep -rn "2024\|2025" src/ --include="*.tsx"
-grep -rn "49000\|89000" src/
-grep -rn "일본.*원산\|원산.*일본" src/
-
-# 타입 체크
-npx tsc --noEmit --project tsconfig.app.json
-
-# 개발 서버
-npm run dev
-```
-
----
-
-**현재 브랜치**: `integration` → `main` 병합 대기
-**기준 날짜**: 2026-04-12
+- [ ] `public/facility-images/` 전수 검수 — 야영·휴게 연상 이미지 추가 격리
+- [ ] IoT 게이트웨이 연결 (현재 `farmSensors.ts` 일중 곡선이 모델링 값)
+- [ ] KAMIS 프록시 서버 (Vercel Serverless) — 특수채소는 KAMIS 미등재라 B2B 기준값 유지
+- [ ] Supabase 실연동 (문의·주문·출하 단가)
+- [ ] 운영 배포 전 인증 게이트 복구 + 관리자 비밀번호 교체
+- [ ] 치유농업 프로그램 실사진 확보 (참여자 초상권 동의 필수) → `care-*` 슬롯 업로드
+- [ ] `memory/claude-context/*.md` 의 개편 이전 메모 정리

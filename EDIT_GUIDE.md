@@ -64,50 +64,62 @@ const ADMIN_PASSWORD = 'hjangjae2027';
 - `stock` — 재고 수량
 - `externalLinks` — 네이버/쿠팡/11번가 URL (아래 🟣 항목 참조)
 
-### 🟢 4. 데크 요금 및 운영 정보
+### 🟢 4. 농장 사실관계 (가장 먼저 보는 곳)
 
-[src/pages/booking/page.tsx](src/pages/booking/page.tsx)
+[src/data/farmStory.ts](src/data/farmStory.ts) — 농장의 모든 사실관계가 이 파일 한 곳에 있습니다.
+화면에 새 문구를 쓰기 전에 여기부터 고치세요.
 
-```ts
-// * 🟢 EDIT:DECK_PRICE — 데크 요금 정책
-const DECK_BASE = {
-  capacity: 8,           // 최대 인원
-  weekday: 139000,       // 평일 3시간 기본 요금
-  weekend: 159000,       // 주말 3시간 기본 요금
-};
+| 상수 | 담는 것 |
+|---|---|
+| `FARM_PROFILE` | 농장명 · 주소 · 면적 · 대표 · 연락처 |
+| `FARM_STATS` | 홈 히어로 숫자 (정식 주수 · 베드 연장 · 재배동 수) |
+| `WASABI` | 고추냉이 설비 · 환경 기준값 · 생육 단계 · 생산 계획 · 판로 |
+| `CROP_HOUSES` | 재배동 1~8번 작물 배정 |
+| `FIELD_CROPS` | 노지 과수 · 조경수 · 화훼 |
+| `CARE_PROGRAMS` | 치유농업 프로그램 5종 |
+| `CARE_EVIDENCE` | 농진청 실증 수치 (출처 포함) |
+| `NO_FOOD_NOTICE` | 취식 불가 공지 문구 |
 
-// * 🟢 EDIT:EXTEND_PRICE — 시간 연장 요금
-const EXTEND_PRICE_PER_HOUR = 40000;
+❗ **공간대여·데크 요금 항목은 없습니다.** 향재원은 농산물 생산 시설이라
+숯불·불멍 같은 부가 상품이나 데크 요금 체계를 운영하지 않습니다.
 
-// * 🟢 EDIT:ADDONS — 부가 옵션 (불멍·숯불)
-const ADDONS = [...]
-```
+### 🟢 5. 출하 단가와 사업 목표
 
-관리자 페이지(`/admin/products`)에서도 수정 가능합니다.
+**출하 단가** — [`/admin/products`](src/pages/admin/products.tsx) 화면에서 직접 수정 (localStorage 저장)
+기본값은 `DEFAULT_OUTPUT_PRICES` 에 있습니다.
+단가는 **품목별 출하 단위 기준**(100g · 1통 · 주 · 단)이라 kg 환산값이
+시세 화면과 어긋나지 않는지 확인해야 합니다.
 
-### 🟢 5. 사업 목표 (수익 분석)
+**출하 품목** — [src/data/products.ts](src/data/products.ts) 의 `FARM_OUTPUTS`
+(재배동 8품목은 `CROP_HOUSES` 와 1:1로 맞춰야 합니다)
 
-[src/pages/profit-analysis/page.tsx](src/pages/profit-analysis/page.tsx) — "향재원 매출 목표" 섹션
-- 1개월차 / 3개월차 / 연간 매출 목표
-- BEP 달성 기간
-- 초기 투자비
+**사업 목표** — [src/pages/profit-analysis/page.tsx](src/pages/profit-analysis/page.tsx) "향재원 매출 목표" 섹션
 
 ### 🔵 6. 이미지 업로드
 
-**방법 1 — 앱 내 업로드 (권장)**
-- 관리자 로그인 (`/admin`)
-- 콘텐츠 관리 → 이미지 탭
-- 4가지 슬롯(글램핑 외부/내부, 매점 내부/상품) 업로드
+관리자 로그인(`/admin`) → 콘텐츠 관리 → 이미지 탭에서 올립니다.
+**모든 슬롯은 화면에 실제로 반영되는 곳이 있습니다**(설명의 "→" 뒤가 반영 위치).
 
-**방법 2 — 파일 직접 저장**
-- `public/facility-images/` 폴더에 저장
-- 파일명 예: `glamping-outdoor.jpg`, `store-interior.jpg`
+| 슬롯 | 반영 위치 |
+|---|---|
+| 홈 히어로 배경 | 홈 최상단 |
+| 고추냉이 수경 온실 | `/wasabi` 히어로 |
+| 유러피안 재배동 | `/houses` 히어로 |
+| 노지 과수 · 조경수 | `/field` 히어로 |
+| 치유농업 5종 | `/care-farming/:id` 각 프로그램 |
+| 마스코트 마루 | 홈 마스코트 섹션 |
+| 고추냉이 가공품 | 홈 제품 카드 |
+
+**촬영 금지** — 텐트 내부 침구, 화로대·모닥불, 수영장, 차려진 상차림, 카페·휴게 공간
+**촬영 권장** — 재배 베드, 작물, 온실 설비, 센서·제어반, 노지 조경수, 선별·포장 작업장
+
+치유농업 사진은 **참여자 얼굴이 식별되지 않도록** 하고, 촬영·게시 동의를 받은 사진만 올리세요.
+미업로드 상태에서는 벡터 도해·일러스트가 대신 표시되므로 빈 화면이 되지 않습니다.
 
 ### 🟡 7. 연락처 및 주소
 
-**전화번호:**
-- [src/pages/booking/page.tsx](src/pages/booking/page.tsx) — 하단 "문의" 섹션
-- [src/pages/map/page.tsx](src/pages/map/page.tsx) — "예약 문의" 링크
+**전화번호:** [src/data/farmStory.ts](src/data/farmStory.ts) 의 `FARM_PROFILE.phone`
+(홈 푸터 · [/visit](src/pages/visit/page.tsx) · [/map](src/pages/map/page.tsx) · 치유농업 상세가 모두 이 값을 읽습니다)
 
 **주소 / 좌표:**
 - [src/pages/map/page.tsx:5-8](src/pages/map/page.tsx) — `ADDRESS`, `LAT`, `LNG`

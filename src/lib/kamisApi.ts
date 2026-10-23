@@ -128,12 +128,31 @@ async function fetchFromKamis(cropId: string, itemCode: string, cropName: string
   };
 }
 
-/* ───────── 목업 데이터 생성 ─────────
- * 2025년 기준 현실적 도매 평균가 (가락시장 + KAMIS 평균)
- * 출처: KAMIS 2025-2026 연간 평균 시세
+/* ───────── 시세 기준값 ─────────
+ * 가락시장 경락가 + KAMIS 연간 평균을 기준으로 한 도매가(원/kg).
+ *
+ * 특수채소(루꼴라·라디키오·펜넬 등)와 고추냉이는 KAMIS 정식 품목이 아니라
+ * 경락 데이터가 없습니다. 레스토랑·호텔 B2B 실거래가를 기준으로 잡고
+ * 코드는 내부용 9999xx 를 씁니다.
+ *
+ * 노지 조경수(블루엔젤·에메랄드그린·에메랄드골드)는 "주" 단위 거래라
+ * kg 기반인 이 모듈이 아니라 사업자 대시보드에서 다룹니다.
  */
 const CROP_BASE_PRICES: Record<string, { name: string; code: string; base: number; vol: number }> = {
   // id: { 품목명, KAMIS 코드, 기준가(원/kg), 변동성(%)}
+
+  /* ── 향재원 주력 ── */
+  'wasabi-leaf':   { name: '고추냉이 잎',  code: '999904', base: 20000, vol: 0.12 },
+  'rucola':        { name: '루꼴라',       code: '999905', base: 16000, vol: 0.22 },
+  'radicchio':     { name: '라디키오',     code: '999906', base: 22000, vol: 0.26 },
+  'butterhead':    { name: '버터헤드',     code: '999907', base: 7500,  vol: 0.30 },
+  'cavolo-nero':   { name: '카볼로 네로',  code: '999908', base: 18000, vol: 0.20 },
+  'chard':         { name: '스위스 차드',  code: '999909', base: 12000, vol: 0.24 },
+  'fennel':        { name: '펜넬',         code: '999910', base: 14000, vol: 0.28 },
+  'beet':          { name: '비트',         code: '999911', base: 6500,  vol: 0.26 },
+  'blueberry':     { name: '블루베리',     code: '226301', base: 24000, vol: 0.28 },
+
+  /* ── 비교 작목 (KAMIS 정식 품목) ── */
   'lettuce':       { name: '상추',       code: '214001', base: 9500,  vol: 0.35 },
   'kale':          { name: '케일',       code: '214009', base: 12000, vol: 0.20 },
   'spinach':       { name: '시금치',     code: '214006', base: 6500,  vol: 0.40 },
@@ -145,7 +164,7 @@ const CROP_BASE_PRICES: Record<string, { name: string; code: string; base: numbe
   'cherry-tomato': { name: '방울토마토', code: '225102', base: 9200,  vol: 0.22 },
   'radish':        { name: '무',         code: '211301', base: 2800,  vol: 0.30 },
   'carrot':        { name: '당근',       code: '211401', base: 4200,  vol: 0.25 },
-  'wasabi':        { name: '고추냉이',   code: '999901', base: 85000, vol: 0.10 }, // 국내 유통량 적어 KAMIS 미등재 → 전문 시세
+  'wasabi':        { name: '고추냉이 근경', code: '999901', base: 120000, vol: 0.10 }, // KAMIS 미등재 · B2B 실거래 기준 (최고 20만원대)
   'basil':         { name: '바질',       code: '999902', base: 38000, vol: 0.15 },
   'mint':          { name: '민트',       code: '999903', base: 32000, vol: 0.15 },
 };
